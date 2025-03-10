@@ -372,7 +372,7 @@ const _saveState = {
 /**
  * Saves current state to object
  */
-export function push() {
+export function save() {
   Mix.ctx.save();
   // Field
   _saveState.field.isActive = FF.isActive;
@@ -402,7 +402,7 @@ export function push() {
 /**
  * Restores previous state from object
  */
-export function pop() {
+export function restore() {
   Mix.ctx.restore();
   let m = Mix.ctx.getTransform();
   Matrix.x = m.e;
@@ -1077,7 +1077,7 @@ const B = {
    */
   draw(angle_scale, isPlot) {
     if (!isPlot) this.dir = angle_scale;
-    this.pushState();
+    this.saveState();
     const st = this.spacing();
     const total_steps = isPlot
       ? Math.round((this.length * angle_scale) / st)
@@ -1090,13 +1090,13 @@ const B = {
         this.position.moveTo(st, angle_scale, st, this.flow);
       }
     }
-    this.popState();
+    this.restoreState();
   },
 
   /**
    * Sets up the environment for a brush stroke.
    */
-  pushState() {
+  saveState() {
     this.p = this.list.get(this.name).param;
     // Pressure values for the stroke
     this.a = this.p.pressure.type !== "custom" ? R.rr(-1, 1) : 0;
@@ -1121,7 +1121,7 @@ const B = {
   /**
    * Restores the drawing state after a brush stroke is completed.
    */
-  popState() {
+  restoreState() {
     Mix.ctx.fill();
     this.markerTip();
     Mix.ctx.restore();
@@ -1499,7 +1499,7 @@ export function line(x1, y1, x2, y2) {
   _ensureReady();
   let d = R.dist(x1, y1, x2, y2);
   if (d == 0) return;
-  B.initializeDrawingState(x1, y1, d, false, false);
+  B.initializeDrawingState(x1, y1, d, true, false);
   let angle = R.calcAngle(x1, y1, x2, y2);
   B.draw(angle, false);
 }
@@ -2896,4 +2896,37 @@ for (let s of _standard_brushes) {
   let obj = {};
   for (let i = 0; i < s[1].length; i++) obj[_vals[i]] = s[1][i];
   add(s[0], obj);
+}
+
+
+// =============================================================================
+// Section: Drawing Loop
+// =============================================================================
+
+let _time = 0,
+  _isLoop = true, drawingLoop;
+
+export function loop(_drawingLoop) {
+  drawingLoop = _drawingLoop;
+  _isLoop = true;
+  requestAnimationFrame(drawLoop);
+}
+
+export let frameRate = 30;
+export let frameCount = 0;
+
+export function noLoop() {
+  _isLoop = false;
+}
+
+function drawLoop(timeStamp) {
+  if (_isLoop) {
+    if (timeStamp > _time + 1000 / frameRate || timeStamp === 0) {
+      _time = timeStamp;
+      frameCount++;
+      drawingLoop();
+      endFrame();
+    }
+  }
+  requestAnimationFrame(drawLoop);
 }

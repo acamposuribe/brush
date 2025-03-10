@@ -8,7 +8,7 @@ const canvas = document.createElement("canvas");
 canvas.classList.add("canvas");
 canvas.setAttribute("id", "main");
 canvas.width = 1200;
-canvas.height = 1800;
+canvas.height = 1750;
 
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
@@ -43,10 +43,10 @@ brush.add("tiza", {
 
 let rr = brush.random();
 
-function draw() {
+const Loop = () => {
   brush.background(255);
 
-  brush.push();
+  brush.save();
 
   /*
   brush.fill(brush.random(palette), 60);
@@ -59,8 +59,8 @@ function draw() {
   brush.stroke("#ff2702");
   brush.rect(200, 200, 600, 600);
 
-  brush.hatch(9, 0.01, { continuous: true, rand: 0.08 });
-  brush.setHatch("tiza", "#ff2702", 0.7);
+  brush.hatch(9, 0, { continuous: true, rand: 0.08 });
+  brush.setHatch("charcoal", "#ff2702", 0.7);
   brush.rect(200, 200, 600, 100);
   brush.noHatch();
 
@@ -90,31 +90,8 @@ function draw() {
 
   brush.circle(765, 1390, 58);
 
-  brush.pop();
-  noLoop();
+  brush.restore();
+  brush.noLoop();
 }
 
-//////////////////////////////////////////////////
-// LOOP STUFF
-let time = 0,
-  isLoop = true,
-  frameCount = 0;
-function loop() {
-  isLoop = true;
-  requestAnimationFrame(draw);
-}
-function noLoop() {
-  isLoop = false;
-}
-async function drawLoop(timeStamp) {
-  if (isLoop) {
-    if (timeStamp > time + 1000 / 30 || timeStamp === 0) {
-      time = timeStamp;
-      frameCount++;
-      draw();
-      brush.endFrame();
-    }
-  }
-  requestAnimationFrame(drawLoop);
-}
-requestAnimationFrame(drawLoop);
+brush.loop(Loop)
