@@ -19,7 +19,7 @@ brush.set("pen", "#ff2702", 1.6);
 brush.field("handwriting");
 
 brush.scaleBrushes(7);
-brush.bleed(0.5);
+brush.bleed(0.2);
 brush.fillTexture(0.7, 0.6);
 
 brush.add("tiza", {
@@ -43,55 +43,61 @@ brush.add("tiza", {
 
 let rr = brush.random();
 
-const Loop = () => {
+
+const draw = () => {
   brush.background(255);
 
-  brush.save();
-
   /*
-  brush.fill(brush.random(palette), 60);
+  brush.save();
+  brush.fillStyle(brush.random(palette), 60);
   brush.translate(canvas.width / 2, canvas.height / 2);
   brush.rect(75, 75, 300, 300, "center");
+  brush.noFill()
+  brush.restore()
   */
 
+  brush.save();
   brush.translate(100, 90);
 
-  brush.stroke("#ff2702");
+  brush.strokeStyle("#ff2702")
   brush.rect(200, 200, 600, 600);
 
-  brush.hatch(9, 0, { continuous: true, rand: 0.08 });
-  brush.setHatch("charcoal", "#ff2702", 0.7);
+  brush.hatch(7, 0, { rand: 0.08 });
+  brush.hatchStyle("charcoal", "#ff2702", 0.7);
   brush.rect(200, 200, 600, 100);
   brush.noHatch();
 
-  brush.stroke("#002185");
+  brush.strokeStyle("#002185")
   brush.rect(170, 450, 120, 900);
-
   brush.hatch(7, Math.PI / 2, { rand: 0.05 });
-  brush.setHatch("charcoal", "#002185", 0.7);
+  brush.hatchStyle("charcoal", "#002185", 0.7);
   brush.rect(170, 1350, 120, 120);
 
   brush.noHatch();
   brush.rect(420, 690, 120, 760);
-  brush.flowLine(480, 800, 570, -Math.PI / 2);
-  brush.flowLine(480, 1370, 100, -Math.PI / 2 + Math.PI / 5);
-  brush.flowLine(480, 1370, 100, -Math.PI / 2 - Math.PI / 5);
+  brush.stroke(480, 800, 570, -Math.PI / 2);
+  brush.stroke(480, 1370, 100, -Math.PI / 2 + Math.PI / 5);
+  brush.stroke(480, 1370, 100, -Math.PI / 2 - Math.PI / 5);
 
   brush.rect(680, 80, 120, 120);
   brush.circle(740, 140, 45);
 
-  brush.stroke("#ff2702");
-  brush.beginShape(0);
-  brush.vertex(710, 1370, 1);
-  brush.vertex(710, 720, 1);
-  brush.vertex(820, 720, 1);
-  brush.vertex(820, 1370, 1);
-  brush.endShape();
+
+  brush.strokeStyle("#ff2702")
+
+  brush.beginPath();
+  brush.moveTo(710, 1370, 1);
+  brush.lineTo(710, 720, 1);
+  brush.lineTo(820, 720, 1);
+  brush.lineTo(820, 1370, 1);
+
+  brush.drawPath();
 
   brush.circle(765, 1390, 58);
 
   brush.restore();
+  
   brush.noLoop();
 }
 
-brush.loop(Loop)
+brush.loop(draw)

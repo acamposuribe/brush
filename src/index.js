@@ -75,7 +75,7 @@ export function load(canvasID, canvas) {
  * Preloads necessary assets or configurations.
  * This function should be called before setup to ensure all assets are loaded.
  */
-export function preload() {
+function preload() {
   // Load custom image tips
   T.load();
 }
@@ -1014,15 +1014,6 @@ export function scaleBrushes(_scale) {
 const PI2 = Math.PI * 2;
 
 /**
- * Disables the stroke for subsequent drawing operations.
- * This function sets the brush's `isActive` property to false, indicating that no stroke
- * should be applied to the shapes drawn after this method is called.
- */
-export function noStroke() {
-  B.isActive = false;
-}
-
-/**
  * Retrieves a list of all available brush names from the brush manager.
  * @returns {Array<string>} An array containing the names of all brushes.
  */
@@ -1439,18 +1430,16 @@ export function add(a, b) {
  * @param {number} weight - The weight (size) to set for the brush.
  */
 export function set(brushName, color, weight = 1) {
-  pick(brushName);
-  B.c = new Color(color);
-
-  B.w = weight;
-  B.isActive = true;
+  type(brushName);
+  strokeStyle(color);
+  lineWidth(weight);
 }
 
 /**
  * Sets only the current brush type based on the given name.
  * @param {string} brushName - The name of the brush to set as current.
  */
-export function pick(brushName) {
+export function type(brushName) {
   B.name = brushName;
 }
 
@@ -1460,16 +1449,25 @@ export function pick(brushName) {
  * @param {number} [g] - The green component of the color.
  * @param {number} [b] - The blue component of the color.
  */
-export function stroke(r, g, b) {
+export function strokeStyle(r, g, b) {
   B.c = new Color(...arguments);
   B.isActive = true;
+}
+
+/**
+ * Disables the stroke for subsequent drawing operations.
+ * This function sets the brush's `isActive` property to false, indicating that no stroke
+ * should be applied to the shapes drawn after this method is called.
+ */
+export function noStroke() {
+  B.isActive = false;
 }
 
 /**
  * Sets the weight (size) of the current brush.
  * @param {number} weight - The weight to set for the brush.
  */
-export function strokeWeight(weight) {
+export function lineWidth(weight) {
   B.w = weight;
 }
 
@@ -1489,42 +1487,13 @@ export function noClip() {
 }
 
 /**
- * Draws a line using the current brush from (x1, y1) to (x2, y2).
- * @param {number} x1 - The x-coordinate of the start point.
- * @param {number} y1 - The y-coordinate of the start point.
- * @param {number} x2 - The x-coordinate of the end point.
- * @param {number} y2 - The y-coordinate of the end point.
- */
-export function line(x1, y1, x2, y2) {
-  _ensureReady();
-  let d = R.dist(x1, y1, x2, y2);
-  if (d == 0) return;
-  B.initializeDrawingState(x1, y1, d, true, false);
-  let angle = R.calcAngle(x1, y1, x2, y2);
-  B.draw(angle, false);
-}
-
-/**
- * Draws a flow line with the current brush from a starting point in a specified direction.
- * @param {number} x - The x-coordinate of the starting point.
- * @param {number} y - The y-coordinate of the starting point.
- * @param {number} length - The length of the line to draw.
- * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
- */
-export function flowLine(x, y, length, dir) {
-  _ensureReady();
-  B.initializeDrawingState(x, y, length, true, false);
-  B.draw(R.toDegrees(dir), false);
-}
-
-/**
- * Draws a predefined shape/plot with a flowing brush stroke.
+ * Draws a predefined plot.
  * @param {Object} p - An object representing the shape to draw.
  * @param {number} x - The x-coordinate of the starting position to draw the shape.
  * @param {number} y - The y-coordinate of the starting position to draw the shape.
  * @param {number} scale - The scale at which to draw the shape.
  */
-export function plot(p, x, y, scale) {
+function plot(p, x, y, scale) {
   _ensureReady();
   B.initializeDrawingState(x, y, p.length, true, p);
   B.draw(scale, true);
@@ -1622,7 +1591,7 @@ export function hatch(
  * @param {string|Color} color - The color to set for the brush.
  * @param {number} weight - The weight (size) to set for the brush.
  */
-export function setHatch(brush, color = "black", weight = 1) {
+export function hatchStyle(brush, color = "black", weight = 1) {
   H.hatchingBrush = [brush, color, weight];
 }
 
@@ -1788,13 +1757,14 @@ const H = {
 export const hatchArray = H.hatch;
 
 // =============================================================================
-// Section: Polygon management. Basic geometries
+// Section: Polygon and Plot Classes
 // =============================================================================
 /**
  * This section includes the Polygon class for managing polygons and functions for drawing basic geometries
  * like rectangles and circles. It provides methods for creating, intersecting, drawing, and filling polygons,
- * as well as hatching them with a given distance and angle. Additional functions leverage the Polygon class
- * to draw rectangles with options for randomness and different drawing modes.
+ * as well as hatching them with a given distance and angle.
+ * It also defines the functionality for creating and managing plots, which are used to draw complex shapes,
+ * strokes, and splines on a canvas.
  */
 
 /**
@@ -1860,7 +1830,7 @@ export class Polygon {
   fill(_color = false, _opacity, _bleed, _texture, _border, _direction) {
     let curState = F.isActive;
     if (_color) {
-      fill(_color, _opacity);
+      fillStyle(_color, _opacity);
       bleed(_bleed, _direction);
       fillTexture(_texture, _border);
     }
@@ -1912,58 +1882,6 @@ function drawPolygon(vertices) {
     else Mix.ctx.lineTo(v.x, v.y);
   }
 }
-
-/**
- * Creates a Polygon from a given array of points and performs drawing and filling
- * operations based on active states.
- *
- * @param {Array} pointsArray - An array of points where each point is an array of two numbers [x, y].
- */
-export function polygon(pointsArray) {
-  // Create a new Polygon instance
-  let polygon = new Polygon(pointsArray);
-  polygon.show();
-}
-
-/**
- * Draws a rectangle on the canvas and fills it with the current fill color.
- *
- * @param {number} x - The x-coordinate of the rectangle.
- * @param {number} y - The y-coordinate of the rectangle.
- * @param {number} w - The width of the rectangle.
- * @param {number} h - The height of the rectangle.
- * @param {boolean} [mode="corner"] - If "center", the rectangle is drawn centered at (x, y).
- */
-export function rect(x, y, w, h, mode = "corner") {
-  if (mode == "center") (x = x - w / 2), (y = y - h / 2);
-  if (FF.isActive) {
-    beginShape(0);
-    vertex(x, y);
-    vertex(x + w, y);
-    vertex(x + w, y + h);
-    vertex(x, y + h);
-    endShape("close");
-  } else {
-    let p = new Polygon([
-      [x, y],
-      [x + w, y],
-      [x + w, y + h],
-      [x, y + h],
-    ]);
-    p.show();
-  }
-}
-
-// =============================================================================
-// Section: Shape, Stroke, and Spline. Plot System
-// =============================================================================
-/**
- * This section defines the functionality for creating and managing plots, which are used to draw complex shapes,
- * strokes, and splines on a canvas. It includes classes and functions to create plots of type "curve" or "segments",
- * manipulate them with operations like adding segments and applying rotations, and render them as visual elements
- * like polygons or strokes. The spline functionality allows for smooth curve creation using control points with
- * specified curvature, which can be rendered directly or used as part of more complex drawings.
- */
 
 /**
  * The Plot class is central to the plot system, serving as a blueprint for creating and manipulating a variety
@@ -2200,8 +2118,84 @@ export class Plot {
   }
 }
 
+
+// =============================================================================
+// Section: Primitives and Geommetry
+// =============================================================================
+
 /**
- * Draws a circle on the canvas and fills it with the current fill color.
+ * Draws a line using the current brush from (x1, y1) to (x2, y2).
+ * @param {number} x1 - The x-coordinate of the start point.
+ * @param {number} y1 - The y-coordinate of the start point.
+ * @param {number} x2 - The x-coordinate of the end point.
+ * @param {number} y2 - The y-coordinate of the end point.
+ */
+export function line(x1, y1, x2, y2) {
+  _ensureReady();
+  let d = R.dist(x1, y1, x2, y2);
+  if (d == 0) return;
+  B.initializeDrawingState(x1, y1, d, true, false);
+  let angle = R.calcAngle(x1, y1, x2, y2);
+  B.draw(angle, false);
+}
+
+/**
+ * Draws a stroke with the current brush from a starting point in a specified direction.
+ * @param {number} x - The x-coordinate of the starting point.
+ * @param {number} y - The y-coordinate of the starting point.
+ * @param {number} length - The length of the line to draw.
+ * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
+ */
+export function stroke(x, y, length, dir) {
+  _ensureReady();
+  B.initializeDrawingState(x, y, length, true, false);
+  B.draw(R.toDegrees(dir), false);
+}
+
+/**
+ * Creates a Polygon from a given array of points and performs drawing and filling
+ * operations based on active states.
+ *
+ * @param {Array} pointsArray - An array of points where each point is an array of two numbers [x, y].
+ */
+export function polygon(pointsArray) {
+  // Create a new Polygon instance
+  let polygon = new Polygon(pointsArray);
+  polygon.show();
+}
+
+/**
+ * Draws a rectangle on the canvas and fills it with the current fill color.
+ *
+ * @param {number} x - The x-coordinate of the rectangle.
+ * @param {number} y - The y-coordinate of the rectangle.
+ * @param {number} w - The width of the rectangle.
+ * @param {number} h - The height of the rectangle.
+ * @param {boolean} [mode="corner"] - If "center", the rectangle is drawn centered at (x, y).
+ */
+export function rect(x, y, w, h, mode = "corner") {
+  if (mode == "center") (x = x - w / 2), (y = y - h / 2);
+  if (FF.isActive) {
+    beginPath(0);
+    moveTo(x, y);
+    lineTo(x + w, y);
+    lineTo(x + w, y + h);
+    lineTo(x, y + h);
+    closePath()
+    drawPath();
+  } else {
+    let p = new Polygon([
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ]);
+    p.show();
+  }
+}
+
+/**
+ * Draws a circle on the canvas
  *
  * @param {number} x - The x-coordinate of the center of the circle.
  * @param {number} y - The y-coordinate of the center of the circle.
@@ -2250,52 +2244,65 @@ export function arc(x, y, radius, start, end) {
   p.draw(x + radius * R.cos(-a1 - 90), y + radius * R.sin(-a1 - 90), 1);
 }
 
-// Holds the array of vertices for the custom shape being defined. Each vertex includes position and optional pressure.
-let _strokeArray = false;
-// Holds options for the stroke, such as curvature, that can influence the shape's rendering.
-let _strokeOption;
 
-/**
- * Starts recording vertices for a custom shape. Optionally, a curvature can be defined.
- * @param {number} [curvature] - From 0 to 1. Defines the curvature for the vertices being recorded (optional).
- */
-export function beginShape(curvature = 0) {
-  _strokeOption = R.constrain(curvature, 0, 1); // Set the curvature option for the shape
-  _strokeArray = []; // Initialize the array to store vertices
-}
 
-/**
- * Records a vertex in the custom shape being defined between beginShape and endShape.
- * @param {number} x - The x-coordinate of the vertex.
- * @param {number} y - The y-coordinate of the vertex.
- * @param {number} [pressure] - The pressure at the vertex (optional).
- */
-export function vertex(x, y, pressure) {
-  _strokeArray.push([x, y, pressure]); // Add the vertex to the array
-}
 
-/**
- * Finishes recording vertices for a custom shape and either closes it or leaves it open.
- * It also triggers the drawing of the shape with the active stroke(), fill() and hatch() states.
- * @param {string} [a] - An optional argument to close the shape if set to "close".
- */
-export function endShape(a) {
-  if (a === "close") {
-    _strokeArray.push(_strokeArray[0]); // Close the shape by connecting the last vertex to the first
-    _strokeArray.push(_strokeArray[1]);
+let _pathArray;
+let _current;
+let _curvature;
+
+class SubPath {
+  constructor () {
+    this.isClosed = false;
+    this.curvature = _curvature;
+    this.vert = [];
   }
-  // Create a new Plot with the recorded vertices and curvature option
-  let plot =
-    _strokeOption == 0 && !FF.isActive
-      ? new Polygon(_strokeArray)
+  vertex(x,y,pressure) {
+    this.vert.push([x,y,pressure])
+  }
+  show () {
+    let plot =
+    this.curvature === 0 && !FF.isActive
+      ? new Polygon(this.vert)
       : _createSpline(
-          _strokeArray,
-          _strokeOption,
-          a === "close" ? true : false
+          this.vert,
+          this.curvature,
+          this.isClosed
         );
-  plot.show();
-  _strokeArray = false; // Clear the array after the shape has been drawn
+        plot.show();
+  }
 }
+
+export function beginPath(curvature = 0) {
+  _curvature = R.constrain(curvature, 0, 1)
+  _pathArray = [];
+}
+
+export function moveTo(x, y, pressure = 1) {
+  _current = new SubPath()
+  _pathArray.push(_current)
+  _current.vertex(x,y,pressure)
+}
+
+export function lineTo(x, y, pressure = 1) {
+  _current.vertex(x,y,pressure)
+}
+
+export function closePath() {
+  _current.vertex(..._current.vert[0])
+  _current.vertex(..._current.vert[1])
+  _current.isClosed = true;
+}
+
+export function drawPath() {
+  for (let sub of _pathArray) {
+    sub.show()
+  }
+  _pathArray = false;
+}
+
+
+let _strokeArray, _strokeOrigin;
 
 /**
  * Begins a new stroke with a given type and starting position. This initializes
@@ -2305,7 +2312,7 @@ export function endShape(a) {
  * @param {number} y - The y-coordinate of the starting point of the stroke.
  */
 export function beginStroke(type, x, y) {
-  _strokeOption = [x, y]; // Store the starting position for later use
+  _strokeOrigin = [x, y]; // Store the starting position for later use
   _strokeArray = new Plot(type); // Initialize a new Plot with the specified type
 }
 
@@ -2325,9 +2332,9 @@ export function segment(angle, length, pressure) {
  * @param {number} angle - The angle of the curve at the last point of the stroke path.
  * @param {number} pressure - The pressure at the end of the stroke.
  */
-export function endStroke(angle, pressure) {
+export function drawStroke(angle, pressure) {
   _strokeArray.endPlot(angle, pressure); // Finalize the Plot with the end angle and pressure
-  _strokeArray.draw(_strokeOption[0], _strokeOption[1], 1); // Draw the stroke using the stored starting position
+  _strokeArray.draw(_strokeOrigin[0], _strokeOrigin[1], 1); // Draw the stroke using the stored starting position
   _strokeArray = false; // Clear the _strokeArray to indicate the end of this stroke
 }
 
@@ -2468,7 +2475,7 @@ export function noErase() {
  * @param {number} [c] - The blue component of the color.
  * @param {number} [d] - The opacity of the color.
  */
-export function fill(a, b, c, d) {
+export function fillStyle(a, b, c, d) {
   _ensureReady();
   F.opacity = arguments.length < 4 ? b : d;
   F.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
