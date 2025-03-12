@@ -9,65 +9,47 @@ canvas.classList.add("canvas");
 canvas.setAttribute("id", "main");
 canvas.width = 1200;
 canvas.height = 1750;
-
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
 
+// Load brush library
 brush.load("main", canvas);
-brush.set("pen", "#ff2702", 1.6);
 
-brush.field("handwriting");
+// Scale brushes to canvas
+brush.scaleBrushes(5);
 
-brush.scaleBrushes(7);
-brush.bleed(0.2);
-brush.fillTexture(0.7, 0.6);
+brush.seed("hola");
+brush.fillBleed(0.3);
+brush.fillTexture(0.9, 0.6);
 
-brush.add("tiza", {
-  type: "custom",
-  weight: 3,
-  vibration: 0.08,
-  opacity: 15,
-  spacing: 2,
-  blend: true,
-  pressure: {
-    type: "standard",
-    min_max: [1.35, 0.7],
-    curve: [0.35, 0.15], // Values for the bell curve
-  },
-  tip: (_m) => {
-    _m.rotate(45), _m.rect(-5, -5, 15, 15);
-    _m.rect(-10, -10, 5, 5);
-  },
-  rotate: "natural",
-});
+// Pick a flowfield
+brush.field("hand");
 
-let rr = brush.random();
-
-
+// Draw Loop
 const draw = () => {
-  brush.background(255);
+  brush.background(235);
 
-  /*
+  brush.strokeStyle("#000000");
+
   brush.save();
   brush.fillStyle(brush.random(palette), 60);
-  brush.translate(canvas.width / 2, canvas.height / 2);
-  brush.rect(75, 75, 300, 300, "center");
-  brush.noFill()
-  brush.restore()
-  */
 
-  brush.save();
+  brush.pick("pen");
   brush.translate(100, 90);
 
-  brush.strokeStyle("#ff2702")
+  brush.strokeStyle("#ff2702");
   brush.rect(200, 200, 600, 600);
+
+  brush.fillStyle(brush.random(palette), 60);
 
   brush.hatch(7, 0, { rand: 0.08 });
   brush.hatchStyle("charcoal", "#ff2702", 0.7);
   brush.rect(200, 200, 600, 100);
   brush.noHatch();
 
-  brush.strokeStyle("#002185")
+  brush.fillStyle(brush.random(palette), 60);
+
+  brush.strokeStyle("#002185");
   brush.rect(170, 450, 120, 900);
   brush.hatch(7, Math.PI / 2, { rand: 0.05 });
   brush.hatchStyle("charcoal", "#002185", 0.7);
@@ -79,25 +61,26 @@ const draw = () => {
   brush.stroke(480, 1370, 100, -Math.PI / 2 + Math.PI / 5);
   brush.stroke(480, 1370, 100, -Math.PI / 2 - Math.PI / 5);
 
+  brush.fillStyle(brush.random(palette), 60);
+
   brush.rect(680, 80, 120, 120);
   brush.circle(740, 140, 45);
 
-
-  brush.strokeStyle("#ff2702")
+  brush.strokeStyle("#ff2702");
 
   brush.beginPath();
   brush.moveTo(710, 1370, 1);
   brush.lineTo(710, 720, 1);
   brush.lineTo(820, 720, 1);
   brush.lineTo(820, 1370, 1);
-
   brush.drawPath();
+
+  brush.fillStyle(brush.random(palette), 60);
 
   brush.circle(765, 1390, 58);
 
   brush.restore();
-  
   brush.noLoop();
-}
+};
 
-brush.loop(draw)
+brush.loop(draw);

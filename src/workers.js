@@ -198,6 +198,10 @@ export const gl_worker = () =>
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       } else if (event.data.mask) {
         applyShader(event.data);
+      } else if (event.data.get) {
+        let imgbitmap = await createImageBitmap(canvas);
+        postMessage({ canvas: imgbitmap }, [imgbitmap]);
+        imgbitmap.close();
       }
     };
   });

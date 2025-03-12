@@ -47,7 +47,7 @@
  */
 
 const Canvases = {};
-let cID, Cwidth, Cheight, Density, isMobile;
+let cID, Cwidth, Cheight, Density;
 
 /**
  * Flag to indicate if the system is ready for rendering.
@@ -66,7 +66,7 @@ export function load(canvasID, canvas) {
   Cheight = Canvases[cID].canvas.height;
   if (!_isReady) {
     _isReady = true;
-    FF.create(); // Load flowfield system
+    FlowField.create(); // Load flowfield system
   }
   Mix.load();
 }
@@ -92,12 +92,6 @@ export function setDensity(d) {
   Density = d;
   scaleBrushes(Density);
 }
-
-export function setMobile(bool = true) {
-  isMobile = bool;
-}
-
-if (!HTMLCanvasElement.prototype.transferControlToOffscreen) setMobile();
 
 // =============================================================================
 // Section: Randomness and other auxiliary functions
@@ -362,41 +356,17 @@ function _rotate(cx, cy, x, y, angle) {
 /**
  * Object that saves the current brush state for push and pop operations
  */
-const _saveState = {
-  field: {},
-  stroke: {},
-  hatch: {},
-  fill: {},
-};
+const _saveState = {};
 
 /**
  * Saves current state to object
  */
 export function save() {
   Mix.ctx.save();
-  // Field
-  _saveState.field.isActive = FF.isActive;
-  _saveState.field.current = FF.current;
-
-  // Stroke
-  _saveState.stroke.isActive = B.isActive;
-  _saveState.stroke.name = B.name;
-  _saveState.stroke.color = B.c;
-  _saveState.stroke.weight = B.w;
-  _saveState.stroke.clip = B.cr;
-
-  // Hatch
-  _saveState.hatch.isActive = H.isActive;
-  _saveState.hatch.hatchingParams = H.hatchingParams;
-  _saveState.hatch.hatchingBrush = H.hatchingBrush;
-
-  // Fill
-  _saveState.fill.isActive = F.isActive;
-  _saveState.fill.color = F.color;
-  _saveState.fill.opacity = F.opacity;
-  _saveState.fill.bleed_strength = F.bleed_strength;
-  _saveState.fill.texture_strength = F.texture_strength;
-  _saveState.fill.border_strength = F.border_strength;
+  _saveState.field = FlowField.getState();
+  _saveState.stroke = Brush.getState();
+  _saveState.hatch = Hatch.getState();
+  _saveState.fill = Fill.getState();
 }
 
 /**
@@ -408,29 +378,10 @@ export function restore() {
   Matrix.x = m.e;
   Matrix.y = m.f;
 
-  // Field
-  FF.isActive = _saveState.field.isActive;
-  FF.current = _saveState.field.current;
-
-  // Stroke
-  B.isActive = _saveState.stroke.isActive;
-  B.name = _saveState.stroke.name;
-  B.c = _saveState.stroke.color;
-  B.w = _saveState.stroke.weight;
-  B.cr = _saveState.stroke.clip;
-
-  // Hatch
-  H.isActive = _saveState.hatch.isActive;
-  H.hatchingParams = _saveState.hatch.hatchingParams;
-  H.hatchingBrush = _saveState.hatch.hatchingBrush;
-
-  // Fill
-  F.isActive = _saveState.fill.isActive;
-  F.color = _saveState.fill.color;
-  F.opacity = _saveState.fill.opacity;
-  F.bleed_strength = _saveState.fill.bleed_strength;
-  F.texture_strength = _saveState.fill.texture_strength;
-  F.border_strength = _saveState.fill.border_strength;
+  FlowField.setState(_saveState.field);
+  Brush.setState(_saveState.stroke);
+  Hatch.setState(_saveState.hatch);
+  Fill.setState(_saveState.fill);
 }
 
 // =============================================================================
@@ -445,9 +396,7 @@ export function restore() {
 
 function RGBr(color) {
   color = new Color(color);
-  return isMobile
-    ? `rgb(${color.r} ${color.g} ${color.b} / `
-    : "rgb(255 0 0 / ";
+  return "rgb(255 0 0 / ";
 }
 
 /**
@@ -473,11 +422,11 @@ class Color {
     return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
   hexToRgb(hex) {
-    var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
     hex = hex.replace(shorthandRegex, function (m, r, g, b) {
       return r + r + g + g + b + b;
     });
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? {
           r: parseInt(result[1], 16),
@@ -514,36 +463,25 @@ const Mix = {
    * Loads necessary resources and prepares the mask buffer and shader for colour blending.
    */
   load() {
-    if (!isMobile) {
-      if (!Canvases[cID].worker) {
-        let ca = Canvases[cID];
-        // Create 2d offscreen mask
-        ca.mask = new OffscreenCanvas(Cwidth, Cheight);
-        ca.ctx = ca.mask.getContext("2d");
-        ca.ctx.lineWidth = 0;
+    if (!Canvases[cID].worker) {
+      let ca = Canvases[cID];
+      // Create 2d offscreen mask
+      ca.mask = new OffscreenCanvas(Cwidth, Cheight);
+      ca.ctx = ca.mask.getContext("2d");
+      ca.ctx.lineWidth = 0;
 
-        // Create offscreen webgl canvas and link to main canvas
-        ca.offscreen = Canvases[cID].canvas.transferControlToOffscreen();
-        // Init worker
-        ca.worker = gl_worker();
-        ca.worker.postMessage("init");
-        // Send Offscreen webgl canvas to web worker as transferrable object
-        ca.worker.postMessage({ canvas: ca.offscreen }, [ca.offscreen]);
-      }
-
-      this.mask = Canvases[cID].mask;
-      this.ctx = Canvases[cID].ctx;
-      this.worker = Canvases[cID].worker;
-    } else {
-      if (!Canvases[_r].worker) {
-        let ca = Canvases[_r];
-        ca.ctx = ca.canvas.getContext("2d");
-        ca.ctx.lineWidth = 0;
-        ca.worker = true;
-      }
-      (this.mask = false), (this.worker = Canvases[_r].worker);
-      this.ctx = Canvases[_r].ctx;
+      // Create offscreen webgl canvas and link to main canvas
+      ca.offscreen = Canvases[cID].canvas.transferControlToOffscreen();
+      // Init worker
+      ca.worker = gl_worker();
+      ca.worker.postMessage("init");
+      // Send Offscreen webgl canvas to web worker as transferrable object
+      ca.worker.postMessage({ canvas: ca.offscreen }, [ca.offscreen]);
     }
+
+    this.mask = Canvases[cID].mask;
+    this.ctx = Canvases[cID].ctx;
+    this.worker = Canvases[cID].worker;
   },
 
   /**
@@ -553,7 +491,6 @@ const Mix = {
    * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
    */
   blend(_color = false, _isLast = false, _isImg = false) {
-    if (isMobile) return;
     // Check if blending is initialised
     if (!this.isBlending) {
       // If color has been provided, we initialise blending
@@ -602,20 +539,10 @@ let _bg_Color = new Color("white");
 export function background(r, g, b) {
   if (r === "transparent") _bg_Color = new Color(g);
   else _bg_Color = new Color(...arguments);
-  if (isMobile) {
-    if (r === "transparent") {
-      Mix.ctx.clearRect(0, 0, Cwidth, Cheight);
-    } else {
-      Mix.ctx.beginPath();
-      Mix.ctx.fillStyle = _bg_Color.hex;
-      Mix.ctx.fillRect(0, 0, Cwidth, Cheight);
-    }
-  } else {
-    Mix.worker.postMessage({
-      color: _bg_Color.gl,
-      isBG: true,
-    });
-  }
+  Mix.worker.postMessage({
+    color: _bg_Color.gl,
+    isBG: true,
+  });
 }
 
 /**
@@ -684,7 +611,7 @@ export function rotate(a = 0) {
  * Object to perform scale operations
  */
 export function scale(a) {
-  Mix.ctx.scale(a);
+  Mix.ctx.scale(a, a);
 }
 
 /**
@@ -694,15 +621,15 @@ export function scale(a) {
 export function field(a) {
   _ensureReady();
   // Check if field exists
-  FF.isActive = true; // Mark the field framework as active
-  FF.current = a; // Update the current field
+  FlowField.isActive = true; // Mark the field framework as active
+  FlowField.current = a; // Update the current field
 }
 
 /**
  * Deactivates the current vector field.
  */
 export function noField() {
-  FF.isActive = false;
+  FlowField.isActive = false;
 }
 
 /**
@@ -712,9 +639,9 @@ export function noField() {
  */
 export function addField(name, funct) {
   _ensureReady();
-  FF.list.set(name, { gen: funct }); // Map the field name to its generator function
-  FF.current = name; // Set the newly added field as the current one to be used
-  FF.refresh(); // Refresh the field values using the generator function
+  FlowField.list.set(name, { gen: funct }); // Map the field name to its generator function
+  FlowField.current = name; // Set the newly added field as the current one to be used
+  FlowField.refresh(); // Refresh the field values using the generator function
 }
 
 /**
@@ -722,7 +649,7 @@ export function addField(name, funct) {
  * @param {number} [t=0] - An optional time parameter that can affect field generation.
  */
 export function refreshField(t) {
-  FF.refresh(t);
+  FlowField.refresh(t);
 }
 
 /**
@@ -730,7 +657,7 @@ export function refreshField(t) {
  * @returns {Iterator<string>} An iterator that provides the names of all the fields.
  */
 export function listFields() {
-  return Array.from(FF.list.keys());
+  return Array.from(FlowField.list.keys());
 }
 
 /**
@@ -739,8 +666,19 @@ export function listFields() {
  * @property {Map} list - A map associating field names to their respective generator functions and current states.
  * @property {Array} field - An array representing the current vector field grid with values.
  */
-const FF = {
+const FlowField = {
   list: new Map(),
+  isActive: false,
+  current: null,
+
+  getState() {
+    const { isActive, current } = this;
+    return { isActive, current };
+  },
+
+  setState(state) {
+    Object.assign(this, state);
+  },
 
   /**
    * Calculates a relative step length based on the renderer's dimensions, used in field grid calculations.
@@ -801,8 +739,8 @@ const FF = {
       if (R.randInt(0, 100) % 2 == 0) {
         angleRange = angleRange * -1;
       }
-      for (let column = 0; column < FF.num_columns; column++) {
-        for (let row = 0; row < FF.num_rows; row++) {
+      for (let column = 0; column < FlowField.num_columns; column++) {
+        for (let row = 0; row < FlowField.num_rows; row++) {
           let noise_val = noise(
             column * 0.01 + t * 0.03,
             row * 0.01 + t * 0.03
@@ -813,12 +751,12 @@ const FF = {
       }
       return field;
     });
-    addField("handwriting", function (t, field) {
+    addField("hand", function (t, field) {
       let baseSize = R.rr(0.2, 0.8);
       let baseAngle = R.randInt(5, 10);
 
-      for (let column = 0; column < FF.num_columns; column++) {
-        for (let row = 0; row < FF.num_rows; row++) {
+      for (let column = 0; column < FlowField.num_columns; column++) {
+        for (let row = 0; row < FlowField.num_rows; row++) {
           let addition = R.randInt(15, 25);
           let angle = baseAngle * R.sin(baseSize * row * column + addition);
 
@@ -832,8 +770,8 @@ const FF = {
     addField("seabed", function (t, field) {
       let baseSize = R.rr(0.4, 0.8);
       let baseAngle = R.randInt(18, 26);
-      for (let column = 0; column < FF.num_columns; column++) {
-        for (let row = 0; row < FF.num_rows; row++) {
+      for (let column = 0; column < FlowField.num_columns; column++) {
+        for (let row = 0; row < FlowField.num_rows; row++) {
           let addition = R.randInt(15, 20);
           let angle = baseAngle * R.sin(baseSize * row * column + addition);
           field[column][row] = 1.1 * angle * R.cos(t);
@@ -867,11 +805,11 @@ export class Position {
    */
   update(x, y) {
     (this.x = x), (this.y = y);
-    if (FF.isActive) {
-      this.x_offset = this.x + Matrix.x - FF.left_x;
-      this.y_offset = this.y + Matrix.y - FF.top_y;
-      this.column_index = Math.round(this.x_offset / FF.R);
-      this.row_index = Math.round(this.y_offset / FF.R);
+    if (FlowField.isActive) {
+      this.x_offset = this.x + Matrix.x - FlowField.left_x;
+      this.y_offset = this.y + Matrix.y - FlowField.top_y;
+      this.column_index = Math.round(this.x_offset / FlowField.R);
+      this.row_index = Math.round(this.y_offset / FlowField.R);
     }
   }
 
@@ -887,11 +825,11 @@ export class Position {
    * @returns {boolean} - True if the position is within the flow field, false otherwise.
    */
   isIn() {
-    return FF.isActive
+    return FlowField.isActive
       ? this.column_index >= 0 &&
           this.row_index >= 0 &&
-          this.column_index < FF.num_columns &&
-          this.row_index < FF.num_rows
+          this.column_index < FlowField.num_columns &&
+          this.row_index < FlowField.num_rows
       : this.isInCanvas();
   }
 
@@ -912,8 +850,8 @@ export class Position {
    * @returns {number} - The angle in radians, or 0 if the position is not in the flow field or if the flow field is not active.
    */
   angle() {
-    return this.isIn() && FF.isActive
-      ? FF.flow_field()[this.column_index][this.row_index]
+    return this.isIn() && FlowField.isActive
+      ? FlowField.flow_field()[this.column_index][this.row_index]
       : 0;
   }
 
@@ -924,7 +862,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    * @param {boolean} isFlow - Whether to use the flow field for movement.
    */
-  moveTo(_length, _dir, _step_length = B.spacing(), isFlow = true) {
+  moveTo(_length, _dir, _step_length = Brush.spacing(), isFlow = true) {
     if (this.isIn()) {
       let a, b;
       if (!isFlow) {
@@ -996,53 +934,139 @@ export class Position {
  * one can achieve a wide range of artistic styles and techniques.
  */
 
-/**
- * Adjusts the global scale of standard brushes based on the provided scale factor.
- * This affects the weight, vibration, and spacing of each standard brush.
- *
- * @param {number} _scale - The scaling factor to apply to the brush parameters.
- */
-export function scaleBrushes(_scale) {
-  for (let s of _standard_brushes) {
-    let params = B.list.get(s[0]).param;
-    (params.weight *= _scale),
-      (params.vibration *= _scale),
-      (params.spacing *= _scale);
-  }
-}
-
 const PI2 = Math.PI * 2;
-
-/**
- * Retrieves a list of all available brush names from the brush manager.
- * @returns {Array<string>} An array containing the names of all brushes.
- */
-export function box() {
-  return Array.from(B.list.keys());
-}
 
 /**
  * The B object, representing a brush, contains properties and methods to manipulate
  * the brush's appearance and behavior when drawing on the canvas.
  * @type {Object}
  */
-const B = {
+const Brush = {
   isActive: true, // Indicates if the brush is active.
+  color: new Color("black"), // Current color of the brush.
+  weight: 1, // Current weight (size) of the brush.
+  clipWindow: null, // Clipping region for brush strokes.
+  type: "HB", // Name of the current brush.
+
   list: new Map(), // Stores brush definitions by name.
-  c: new Color("black"), // Current color of the brush.
-  w: 1, // Current weight (size) of the brush.
-  cr: null, // Clipping region for brush strokes.
-  name: "HB", // Name of the current brush.
+
+  getState() {
+    const { isActive, type, color, weight, clipWindow } = this;
+    return { isActive, type, color, weight, clipWindow };
+  },
+
+  setState(state) {
+    Object.assign(this, state);
+  },
+
+  /**
+   * Adds a new brush with the specified parameters to the brush list.
+   * @param {string} name - The unique name for the new brush.
+   * @param {BrushParameters} params - The parameters defining the brush behavior and appearance.
+   */
+  add(name, params) {
+    const validTypes = ["marker", "custom", "image", "spray"];
+    params.type = validTypes.includes(params.type) ? params.type : "default";
+    this.list.set(name, { param: params, colors: [], buffers: [] });
+  },
+
+  /**
+   * Retrieves a list of all available brush names from the brush manager.
+   * @returns {Array<string>} An array containing the names of all brushes.
+   */
+  box() {
+    return [...this.list.keys()];
+  },
+
+  /**
+   * Adjusts the global scale of standard brushes based on the provided scale factor.
+   * This affects the weight, vibration, and spacing of each standard brush.
+   *
+   * @param {number} _scale - The scaling factor to apply to the brush parameters.
+   */
+  scaleBrushes(scaleFactor) {
+    for (const { param } of this.list.values()) {
+      if (param) {
+        param.weight *= scaleFactor;
+        param.vibration *= scaleFactor;
+        param.spacing *= scaleFactor;
+      }
+    }
+  },
+
+  /**
+   * Sets only the current brush type based on the given name.
+   * @param {string} brushName - The name of the brush to set as current.
+   */
+  pick(brushName) {
+    if (this.list.has(brushName)) this.type = brushName;
+  },
+
+  /**
+   * Sets the color of the current brush.
+   * @param {number|string|Color} r - The red component of the color, a CSS color string, or a Color object.
+   * @param {number} [g] - The green component of the color.
+   * @param {number} [b] - The blue component of the color.
+   */
+  strokeStyle(r, g, b) {
+    this.color = new Color(...arguments);
+    this.isActive = true;
+  },
+
+  /**
+   * Sets the weight (size) of the current brush.
+   * @param {number} weight - The weight to set for the brush.
+   */
+  lineWidth(weight) {
+    this.weight = weight;
+  },
+
+  /**
+   * Sets the current brush with the specified name, color, and weight.
+   * @param {string} brushName - The name of the brush to set as current.
+   * @param {string|Color} color - The color to set for the brush.
+   * @param {number} weight - The weight (size) to set for the brush.
+   */
+  set(brushName, color, weight = 1) {
+    this.pick(brushName);
+    this.strokeStyle(color);
+    this.lineWidth(weight);
+  },
+
+  /**
+   * Disables the stroke for subsequent drawing operations.
+   * This function sets the brush's `isActive` property to false, indicating that no stroke
+   * should be applied to the shapes drawn after this method is called.
+   */
+  noStroke() {
+    this.isActive = false;
+  },
+
+  /**
+   * Defines a clipping region for the brush strokes.
+   * @param {number[]} clippingRegion - An array defining the clipping region as [x1, y1, x2, y2].
+   */
+  clip(region) {
+    this.clipWindow = region;
+  },
+
+  /**
+   * Disables clipping region.
+   */
+  noClip() {
+    this.clipWindow = null;
+  },
 
   /**
    * Calculates the tip spacing based on the current brush parameters.
    * @returns {number} The calculated spacing value.
    */
   spacing() {
-    this.p = this.list.get(this.name).param;
-    if (this.p.type === "default" || this.p.type === "spray")
-      return this.p.spacing / this.w;
-    return this.p.spacing;
+    const { param } = this.list.get(this.type) ?? {};
+    if (!param) return 1;
+    return param.type === "default" || param.type === "spray"
+      ? param.spacing / this.weight
+      : param.spacing;
   },
 
   /**
@@ -1066,21 +1090,22 @@ const B = {
    * @param {number} angle_scale - The angle or scale to apply during drawing.
    * @param {boolean} isPlot - Flag indicating if the operation is plotting a shape.
    */
-  draw(angle_scale, isPlot) {
-    if (!isPlot) this.dir = angle_scale;
+  draw(angleScale, isPlot) {
+    if (!isPlot) this.dir = angleScale;
     this.saveState();
-    const st = this.spacing();
-    const total_steps = isPlot
-      ? Math.round((this.length * angle_scale) / st)
-      : Math.round(this.length / st);
-    for (let steps = 0; steps < total_steps; steps++) {
+
+    const stepSize = this.spacing();
+    const totalSteps = Math.round(
+      (this.length * (isPlot ? angleScale : 1)) / stepSize
+    );
+
+    for (let i = 0; i < totalSteps; i++) {
       this.tip();
-      if (isPlot) {
-        this.position.plotTo(this.plot, st, st, angle_scale);
-      } else {
-        this.position.moveTo(st, angle_scale, st, this.flow);
-      }
+      isPlot
+        ? this.position.plotTo(this.plot, stepSize, stepSize, angleScale)
+        : this.position.moveTo(stepSize, angleScale, stepSize, this.flow);
     }
+
     this.restoreState();
   },
 
@@ -1088,21 +1113,22 @@ const B = {
    * Sets up the environment for a brush stroke.
    */
   saveState() {
-    this.p = this.list.get(this.name).param;
+    const { param } = this.list.get(this.type) ?? {};
+    if (!param) return;
+    this.p = param;
+
     // Pressure values for the stroke
-    this.a = this.p.pressure.type !== "custom" ? R.rr(-1, 1) : 0;
-    this.b = this.p.pressure.type !== "custom" ? R.rr(1, 1.5) : 0;
-    this.cp =
-      this.p.pressure.type !== "custom" ? R.rr(3, 3.5) : R.rr(-0.2, 0.2);
-    const [min, max] = this.p.pressure.min_max;
-    this.min = min;
-    this.max = max;
+    const { pressure } = param;
+    this.a = pressure.type !== "custom" ? R.rr(-1, 1) : 0;
+    this.b = pressure.type !== "custom" ? R.rr(1, 1.5) : 0;
+    this.cp = pressure.type !== "custom" ? R.rr(3, 3.5) : R.rr(-0.2, 0.2);
+    [this.min, this.max] = pressure.min_max;
+
     // Blend stuff
-    Mix.blend(this.c);
+    Mix.blend(this.color);
+
     // Set state
     Mix.ctx.save();
-    // IMAGE BRUSHES FIX HERE
-    //(this.p.type === "image") ? this.mask.translate(Matrix.translation.x,Matrix.translation.y) : this.mask.translate(Matrix.translation.x + _r.width/2,Matrix.translation.y + _r.height/2);
     this.markerTip();
     this.alpha = this.calculateAlpha(); // Calcula Alpha
     this.applyColor(this.alpha); // Apply Color
@@ -1122,27 +1148,25 @@ const B = {
    * Draws the tip of the brush based on the current pressure and position.
    * @param {number} pressure - The desired pressure value.
    */
-  tip(custom_pressure = false) {
-    let pressure = custom_pressure ? custom_pressure : this.calculatePressure(); // Calculate Pressure
-    if (this.isInsideClippingArea()) {
-      // Check if it's inside clipping area
-      switch (
-        this.p.type // Draw different tip types
-      ) {
-        case "spray":
-          this.drawSpray(pressure);
-          break;
-        case "marker":
-          this.drawMarker(pressure);
-          break;
-        case "custom":
-        case "image":
-          this.drawCustomOrImage(pressure, this.alpha);
-          break;
-        default:
-          this.drawDefault(pressure);
-          break;
-      }
+  tip(customPressure = false) {
+    const pressure = customPressure || this.calculatePressure(); // Calculate Pressure
+    if (!this.isInsideClippingArea()) return; // Check if it's inside clipping area
+
+    // Draw different tip types
+    switch (this.p.type) {
+      case "spray":
+        this.drawSpray(pressure);
+        break;
+      case "marker":
+        this.drawMarker(pressure);
+        break;
+      case "custom":
+      case "image":
+        this.drawCustomOrImage(pressure, this.alpha);
+        break;
+      default:
+        this.drawDefault(pressure);
+        break;
     }
   },
 
@@ -1161,17 +1185,16 @@ const B = {
    * @returns {number} The simulated pressure value.
    */
   simPressure() {
-    if (this.p.pressure.type === "custom") {
-      return R.map(
-        this.p.pressure.curve(this.position.plotted / this.length) + this.cp,
-        0,
-        1,
-        this.min,
-        this.max,
-        true
-      );
-    }
-    return this.gauss();
+    return this.p.pressure.type === "custom"
+      ? R.map(
+          this.p.pressure.curve(this.position.plotted / this.length) + this.cp,
+          0,
+          1,
+          this.min,
+          this.max,
+          true
+        )
+      : this.gauss();
   },
 
   /**
@@ -1184,11 +1207,11 @@ const B = {
    * @returns {number} The calculated Gaussian value.
    */
   gauss(
-    a = 0.5 + B.p.pressure.curve[0] * B.a,
-    b = 1 - B.p.pressure.curve[1] * B.b,
-    c = B.cp,
-    min = B.min,
-    max = B.max
+    a = 0.5 + this.p.pressure.curve[0] * this.a,
+    b = 1 - this.p.pressure.curve[1] * this.b,
+    c = this.cp,
+    min = this.min,
+    max = this.max
   ) {
     return R.map(
       1 /
@@ -1213,11 +1236,9 @@ const B = {
    * @returns {number} The calculated alpha value.
    */
   calculateAlpha() {
-    let opacity =
-      this.p.type !== "default" && this.p.type !== "spray"
-        ? this.p.opacity / this.w
-        : this.p.opacity;
-    return opacity;
+    return ["default", "spray"].includes(this.p.type)
+      ? this.p.opacity
+      : this.p.opacity / this.weight;
   },
 
   /**
@@ -1225,7 +1246,7 @@ const B = {
    * @param {number} alpha - The alpha (opacity) level to apply.
    */
   applyColor(alpha) {
-    Mix.ctx.fillStyle = RGBr(this.c) + alpha + "%)";
+    Mix.ctx.fillStyle = `${RGBr(this.color)}${alpha}%)`;
   },
 
   /**
@@ -1233,12 +1254,12 @@ const B = {
    * @returns {boolean} True if the position is inside the clipping area, false otherwise.
    */
   isInsideClippingArea() {
-    if (B.cr)
+    if (this.clipWindow)
       return (
-        this.position.x >= B.cr[0] &&
-        this.position.x <= B.cr[2] &&
-        this.position.y >= B.cr[1] &&
-        this.position.y <= B.cr[3]
+        this.position.x >= this.clipWindow[0] &&
+        this.position.x <= this.clipWindow[2] &&
+        this.position.y >= this.clipWindow[1] &&
+        this.position.y <= this.clipWindow[3]
       );
     else {
       let w = Cwidth,
@@ -1254,15 +1275,15 @@ const B = {
    * Draws a rectangle to the mask.
    */
   rect(x, y, d) {
-    d /= 1.2;
-    Mix.ctx.rect(x - d / 2, y - d / 2, d, d);
+    const size = d / 1.2;
+    Mix.ctx.rect(x - size / 2, y - size / 2, size, size);
   },
 
   /**
    * Draws a circle to the mask.
    */
   circle(x, y, d) {
-    let radius = d / 2;
+    const radius = d / 2;
     Mix.ctx.moveTo(x + radius, y);
     Mix.ctx.arc(x, y, radius, 0, PI2);
   },
@@ -1272,17 +1293,16 @@ const B = {
    * @param {number} pressure - The current pressure value.
    */
   drawSpray(pressure) {
-    let vibration =
-      this.w * this.p.vibration * pressure +
-      (this.w * R.gaussian() * this.p.vibration) / 3;
-    let sw = this.p.weight * R.rr(0.9, 1.1);
-    const iterations = this.p.quality / pressure;
+    const vibration =
+      this.weight * this.p.vibration * pressure +
+      (this.weight * R.gaussian() * this.p.vibration) / 3;
+    const sw = this.weight * R.rr(0.9, 1.1);
+    const iterations = Math.ceil(this.p.quality / pressure);
     for (let j = 0; j < iterations; j++) {
-      let r = R.rr(0.9, 1.1);
-      let rX = r * vibration * R.rr(-1, 1);
-      let yRandomFactor = R.rr(-1, 1);
-      let rVibrationSquared = Math.pow(r * vibration, 2);
-      let sqrtPart = Math.sqrt(rVibrationSquared - Math.pow(rX, 2));
+      const r = R.rr(0.9, 1.1);
+      const rX = r * vibration * R.rr(-1, 1);
+      const yRandomFactor = R.rr(-1, 1);
+      const sqrtPart = Math.sqrt((r * vibration) ** 2 - rX ** 2);
       this.rect(
         this.position.x + rX,
         this.position.y + yRandomFactor * sqrtPart,
@@ -1297,13 +1317,13 @@ const B = {
    * @param {boolean} [vibrate=true] - Whether to apply vibration effect.
    */
   drawMarker(pressure, vibrate = true) {
-    let vibration = vibrate ? this.w * this.p.vibration : 0;
-    let rx = vibrate ? vibration * R.rr(-1, 1) : 0;
-    let ry = vibrate ? vibration * R.rr(-1, 1) : 0;
+    const vibration = vibrate ? this.weight * this.p.vibration : 0;
+    const rx = vibrate ? vibration * R.rr(-1, 1) : 0;
+    const ry = vibrate ? vibration * R.rr(-1, 1) : 0;
     this.circle(
       this.position.x + rx,
       this.position.y + ry,
-      this.w * this.p.weight * pressure
+      this.weight * this.p.weight * pressure
     );
   },
 
@@ -1315,11 +1335,14 @@ const B = {
    */
   drawCustomOrImage(pressure, alpha, vibrate = true) {
     Mix.ctx.save();
-    let vibration = vibrate ? this.w * this.p.vibration : 0;
-    let rx = vibrate ? vibration * R.rr(-1, 1) : 0;
-    let ry = vibrate ? vibration * R.rr(-1, 1) : 0;
+
+    const vibration = vibrate ? this.weight * this.p.vibration : 0;
+    const rx = vibrate ? vibration * R.rr(-1, 1) : 0;
+    const ry = vibrate ? vibration * R.rr(-1, 1) : 0;
+
     Mix.ctx.translate(this.position.x + rx, this.position.y + ry);
-    this.adjustSizeAndRotation(this.w * pressure, alpha);
+    this.adjustSizeAndRotation(this.weight * pressure, alpha);
+
     this.p.tip(Mix.ctx);
     Mix.ctx.restore();
   },
@@ -1329,8 +1352,8 @@ const B = {
    * @param {number} pressure - The current pressure value.
    */
   drawDefault(pressure) {
-    let vibration =
-      this.w *
+    const vibration =
+      this.weight *
       this.p.vibration *
       (this.p.definition +
         ((1 - this.p.definition) *
@@ -1353,25 +1376,15 @@ const B = {
    */
   adjustSizeAndRotation(pressure, alpha) {
     Mix.ctx.scale(pressure, pressure);
-
-    // TO FIX
-    if (this.p.type === "image")
-      this.p.blend
-        ? this.mask.tint(255, 0, 0, alpha / 2)
-        : this.mask.tint(
-            this.mask.red(this.c),
-            this.mask.green(this.c),
-            this.mask.blue(this.c),
-            alpha
-          );
-
-    if (this.p.rotate === "random") Mix.ctx.rotate(R.randInt(0, PI2));
+    let angle = 0;
+    if (this.p.rotate === "random") angle = R.randInt(0, PI2);
     else if (this.p.rotate === "natural") {
-      let angle =
+      angle =
         (this.plot ? -this.plot.angle(this.position.plotted) : -this.dir) +
         (this.flow ? this.position.angle() : 0);
-      Mix.ctx.rotate((angle * Math.PI) / 180);
+      angle = (angle * Math.PI) / 180;
     }
+    Mix.ctx.rotate(angle);
   },
 
   /**
@@ -1381,14 +1394,14 @@ const B = {
     if (this.isInsideClippingArea()) {
       let pressure = this.calculatePressure();
       let alpha = this.calculateAlpha(pressure);
-      Mix.ctx.fillStyle = RGBr(this.c) + alpha / 3 + "%)";
-      if (B.p.type === "marker") {
+      Mix.ctx.fillStyle = RGBr(this.color) + alpha / 3 + "%)";
+      if (this.p.type === "marker") {
         for (let s = 1; s < 5; s++) {
           Mix.ctx.beginPath();
           this.drawMarker((pressure * s) / 5, false);
           Mix.ctx.fill();
         }
-      } else if (B.p.type === "custom" || B.p.type === "image") {
+      } else if (this.p.type === "custom" || this.p.type === "image") {
         for (let s = 1; s < 5; s++) {
           Mix.ctx.beginPath();
           this.drawCustomOrImage((pressure * s) / 5, alpha, false);
@@ -1399,91 +1412,48 @@ const B = {
   },
 };
 
+export const add = Brush.add.bind(Brush);
+export const box = Brush.box.bind(Brush);
+export const scaleBrushes = Brush.scaleBrushes.bind(Brush);
+export const pick = Brush.pick.bind(Brush);
+export const strokeStyle = Brush.strokeStyle.bind(Brush);
+export const lineWidth = Brush.lineWidth.bind(Brush);
+export const set = Brush.set.bind(Brush);
+export const noStroke = Brush.noStroke.bind(Brush);
+export const clip = Brush.clip.bind(Brush);
+export const noClip = Brush.noClip.bind(Brush);
+
+// =============================================================================
+// Section: Basic Drawing using Brush
+// =============================================================================
+
 /**
- * Adds a new brush with the specified parameters to the brush list.
- * @param {string} name - The unique name for the new brush.
- * @param {BrushParameters} params - The parameters defining the brush behavior and appearance.
+ * Draws a line using the current brush from (x1, y1) to (x2, y2).
+ * @param {number} x1 - The x-coordinate of the start point.
+ * @param {number} y1 - The y-coordinate of the start point.
+ * @param {number} x2 - The x-coordinate of the end point.
+ * @param {number} y2 - The y-coordinate of the end point.
  */
-export function add(a, b) {
-  const isBlendableType =
-    b.type === "marker" || b.type === "custom" || b.type === "image";
-  if (!isBlendableType && b.type !== "spray") b.type = "default";
-  if (b.type === "image") {
-    T.add(b.image.src);
-    b.tip = () =>
-      B.mask.image(
-        T.tips.get(B.p.image.src),
-        -B.p.weight / 2,
-        -B.p.weight / 2,
-        B.p.weight,
-        B.p.weight
-      );
-  }
-  b.blend = (isBlendableType && b.blend !== false) || b.blend ? true : false;
-  B.list.set(a, { param: b, colors: [], buffers: [] });
+export function line(x1, y1, x2, y2) {
+  _ensureReady();
+  let d = R.dist(x1, y1, x2, y2);
+  if (d == 0) return;
+  Brush.initializeDrawingState(x1, y1, d, true, false);
+  let angle = R.calcAngle(x1, y1, x2, y2);
+  Brush.draw(angle, false);
 }
 
 /**
- * Sets the current brush with the specified name, color, and weight.
- * @param {string} brushName - The name of the brush to set as current.
- * @param {string|Color} color - The color to set for the brush.
- * @param {number} weight - The weight (size) to set for the brush.
+ * Draws a stroke with the current brush from a starting point in a specified direction.
+ * @param {number} x - The x-coordinate of the starting point.
+ * @param {number} y - The y-coordinate of the starting point.
+ * @param {number} length - The length of the line to draw.
+ * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
  */
-export function set(brushName, color, weight = 1) {
-  type(brushName);
-  strokeStyle(color);
-  lineWidth(weight);
-}
-
-/**
- * Sets only the current brush type based on the given name.
- * @param {string} brushName - The name of the brush to set as current.
- */
-export function type(brushName) {
-  B.name = brushName;
-}
-
-/**
- * Sets the color of the current brush.
- * @param {number|string|Color} r - The red component of the color, a CSS color string, or a Color object.
- * @param {number} [g] - The green component of the color.
- * @param {number} [b] - The blue component of the color.
- */
-export function strokeStyle(r, g, b) {
-  B.c = new Color(...arguments);
-  B.isActive = true;
-}
-
-/**
- * Disables the stroke for subsequent drawing operations.
- * This function sets the brush's `isActive` property to false, indicating that no stroke
- * should be applied to the shapes drawn after this method is called.
- */
-export function noStroke() {
-  B.isActive = false;
-}
-
-/**
- * Sets the weight (size) of the current brush.
- * @param {number} weight - The weight to set for the brush.
- */
-export function lineWidth(weight) {
-  B.w = weight;
-}
-
-/**
- * Defines a clipping region for the brush strokes.
- * @param {number[]} clippingRegion - An array defining the clipping region as [x1, y1, x2, y2].
- */
-export function clip(clippingRegion) {
-  B.cr = clippingRegion;
-}
-
-/**
- * Disables clipping region.
- */
-export function noClip() {
-  B.cr = null;
+export function stroke(x, y, length, dir) {
+  _ensureReady();
+  Brush.initializeDrawingState(x, y, length, true, false);
+  Brush.draw(R.toDegrees(dir), false);
 }
 
 /**
@@ -1495,67 +1465,9 @@ export function noClip() {
  */
 function plot(p, x, y, scale) {
   _ensureReady();
-  B.initializeDrawingState(x, y, p.length, true, p);
-  B.draw(scale, true);
+  Brush.initializeDrawingState(x, y, p.length, true, p);
+  Brush.draw(scale, true);
 }
-
-// =============================================================================
-// Section: Loading Custom Image Tips
-// =============================================================================
-/**
- * This section defines the functionality for managing the loading and processing of image tips.
- * Images are loaded from specified source URLs, converted to a white tint for visual effects,
- * and then stored for future use. It includes methods to add new images, convert their color
- * scheme, and integrate them into the js graphics library.
- */
-
-/**
- * A utility object for loading images, converting them to a red tint, and managing their states.
- */
-const T = {
-  tips: new Map(),
-
-  /**
-   * Adds an image to the tips Map and sets up loading and processing.
-   *
-   * @param {string} src - The source URL of the image to be added and processed.
-   */
-  add(src) {
-    // Initially set the source as not processed
-    this.tips.set(src, false);
-  },
-
-  /**
-   * Converts the given image to a white tint by setting all color channels to white and adjusting the alpha channel.
-   *
-   * @param {Image} image - The image to be converted.
-   */
-  imageToWhite(image) {
-    image.loadPixels();
-    // Modify the image data to create a white tint effect
-    for (let i = 0; i < 4 * image.width * image.height; i += 4) {
-      // Calculate the average for the grayscale value
-      let average =
-        (image.pixels[i] + image.pixels[i + 1] + image.pixels[i + 2]) / 3;
-      // Set all color channels to white
-      image.pixels[i] = image.pixels[i + 1] = image.pixels[i + 2] = 255;
-      // Adjust the alpha channel to the inverse of the average, creating the white tint effect
-      image.pixels[i + 3] = 255 - average;
-    }
-    image.updatePixels();
-  },
-  /**
-   * Loads all processed images into the js environment.
-   * If no images are in the tips Map, logs a warning message.
-   */
-  load() {
-    for (let key of this.tips.keys()) {
-      let _r = _isInstanced ? _inst : window.self;
-      let image = _r.loadImage(key, () => T.imageToWhite(image));
-      this.tips.set(key, image);
-    }
-  },
-};
 
 // =============================================================================
 // Section: Hatching
@@ -1580,8 +1492,8 @@ export function hatch(
   angle = 45,
   options = { rand: false, continuous: false, gradient: false }
 ) {
-  H.isActive = true;
-  H.hatchingParams = [dist, angle, options];
+  Hatch.isActive = true;
+  Hatch.hatchingParams = [dist, angle, options];
 }
 
 /**
@@ -1592,15 +1504,15 @@ export function hatch(
  * @param {number} weight - The weight (size) to set for the brush.
  */
 export function hatchStyle(brush, color = "black", weight = 1) {
-  H.hatchingBrush = [brush, color, weight];
+  Hatch.hatchingBrush = [brush, color, weight];
 }
 
 /**
  * Disables hatching for subsequent shapes
  */
 export function noHatch() {
-  H.isActive = false;
-  H.hatchingBrush = false;
+  Hatch.isActive = false;
+  Hatch.hatchingBrush = false;
 }
 
 // Helper functions for bounding box calculation
@@ -1642,10 +1554,19 @@ function computeOverallBoundingBox(polygons) {
 /**
  * Object to hold the current hatch state and to perform hatch calculation
  */
-const H = {
+const Hatch = {
   isActive: false,
   hatchingParams: [5, 45, {}],
   hatchingBrush: false,
+
+  getState() {
+    const { isActive, hatchingParams, hatchingBrush } = this;
+    return { isActive, hatchingParams, hatchingBrush };
+  },
+
+  setState(state) {
+    Object.assign(this, state);
+  },
 
   /**
    * Creates a hatching pattern across the given polygons.
@@ -1653,19 +1574,20 @@ const H = {
    * @param {Array|Object} polygons - A single polygon or an array of polygons to apply the hatching.
    */
   hatch(polygons) {
-    let dist = H.hatchingParams[0];
-    let angle = H.hatchingParams[1];
-    let options = H.hatchingParams[2];
+    let dist = Hatch.hatchingParams[0];
+    let angle = Hatch.hatchingParams[1];
+    let options = Hatch.hatchingParams[2];
 
     // Save current stroke state
-    let strokeColor = B.c.hex,
-      strokeBrush = B.name,
-      strokeWeight = B.w,
-      strokeActive = B.isActive;
+    let save = Brush.getState();
 
     // Change state if hatch has been set to different params than stroke
-    if (H.hatchingBrush)
-      set(H.hatchingBrush[0], H.hatchingBrush[1], H.hatchingBrush[2]);
+    if (Hatch.hatchingBrush)
+      set(
+        Hatch.hatchingBrush[0],
+        Hatch.hatchingBrush[1],
+        Hatch.hatchingBrush[2]
+      );
 
     // Transform to degrees and between 0-180
     angle = R.toDegrees(angle) % 180;
@@ -1748,13 +1670,11 @@ const H = {
     }
 
     // Change state back to previous
-    set(strokeBrush, strokeColor, strokeWeight);
-
-    B.isActive = strokeActive;
+    Brush.setState(save);
   },
 };
 
-export const hatchArray = H.hatch;
+export const hatchArray = Hatch.hatch;
 
 // =============================================================================
 // Section: Polygon and Plot Classes
@@ -1814,43 +1734,43 @@ export class Polygon {
    * Draws the polygon by iterating over its sides and drawing lines between the vertices.
    */
   draw(_brush = false, _color, _weight) {
-    let curState = B.isActive;
+    let curState = Brush.isActive;
     if (_brush) set(_brush, _color, _weight);
-    if (B.isActive) {
+    if (Brush.isActive) {
       _ensureReady();
       for (let s of this.sides) {
         line(s[0].x, s[0].y, s[1].x, s[1].y);
       }
     }
-    B.isActive = curState;
+    Brush.isActive = curState;
   }
   /**
    * Fills the polygon using the current fill state.
    */
   fill(_color = false, _opacity, _bleed, _texture, _border, _direction) {
-    let curState = F.isActive;
+    let curState = Fill.isActive;
     if (_color) {
       fillStyle(_color, _opacity);
-      bleed(_bleed, _direction);
+      fillBleed(_bleed, _direction);
       fillTexture(_texture, _border);
     }
-    if (F.isActive) {
+    if (Fill.isActive) {
       _ensureReady();
-      F.fill(this);
+      Fill.fill(this);
     }
-    F.isActive = curState;
+    Fill.isActive = curState;
   }
   /**
    * Creates hatch lines across the polygon based on a given distance and angle.
    */
   hatch(_dist = false, _angle, _options) {
-    let curState = H.isActive;
+    let curState = Hatch.isActive;
     if (_dist) hatch(_dist, _angle, _options);
-    if (H.isActive) {
+    if (Hatch.isActive) {
       _ensureReady();
-      H.hatch(this);
+      Hatch.hatch(this);
     }
-    H.isActive = curState;
+    Hatch.isActive = curState;
   }
 
   erase(c = false, a = E.a) {
@@ -2034,7 +1954,7 @@ export class Plot {
     const vertices = [];
     const numSteps = Math.round(this.length / step);
     const pos = new Position(_x, _y);
-    let side = isHatch ? 0.15 : F.bleed_strength * 3;
+    let side = isHatch ? 0.15 : Fill.bleed_strength * 3;
     let pside = 0;
     let prevIdx = 0;
     for (let i = 0; i < numSteps; i++) {
@@ -2061,7 +1981,7 @@ export class Plot {
    * @param {number} scale - The scale to draw with.
    */
   draw(x, y, scale) {
-    if (B.isActive) {
+    if (Brush.isActive) {
       _ensureReady(); // Ensure that the drawing environment is prepared
       if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
       plot(this, x, y, scale);
@@ -2074,7 +1994,7 @@ export class Plot {
    * @param {number} y - The y-coordinate to draw at.
    */
   fill(x, y, scale) {
-    if (F.isActive) {
+    if (Fill.isActive) {
       _ensureReady(); // Ensure that the drawing environment is prepared
       if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
       this.pol = this.genPol(x, y, scale);
@@ -2088,7 +2008,7 @@ export class Plot {
    * @param {number} y - The y-coordinate to draw at.
    */
   hatch(x, y, scale) {
-    if (H.isActive) {
+    if (Hatch.isActive) {
       _ensureReady(); // Ensure that the drawing environment is prepared
       if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
       this.pol = this.genPol(x, y, scale, true);
@@ -2118,45 +2038,15 @@ export class Plot {
   }
 }
 
-
 // =============================================================================
 // Section: Primitives and Geommetry
 // =============================================================================
 
 /**
- * Draws a line using the current brush from (x1, y1) to (x2, y2).
- * @param {number} x1 - The x-coordinate of the start point.
- * @param {number} y1 - The y-coordinate of the start point.
- * @param {number} x2 - The x-coordinate of the end point.
- * @param {number} y2 - The y-coordinate of the end point.
- */
-export function line(x1, y1, x2, y2) {
-  _ensureReady();
-  let d = R.dist(x1, y1, x2, y2);
-  if (d == 0) return;
-  B.initializeDrawingState(x1, y1, d, true, false);
-  let angle = R.calcAngle(x1, y1, x2, y2);
-  B.draw(angle, false);
-}
-
-/**
- * Draws a stroke with the current brush from a starting point in a specified direction.
- * @param {number} x - The x-coordinate of the starting point.
- * @param {number} y - The y-coordinate of the starting point.
- * @param {number} length - The length of the line to draw.
- * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
- */
-export function stroke(x, y, length, dir) {
-  _ensureReady();
-  B.initializeDrawingState(x, y, length, true, false);
-  B.draw(R.toDegrees(dir), false);
-}
-
-/**
  * Creates a Polygon from a given array of points and performs drawing and filling
  * operations based on active states.
  *
- * @param {Array} pointsArray - An array of points where each point is an array of two numbers [x, y].
+ * @param {Array} pointsArray - An array of points where each point is an array of two numbers [x, y, pressure].
  */
 export function polygon(pointsArray) {
   // Create a new Polygon instance
@@ -2175,13 +2065,13 @@ export function polygon(pointsArray) {
  */
 export function rect(x, y, w, h, mode = "corner") {
   if (mode == "center") (x = x - w / 2), (y = y - h / 2);
-  if (FF.isActive) {
+  if (FlowField.isActive) {
     beginPath(0);
     moveTo(x, y);
     lineTo(x + w, y);
     lineTo(x + w, y + h);
     lineTo(x, y + h);
-    closePath()
+    closePath();
     drawPath();
   } else {
     let p = new Polygon([
@@ -2244,63 +2134,55 @@ export function arc(x, y, radius, start, end) {
   p.draw(x + radius * R.cos(-a1 - 90), y + radius * R.sin(-a1 - 90), 1);
 }
 
-
-
-
 let _pathArray;
 let _current;
 let _curvature;
 
 class SubPath {
-  constructor () {
+  constructor() {
     this.isClosed = false;
     this.curvature = _curvature;
     this.vert = [];
   }
-  vertex(x,y,pressure) {
-    this.vert.push([x,y,pressure])
+  vertex(x, y, pressure) {
+    this.vert.push([x, y, pressure]);
   }
-  show () {
+  show() {
     let plot =
-    this.curvature === 0 && !FF.isActive
-      ? new Polygon(this.vert)
-      : _createSpline(
-          this.vert,
-          this.curvature,
-          this.isClosed
-        );
-        plot.show();
+      this.curvature === 0 && !FlowField.isActive && this.isClosed
+        ? new Polygon(this.vert)
+        : _createSpline(this.vert, this.curvature, this.isClosed);
+    plot.show();
   }
 }
 
 export function beginPath(curvature = 0) {
-  _curvature = R.constrain(curvature, 0, 1)
+  _curvature = R.constrain(curvature, 0, 1);
   _pathArray = [];
 }
 
 export function moveTo(x, y, pressure = 1) {
-  _current = new SubPath()
-  _pathArray.push(_current)
-  _current.vertex(x,y,pressure)
+  _current = new SubPath();
+  _pathArray.push(_current);
+  _current.vertex(x, y, pressure);
 }
 
 export function lineTo(x, y, pressure = 1) {
-  _current.vertex(x,y,pressure)
+  _current.vertex(x, y, pressure);
 }
 
 export function closePath() {
-  _current.vertex(..._current.vert[0])
-  _current.vertex(..._current.vert[1])
+  _current.vertex(..._current.vert[0]);
+  _current.vertex(..._current.vert[1]);
   _current.isClosed = true;
 }
 
 export function drawPath() {
   for (let sub of _pathArray) {
-    sub.show()
+    sub.show();
   }
   _pathArray = false;
 }
-
 
 let _strokeArray, _strokeOrigin;
 
@@ -2323,7 +2205,7 @@ export function beginStroke(type, x, y) {
  * @param {number} length - The length of the segment.
  * @param {number} pressure - The pressure at the start of the segment, affecting properties like width.
  */
-export function segment(angle, length, pressure) {
+export function move(angle, length, pressure) {
   _strokeArray.addSegment(angle, length, pressure); // Add the new segment to the Plot
 }
 
@@ -2332,7 +2214,7 @@ export function segment(angle, length, pressure) {
  * @param {number} angle - The angle of the curve at the last point of the stroke path.
  * @param {number} pressure - The pressure at the end of the stroke.
  */
-export function drawStroke(angle, pressure) {
+export function endStroke(angle, pressure) {
   _strokeArray.endPlot(angle, pressure); // Finalize the Plot with the end angle and pressure
   _strokeArray.draw(_strokeOrigin[0], _strokeOrigin[1], 1); // Draw the stroke using the stored starting position
   _strokeArray = false; // Clear the _strokeArray to indicate the end of this stroke
@@ -2477,9 +2359,9 @@ export function noErase() {
  */
 export function fillStyle(a, b, c, d) {
   _ensureReady();
-  F.opacity = arguments.length < 4 ? b : d;
-  F.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
-  F.isActive = true;
+  Fill.opacity = arguments.length < 4 ? b : d;
+  Fill.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
+  Fill.isActive = true;
 }
 
 /**
@@ -2487,36 +2369,28 @@ export function fillStyle(a, b, c, d) {
  * @param {number} _i - The intensity of the bleed effect, capped at 0.5.
  * @param {number} _texture - The texture of the watercolor effect, from 0 to 1.
  */
-export function bleed(_i, _direction = "out") {
+export function fillBleed(_i, _direction = "out") {
   _ensureReady();
-  F.bleed_strength = R.constrain(_i, 0, 1);
-  F.direction = _direction;
+  Fill.bleed_strength = R.constrain(_i, 0, 1);
+  Fill.direction = _direction;
 }
 
 export function fillTexture(_texture = 0.4, _border = 0.4) {
   _ensureReady();
-  F.texture_strength = R.constrain(_texture, 0, 1);
-  F.border_strength = R.constrain(_border, 0, 1);
+  Fill.texture_strength = R.constrain(_texture, 0, 1);
+  Fill.border_strength = R.constrain(_border, 0, 1);
 }
 
 /**
  * Disables the fill for subsequent drawing operations.
  */
 export function noFill() {
-  F.isActive = false;
-}
-
-/**
- * Disables some operations in order to guarantee a consistent bleed efect for animations (at different bleed levels)
- */
-export function fillAnimatedMode(bool) {
-  F.isAnimated = bool;
+  Fill.isActive = false;
 }
 
 /**
  * Object representing the fill state and operations for drawing.
  * @property {boolean} isActive - Indicates if the fill operation is active.
- * @property {boolean} isAnimated - Enable or disable animation-mode
  * @property {Array} v - Array of Vector representing vertices of the polygon to fill.
  * @property {Array} m - Array of multipliers for the bleed effect on each vertex.
  * @property {Color} color - Current fill color.
@@ -2527,14 +2401,36 @@ export function fillAnimatedMode(bool) {
  * @property {function} fill - Method to fill a polygon with a watercolor effect.
  * @property {function} calcCenter - Method to calculate the centroid of the polygon.
  */
-const F = {
+const Fill = {
   isActive: false,
-  isAnimated: false,
   color: new Color("#002185"),
   opacity: 60,
   bleed_strength: 0.07,
   texture_strength: 0.4,
   border_strength: 0.4,
+
+  getState() {
+    const {
+      isActive,
+      color,
+      opacity,
+      bleed_strength,
+      texture_strength,
+      border_strength,
+    } = this;
+    return {
+      isActive,
+      color,
+      opacity,
+      bleed_strength,
+      texture_strength,
+      border_strength,
+    };
+  },
+
+  setState(state) {
+    Object.assign(this, state);
+  },
 
   /**
    * Fills the given polygon with a watercolor effect.
@@ -2552,7 +2448,7 @@ const F = {
     const fluid = vLength * R.rr(0.2, 0.4);
     // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
     const strength = this.bleed_strength;
-    F.m = v.map((_, i) => {
+    this.m = v.map((_, i) => {
       let multiplier = R.rr(0.5, 1.4) * strength;
       return i < fluid ? multiplier : multiplier * 0.25;
     });
@@ -2628,7 +2524,7 @@ class FillPolygon {
           return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0.01;
         };
         let d1 = 0;
-        for (let int of F.polygon.intersect(linea)) {
+        for (let int of Fill.polygon.intersect(linea)) {
           if (isLeft(v1, v2, int)) d1++;
         }
         this.dir[i] = d1 % 2 === 0 ? true : false;
@@ -2675,13 +2571,13 @@ class FillPolygon {
 
     // Pre-compute values that do not change within the loop
     const modAdjustment = degrow ? -0.5 : 1;
-    const bleedDirection = F.direction === "out" ? -90 : 90;
+    const bleedDirection = Fill.direction === "out" ? -90 : 90;
     // Inline changeModifier to reduce function calls
     const changeModifier = (modifier) => {
       return modifier + R.pseudoGaussian(0, 0.01);
     };
     let cond =
-      growthFactor === 999 ? (F.bleed_strength <= 0.1 ? 0.25 : 0.75) : false;
+      growthFactor === 999 ? (Fill.bleed_strength <= 0.1 ? 0.25 : 0.75) : false;
     // Loop through each vertex to calculate the new position based on growth
     for (let i = 0; i < len; i++) {
       const currentVertex = tr_v[i];
@@ -2729,14 +2625,14 @@ class FillPolygon {
     // Precalculate stuff
     const numLayers = 24;
     const texture = tex * 3;
-    const int = intensity * 2;
+    const int = intensity * 1.5;
 
     // Perform initial setup only once
     Mix.blend(color);
     Mix.ctx.save();
-    Mix.ctx.strokeStyle = RGBr(color) + 0.05 * F.border_strength + ")";
-    Mix.ctx.lineWidth = 0;
+
     Mix.ctx.fillStyle = RGBr(color) + int + "%)";
+    Mix.ctx.strokeStyle = RGBr(this.color) + 0.005 * Fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
@@ -2754,12 +2650,16 @@ class FillPolygon {
           pol.grow(0.6 - 0.0125 * i),
           pol.grow(0.35 - 0.0125 * i),
         ];
-        pols[2].grow(999).layer();
       }
 
       // Draw layers
-      for (let p of pols) p.grow(999, true).grow(999).layer();
-      if (texture !== 0 && i % 2 === 0) pol.erase(texture, intensity);
+      for (let p of pols) p.grow(999, true).grow(999).layer(i);
+      pols[2].grow(999, true).grow(999).layer(i);
+      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 1.5, intensity);
+
+      if (i % 6 === 0) {
+        Mix.blend(color, true);
+      }
     }
 
     Mix.ctx.restore();
@@ -2771,7 +2671,9 @@ class FillPolygon {
    * @param {number} _nr - The layer number, affecting the stroke and opacity mapping.
    * @param {boolean} [bool=true] - If true, adds a stroke to the layer.
    */
-  layer() {
+  layer(i) {
+    Mix.ctx.lineWidth = this.size / 25 - i / 2;
+
     // Set fill and stroke properties once
     drawPolygon(this.v);
     Mix.ctx.stroke();
@@ -2784,15 +2686,11 @@ class FillPolygon {
    */
   erase(texture, intensity) {
     Mix.ctx.save();
-    if (isMobile) {
-      drawPolygon(this.v);
-      Mix.ctx.clip();
-    }
     // Cache local values to avoid repeated property lookups
-    const numCircles = R.rr(110, 170) * R.map(texture, 0, 1, 2, 3);
+    const numCircles = R.rr(140, 230) * R.map(texture, 0, 1, 2, 3);
     const halfSize = this.size / 2;
     const minSizeFactor = 0.015 * this.size;
-    const maxSizeFactor = 0.2 * this.size;
+    const maxSizeFactor = 0.15 * this.size;
     const midX = this.midP.x;
     const midY = this.midP.y;
     Mix.ctx.globalCompositeOperation = "destination-out";
@@ -2804,7 +2702,7 @@ class FillPolygon {
       const y = midY + R.gaussian(0, halfSize);
       const size = R.rr(minSizeFactor, maxSizeFactor);
       Mix.ctx.beginPath();
-      B.circle(x, y, size);
+      Brush.circle(x, y, size);
       if (i % 4 !== 0) Mix.ctx.fill();
     }
     Mix.ctx.globalCompositeOperation = "source-over";
@@ -2867,15 +2765,11 @@ const _standard_brushes = [
   ],
   [
     "cpencil",
-    [0.4, 0.6, 0.8, 7, 75, 0.15, { curve: [0.15, 0.2], min_max: [0.95, 1.2] }],
+    [0.4, 0.55, 0.8, 7, 70, 0.15, { curve: [0.15, 0.2], min_max: [0.95, 1.2] }],
   ],
   [
     "charcoal",
     [0.5, 2, 0.8, 300, 70, 0.06, { curve: [0.15, 0.2], min_max: [1.5, 0.8] }],
-  ],
-  [
-    "hatch_brush",
-    [0.2, 0.4, 0.3, 2, 135, 0.15, { curve: [0.5, 0.7], min_max: [1, 1.5] }],
   ],
   [
     "spray",
@@ -2905,33 +2799,36 @@ for (let s of _standard_brushes) {
   add(s[0], obj);
 }
 
-
 // =============================================================================
 // Section: Drawing Loop
 // =============================================================================
 
 let _time = 0,
-  _isLoop = true, drawingLoop;
+  _isLoop = true,
+  _drawingLoop,
+  _fps = 30;
 
-export function loop(_drawingLoop) {
-  drawingLoop = _drawingLoop;
+export function loop(drawingLoop) {
+  _drawingLoop = drawingLoop;
   _isLoop = true;
   requestAnimationFrame(drawLoop);
 }
 
-export let frameRate = 30;
-export let frameCount = 0;
+export let frameRate = (fps) => {
+  if (fps) _fps = fps;
+  return _fps;
+};
 
+export let frameCount = 0;
 export function noLoop() {
   _isLoop = false;
 }
-
 function drawLoop(timeStamp) {
   if (_isLoop) {
-    if (timeStamp > _time + 1000 / frameRate || timeStamp === 0) {
+    if (timeStamp > _time + 1000 / frameRate() || timeStamp === 0) {
       _time = timeStamp;
       frameCount++;
-      drawingLoop();
+      _drawingLoop();
       endFrame();
     }
   }
