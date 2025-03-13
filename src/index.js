@@ -490,7 +490,7 @@ const Mix = {
    * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
    * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
    */
-  blend(_color = false, _isLast = false, _isImg = false) {
+  blend(_color = false, _isLast = false, _isImg = false, _sp = false) {
     // Check if blending is initialised
     if (!this.isBlending) {
       // If color has been provided, we initialise blending
@@ -514,13 +514,14 @@ const Mix = {
           isLast: _isLast,
           isErase: Mix.isErase,
           isImage: _isImg ? true : false,
+          sp: _sp,
         },
         [imageData]
       );
       this.isErase = false;
       // We cache the new color here
       if (!_isLast) this.currentColor = _color.gl;
-      if (_isLast) this.isBlending = false;
+      if (_isLast && !_sp) this.isBlending = false;
     }
   },
 };
@@ -698,6 +699,7 @@ const FlowField = {
     this.num_columns = Math.round((2 * Cwidth) / this.R); // Number of columns in the grid
     this.num_rows = Math.round((2 * Cheight) / this.R); // Number of columns in the grid
     this.addStandard(); // Add default vector fields
+    BleedField.genField();
   },
 
   /**
@@ -782,6 +784,56 @@ const FlowField = {
   },
 };
 
+export const BleedField = {
+  genField() {
+    this.resolution = Cwidth * 0.01,
+    this.num_columns = Math.round((2 * Cwidth) / this.resolution);
+    this.num_rows = Math.round((2 * Cheight) / this.resolution);
+    this.field = new Array(this.num_columns); // Initialize the field array
+    this.fieldTemp = new Array(this.num_columns);
+    this.brush = new Array(this.num_columns);
+    for (let i = 0; i < this.num_columns; i++) {
+      this.field[i] = new Float32Array(this.num_rows);
+      this.fieldTemp[i] = new Float32Array(this.num_rows);
+      this.brush[i] = new Float32Array(this.num_rows);
+    }
+  },
+  calc(x,y) {
+    const x_offset = x + Matrix.x - FlowField.left_x;
+    const y_offset = y + Matrix.y - FlowField.top_y;
+    this.column_index = Math.round(x_offset / this.resolution);
+    this.row_index = Math.round(y_offset / this.resolution);
+  },
+  get(x, y, value = false) {
+    this.calc(x,y)
+    if (this.isOut()) return value || 0
+    if (value) {
+      let current = this.field[this.column_index][this.row_index]
+      let biggest = Math.max(current, value);
+      this.fieldTemp[this.column_index][this.row_index] = Math.max(biggest, this.fieldTemp[this.column_index][this.row_index] * 0.75);
+      return biggest;
+    }
+    return this.field[this.column_index][this.row_index]
+  },
+  isOut() {
+return (this.column_index >= this.num_columns || this.column_index < 0) || (this.row_index >= this.num_rows || this.row_index < 0)
+  },
+  gete(x,y) {
+    this.calc(x,y)
+    if (this.isOut()) return 0
+    //console.log(this.brush)
+    return this.brush[this.column_index][this.row_index]
+  },
+  update() {
+    this.field = this.fieldTemp.slice();
+  },
+  increase(x,y) {
+    this.calc(x,y)
+    if (this.isOut()) return
+    this.brush[this.column_index][this.row_index] = R.rr(0,0.5);
+  }
+}
+
 /**
  * The Position class represents a point within a two-dimensional space, which can interact with a vector field.
  * It provides methods to update the position based on the field's flow and to check whether the position is
@@ -805,7 +857,7 @@ export class Position {
    */
   update(x, y) {
     (this.x = x), (this.y = y);
-    if (FlowField.isActive) {
+    if (FlowField.isActive || Fill.isActive) {
       this.x_offset = this.x + Matrix.x - FlowField.left_x;
       this.y_offset = this.y + Matrix.y - FlowField.top_y;
       this.column_index = Math.round(this.x_offset / FlowField.R);
@@ -1149,9 +1201,9 @@ const Brush = {
    * @param {number} pressure - The desired pressure value.
    */
   tip(customPressure = false) {
-    const pressure = customPressure || this.calculatePressure(); // Calculate Pressure
     if (!this.isInsideClippingArea()) return; // Check if it's inside clipping area
-
+    let pressure = customPressure || this.calculatePressure(); // Calculate Pressure
+    pressure *= (1-BleedField.gete(this.position.x,this.position.y));
     // Draw different tip types
     switch (this.p.type) {
       case "spray":
@@ -2065,7 +2117,6 @@ export function polygon(pointsArray) {
  */
 export function rect(x, y, w, h, mode = "corner") {
   if (mode == "center") (x = x - w / 2), (y = y - h / 2);
-  if (FlowField.isActive) {
     beginPath(0);
     moveTo(x, y);
     lineTo(x + w, y);
@@ -2073,15 +2124,6 @@ export function rect(x, y, w, h, mode = "corner") {
     lineTo(x, y + h);
     closePath();
     drawPath();
-  } else {
-    let p = new Polygon([
-      [x, y],
-      [x + w, y],
-      [x + w, y + h],
-      [x, y + h],
-    ]);
-    p.show();
-  }
 }
 
 /**
@@ -2148,16 +2190,13 @@ class SubPath {
     this.vert.push([x, y, pressure]);
   }
   show() {
-    let plot =
-      this.curvature === 0 && !FlowField.isActive && this.isClosed
-        ? new Polygon(this.vert)
-        : _createSpline(this.vert, this.curvature, this.isClosed);
+    let plot = _createSpline(this.vert, this.curvature, this.isClosed);
     plot.show();
   }
 }
 
 export function beginPath(curvature = 0) {
-  _curvature = R.constrain(curvature, 0, 1);
+  _curvature = R.constrain(curvature,0,1);
   _pathArray = [];
 }
 
@@ -2173,7 +2212,6 @@ export function lineTo(x, y, pressure = 1) {
 
 export function closePath() {
   _current.vertex(..._current.vert[0]);
-  _current.vertex(..._current.vert[1]);
   _current.isClosed = true;
 }
 
@@ -2229,6 +2267,7 @@ function _createSpline(array_points, curvature = 0.5, _close = false) {
   // Initialize the plot type based on curvature
   let plotType = curvature === 0 ? "segments" : "curve";
   let p = new Plot(plotType);
+  if (_close && curvature !== 0) array_points.push(array_points[1])
 
   // Proceed only if there are points provided
   if (array_points && array_points.length > 0) {
@@ -2298,7 +2337,6 @@ function _createSpline(array_points, curvature = 0.5, _close = false) {
         }
       } else if (curvature === 0) {
         // If curvature is 0, simply create segments
-        if (i === 0 && _close) array_points.pop();
         let p1 = array_points[i],
           p2 = array_points[i + 1];
         let d = R.dist(p1[0], p1[1], p2[0], p2[1]);
@@ -2441,18 +2479,18 @@ const Fill = {
     this.polygon = polygon;
     // Map polygon vertices to Vector objects
     let v = [...polygon.vertices];
-    const vLength = v.length;
-    // Shift vertices randomly to create a more natural watercolor edge
-    let shift = R.randInt(0, vLength);
+    const vLength = v.length;    
     // Calculate fluidity once, outside the loop
-    const fluid = vLength * R.rr(0.2, 0.4);
+    const fluid = vLength * 0.25 * R.weightedRand({ 1: 5, 2: 10, 3: 60 });
     // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
     const strength = this.bleed_strength;
     this.m = v.map((_, i) => {
-      let multiplier = R.rr(0.5, 1.4) * strength;
-      return i < fluid ? multiplier : multiplier * 0.25;
+      let multiplier = R.rr(0.85, 1.2) * strength;
+      return i > fluid ? multiplier : multiplier * 0.2;
     });
-    shift -= ~~(vLength * 0.15);
+
+    // Shift vertices randomly to create a more natural watercolor edge
+    let shift = R.randInt(0, vLength);
     v = [...v.slice(shift), ...v.slice(0, shift)];
     // Create and fill the polygon with the calculated bleed effect
     let pol = new FillPolygon(v, this.m, this.calcCenter(v), [], true);
@@ -2468,16 +2506,23 @@ const Fill = {
    * Calculates the center point of the polygon based on the vertices.
    * @returns {Object} Object representing the centroid of the polygon.
    */
-  calcCenter(v) {
-    let midx = 0,
-      midy = 0;
-    for (let i = 0; i < v.length; ++i) {
-      midx += v[i].x;
-      midy += v[i].y;
+  calcCenter(pts) {
+    var first = pts[0], last = pts[pts.length-1];
+    if (first.x != last.x || first.y != last.y) pts.push(first);
+    var twicearea=0,
+    x=0, y=0,
+    nPts = pts.length,
+    p1, p2, f;
+    for ( var i=0, j=nPts-1 ; i<nPts ; j=i++ ) {
+       p1 = pts[i]; p2 = pts[j];
+       f = (p1.y - first.y) * (p2.x - first.x) - (p2.y - first.y) * (p1.x - first.x);
+       twicearea += f;
+       x += (p1.x + p2.x - 2 * first.x) * f;
+       y += (p1.y + p2.y - 2 * first.y) * f;
     }
-    (midx /= v.length), (midy /= v.length);
-    return { x: midx, y: midy };
-  },
+    f = twicearea * 3;
+    return { x:x/f + first.x, y:y/f + first.y };
+ }
 };
 
 /**
@@ -2503,7 +2548,17 @@ class FillPolygon {
     this.m = _m;
     this.midP = _center;
     this.size = -Infinity;
+    this.sizeX = -Infinity;
+    this.sizeY = -Infinity;
     for (let v of this.v) {
+      this.sizeX = Math.max(
+        R.dist(this.midP.x, 0, v.x, 0),
+        this.sizeX
+      );
+      this.sizeY = Math.max(
+        R.dist(this.midP.y, 0, v.y, 0),
+        this.sizeY
+      );
       this.size = Math.max(
         R.dist(this.midP.x, this.midP.y, v.x, v.y),
         this.size
@@ -2574,16 +2629,24 @@ class FillPolygon {
     const bleedDirection = Fill.direction === "out" ? -90 : 90;
     // Inline changeModifier to reduce function calls
     const changeModifier = (modifier) => {
-      return modifier + R.pseudoGaussian(0, 0.01);
+      return modifier + R.pseudoGaussian(0, 0.02);
     };
-    let cond =
-      growthFactor === 999 ? (Fill.bleed_strength <= 0.1 ? 0.25 : 0.75) : false;
+    let cond = false;
+    switch(growthFactor) {
+      case 999:
+        cond = R.rr(0.2,0.4)
+        break;
+      case 997:
+        cond = Fill.bleed_strength / 1.7
+    }    
     // Loop through each vertex to calculate the new position based on growth
     for (let i = 0; i < len; i++) {
       const currentVertex = tr_v[i];
       const nextVertex = tr_v[(i + 1) % len];
       // Determine the growth modifier
-      let mod = cond || tr_m[i];
+      let mod = cond || BleedField.get(currentVertex.x,currentVertex.y, tr_m[i]);
+
+
       mod *= modAdjustment;
 
       // Calculate side
@@ -2609,11 +2672,13 @@ class FillPolygon {
 
       // Add the new vertex and its modifier
       newVerts.push(currentVertex, newVertex);
-      newMods.push(mod, changeModifier(mod));
+      newMods.push(tr_m[i], changeModifier(tr_m[i]));
       newDirs.push(tr_dir[i], tr_dir[i]);
     }
     return new FillPolygon(newVerts, newMods, this.midP, newDirs);
   }
+
+
 
   /**
    * Fills the polygon with the specified color and intensity.
@@ -2630,38 +2695,34 @@ class FillPolygon {
     // Perform initial setup only once
     Mix.blend(color);
     Mix.ctx.save();
-
     Mix.ctx.fillStyle = RGBr(color) + int + "%)";
-    Mix.ctx.strokeStyle = RGBr(this.color) + 0.005 * Fill.border_strength + ")";
+    Mix.ctx.strokeStyle = RGBr(this.color) + 0.008 * Fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
-    while (pol.v.length <= 15) {
-      pol = pol.grow();
-    }
 
     let pols;
 
     for (let i = 0; i < numLayers; i++) {
       if (i % 4 === 0) {
         pol = pol.grow();
-        pols = [
-          pol.grow(1 - 0.0125 * i),
-          pol.grow(0.6 - 0.0125 * i),
-          pol.grow(0.35 - 0.0125 * i),
-        ];
       }
+      pols = [
+        pol.grow(1 - 0.0125 * i),
+        pol.grow(0.7 - 0.0125 * i),
+        pol.grow(0.4 - 0.0125 * i),
+      ];
 
       // Draw layers
-      for (let p of pols) p.grow(999, true).grow(999).layer(i);
-      pols[2].grow(999, true).grow(999).layer(i);
-      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 1.5, intensity);
+      for (let p of pols) p.grow(997).grow().layer(i);
+      pol.grow(0.1).grow(999).layer(i)
+      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 3, intensity);
 
       if (i % 6 === 0) {
-        Mix.blend(color, true);
+        Mix.blend(color, true, false, true);
       }
     }
-
+    BleedField.update()
     Mix.ctx.restore();
   }
 
@@ -2672,7 +2733,8 @@ class FillPolygon {
    * @param {boolean} [bool=true] - If true, adds a stroke to the layer.
    */
   layer(i) {
-    Mix.ctx.lineWidth = this.size / 25 - i / 2;
+    const size = Math.max(this.sizeX,this.sizeY)
+    Mix.ctx.lineWidth = R.map(i, 0, 24, size / 30, size / 45, true);
 
     // Set fill and stroke properties once
     drawPolygon(this.v);
@@ -2687,10 +2749,12 @@ class FillPolygon {
   erase(texture, intensity) {
     Mix.ctx.save();
     // Cache local values to avoid repeated property lookups
-    const numCircles = R.rr(140, 230) * R.map(texture, 0, 1, 2, 3);
-    const halfSize = this.size / 2;
-    const minSizeFactor = 0.015 * this.size;
-    const maxSizeFactor = 0.15 * this.size;
+    const numCircles = R.rr(40, 60) * R.map(texture, 0, 1, 2, 3);
+    const halfSizeX = this.sizeX / 2;
+    const halfSizeY = this.sizeY / 2;
+    const minSize = Math.min(this.sizeX,this.sizeY) * (1.4 - Fill.bleed_strength)
+    const minSizeFactor = 0.03 * minSize;
+    const maxSizeFactor = 0.25 * minSize;
     const midX = this.midP.x;
     const midY = this.midP.y;
     Mix.ctx.globalCompositeOperation = "destination-out";
@@ -2698,12 +2762,13 @@ class FillPolygon {
     Mix.ctx.fillStyle = RGBr(this.color) + i / 255 + ")";
     Mix.ctx.lineWidth = 0;
     for (let i = 0; i < numCircles; i++) {
-      const x = midX + R.gaussian(0, halfSize);
-      const y = midY + R.gaussian(0, halfSize);
+      const x = midX + R.gaussian(0, halfSizeX);
+      const y = midY + R.gaussian(0, halfSizeY);
       const size = R.rr(minSizeFactor, maxSizeFactor);
       Mix.ctx.beginPath();
       Brush.circle(x, y, size);
       if (i % 4 !== 0) Mix.ctx.fill();
+        if (Math.abs(x - midX) < 2 * halfSizeX && Math.abs(y - midY) < 2*halfSizeY) BleedField.increase(x,y)
     }
     Mix.ctx.globalCompositeOperation = "source-over";
     Mix.ctx.restore();

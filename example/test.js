@@ -18,21 +18,25 @@ brush.load("main", canvas);
 // Scale brushes to canvas
 brush.scaleBrushes(5);
 
-brush.seed("hola");
-brush.fillBleed(0.3);
-brush.fillTexture(0.9, 0.6);
+brush.fillTexture(0.9, 0.7);
 
 // Pick a flowfield
 brush.field("hand");
 
+let fff = brush.random()
+console.log(fff)
+
+brush.seed(fff)
+
 // Draw Loop
 const draw = () => {
-  brush.background(235);
+  brush.background(255);
 
   brush.strokeStyle("#000000");
+  
 
   brush.save();
-  brush.fillStyle(brush.random(palette), 60);
+
 
   brush.pick("pen");
   brush.translate(100, 90);
@@ -40,14 +44,14 @@ const draw = () => {
   brush.strokeStyle("#ff2702");
   brush.rect(200, 200, 600, 600);
 
-  brush.fillStyle(brush.random(palette), 60);
 
   brush.hatch(7, 0, { rand: 0.08 });
   brush.hatchStyle("charcoal", "#ff2702", 0.7);
   brush.rect(200, 200, 600, 100);
+
+  
   brush.noHatch();
 
-  brush.fillStyle(brush.random(palette), 60);
 
   brush.strokeStyle("#002185");
   brush.rect(170, 450, 120, 900);
@@ -61,7 +65,7 @@ const draw = () => {
   brush.stroke(480, 1370, 100, -Math.PI / 2 + Math.PI / 5);
   brush.stroke(480, 1370, 100, -Math.PI / 2 - Math.PI / 5);
 
-  brush.fillStyle(brush.random(palette), 60);
+
 
   brush.rect(680, 80, 120, 120);
   brush.circle(740, 140, 45);
@@ -75,9 +79,9 @@ const draw = () => {
   brush.lineTo(820, 1370, 1);
   brush.drawPath();
 
-  brush.fillStyle(brush.random(palette), 60);
-
   brush.circle(765, 1390, 58);
+ 
+  
 
   brush.restore();
   brush.noLoop();

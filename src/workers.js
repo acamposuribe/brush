@@ -23,12 +23,227 @@ export const gl_worker = () =>
     out vec2 p;void main(){vec3 v=vec3(-1);v[gl_VertexID]=3.;gl_Position=vec4(p=v.xy,0,1);}`;
 
     const fsSource = `#version 300 es
-    precision highp float;uniform vec4 u_addColor;uniform bool u_isErase;uniform float u_flip;uniform bool u_isFBO;uniform sampler2D u_source,u_mask;in vec2 p;out vec4 outColor;float m(vec2 f,float v,float x,float p){return fract(sin(dot(f,vec2(v,x)))*p);}
+
+    precision highp float;
+
+    uniform vec4 u_addColor;
+    uniform bool u_isErase;
+    uniform float u_flip;
+    uniform bool u_isFBO;
+    uniform sampler2D u_source;
+    uniform sampler2D u_mask;
+
+    in vec2 p;
+
+    out vec4 outColor;
+
+    float rand(vec2 co, float a, float b, float c) {
+        return fract(sin(dot(co, vec2(a, b))) * c);
+    }
+
     #ifndef SPECTRAL
     #define SPECTRAL
-    float m(float f){return f<.04045?f/12.92:pow((f+.055)/1.055,2.4);}float x(float f){return f<.0031308?f*12.92:1.055*pow(f,1./2.4)-.055;}vec3 f(vec3 f){return vec3(m(f[0]),m(f[1]),m(f[2]));}vec3 n(vec3 f){return clamp(vec3(x(f[0]),x(f[1]),x(f[2])),0.,1.);}void f(vec3 e,out float m,out float f,out float u,out float v,out float x,out float r,out float z){m=min(e.x,min(e.y,e.z));e-=m;f=min(e.y,e.z);u=min(e.x,e.z);v=min(e.x,e.y);x=min(max(0.,e.x-e.z),max(0.,e.x-e.y));r=min(max(0.,e.y-e.z),max(0.,e.y-e.x));z=min(max(0.,e.z-e.y),max(0.,e.z-e.x));}void f(vec3 v,inout float u[38]){float e,x,o,m,y,z,p;f(v,e,x,o,m,y,z,p);u[0]=max(1e-4,e+x*.96853629+o*.51567122+m*.02055257+y*.03147571+z*.49108579+p*.97901834);u[1]=max(1e-4,e+x*.96855103+o*.5401552+m*.02059936+y*.03146636+z*.46944057+p*.97901649);u[2]=max(1e-4,e+x*.96859338+o*.62645502+m*.02062723+y*.03140624+z*.4016578+p*.97901118);u[3]=max(1e-4,e+x*.96877345+o*.75595012+m*.02073387+y*.03119611+z*.2449042+p*.97892146);u[4]=max(1e-4,e+x*.96942204+o*.92826996+m*.02114202+y*.03053888+z*.0682688+p*.97858555);u[5]=max(1e-4,e+x*.97143709+o*.97223624+m*.02233154+y*.02856855+z*.02732883+p*.97743705);u[6]=max(1e-4,e+x*.97541862+o*.98616174+m*.02556857+y*.02459485+z*.013606+p*.97428075);u[7]=max(1e-4,e+x*.98074186+o*.98955255+m*.03330189+y*.0192952+z*.01000187+p*.96663223);u[8]=max(1e-4,e+x*.98580992+o*.98676237+m*.05185294+y*.01423112+z*.01284127+p*.94822893);u[9]=max(1e-4,e+x*.98971194+o*.97312575+m*.10087639+y*.01033111+z*.02636635+p*.89937713);u[10]=max(1e-4,e+x*.99238027+o*.91944277+m*.24000413+y*.00765876+z*.07058713+p*.76070164);u[11]=max(1e-4,e+x*.99409844+o*.32564851+m*.53589066+y*.00593693+z*.70421692+p*.4642044);u[12]=max(1e-4,e+x*.995172+o*.13820628+m*.79874659+y*.00485616+z*.85473994+p*.20123039);u[13]=max(1e-4,e+x*.99576545+o*.05015143+m*.91186529+y*.00426186+z*.95081565+p*.08808402);u[14]=max(1e-4,e+x*.99593552+o*.02912336+m*.95399623+y*.00409039+z*.9717037+p*.04592894);u[15]=max(1e-4,e+x*.99564041+o*.02421691+m*.97137099+y*.00438375+z*.97651888+p*.02860373);u[16]=max(1e-4,e+x*.99464769+o*.02660696+m*.97939505+y*.00537525+z*.97429245+p*.02060067);u[17]=max(1e-4,e+x*.99229579+o*.03407586+m*.98345207+y*.00772962+z*.97012917+p*.01656701);u[18]=max(1e-4,e+x*.98638762+o*.04835936+m*.98553736+y*.0136612+z*.9425863+p*.01451549);u[19]=max(1e-4,e+x*.96829712+o*.0001172+m*.98648905+y*.03181352+z*.99989207+p*.01357964);u[20]=max(1e-4,e+x*.89228016+o*8.554e-5+m*.98674535+y*.10791525+z*.99989891+p*.01331243);u[21]=max(1e-4,e+x*.53740239+o*.85267882+m*.98657555+y*.46249516+z*.13823139+p*.01347661);u[22]=max(1e-4,e+x*.15360445+o*.93188793+m*.98611877+y*.84604333+z*.06968113+p*.01387181);u[23]=max(1e-4,e+x*.05705719+o*.94810268+m*.98559942+y*.94275572+z*.05628787+p*.01435472);u[24]=max(1e-4,e+x*.03126539+o*.94200977+m*.98507063+y*.96860996+z*.06111561+p*.01479836);u[25]=max(1e-4,e+x*.02205445+o*.91478045+m*.98460039+y*.97783966+z*.08987709+p*.0151525);u[26]=max(1e-4,e+x*.01802271+o*.87065445+m*.98425301+y*.98187757+z*.13656016+p*.01540513);u[27]=max(1e-4,e+x*.0161346+o*.78827548+m*.98403909+y*.98377315+z*.22169624+p*.01557233);u[28]=max(1e-4,e+x*.01520947+o*.65738359+m*.98388535+y*.98470202+z*.32176956+p*.0156571);u[29]=max(1e-4,e+x*.01475977+o*.59909403+m*.98376116+y*.98515481+z*.36157329+p*.01571025);u[30]=max(1e-4,e+x*.01454263+o*.56817268+m*.98368246+y*.98537114+z*.4836192+p*.01571916);u[31]=max(1e-4,e+x*.01444459+o*.54031997+m*.98365023+y*.98546685+z*.46488579+p*.01572133);u[32]=max(1e-4,e+x*.01439897+o*.52110241+m*.98361309+y*.98550011+z*.47440306+p*.01572502);u[33]=max(1e-4,e+x*.0143762+o*.51041094+m*.98357259+y*.98551031+z*.4857699+p*.01571717);u[34]=max(1e-4,e+x*.01436343+o*.50526577+m*.98353856+y*.98550741+z*.49267971+p*.01571905);u[35]=max(1e-4,e+x*.01435687+o*.5025508+m*.98351247+y*.98551323+z*.49625685+p*.01571059);u[36]=max(1e-4,e+x*.0143537+o*.50126452+m*.98350101+y*.98551563+z*.49807754+p*.01569728);u[37]=max(1e-4,e+x*.01435408+o*.50083021+m*.98350852+y*.98551547+z*.49889859+p*.0157002);}vec3 w(vec3 e){mat3 u;u[0]=vec3(3.24306333,-1.53837619,-.49893282);u[1]=vec3(-.96896309,1.87542451,.04154303);u[2]=vec3(.05568392,-.20417438,1.05799454);float f=dot(u[0],e),x=dot(u[1],e),o=dot(u[2],e);return n(vec3(f,x,o));}vec3 v(float u[38]){vec3 e=vec3(0);e+=u[0]*vec3(6.469e-5,1.84e-6,.00030502);e+=u[1]*vec3(.00021941,6.21e-6,.00103681);e+=u[2]*vec3(.00112057,3.101e-5,.00531314);e+=u[3]*vec3(.00376661,.00010475,.01795439);e+=u[4]*vec3(.01188055,.00035364,.05707758);e+=u[5]*vec3(.02328644,.00095147,.11365162);e+=u[6]*vec3(.03455942,.00228226,.17335873);e+=u[7]*vec3(.03722379,.00420733,.19620658);e+=u[8]*vec3(.03241838,.0066888,.18608237);e+=u[9]*vec3(.02123321,.0098884,.13995048);e+=u[10]*vec3(.01049099,.01524945,.08917453);e+=u[11]*vec3(.00329584,.02141831,.04789621);e+=u[12]*vec3(.00050704,.03342293,.02814563);e+=u[13]*vec3(.00094867,.05131001,.01613766);e+=u[14]*vec3(.00627372,.07040208,.0077591);e+=u[15]*vec3(.01686462,.08783871,.00429615);e+=u[16]*vec3(.02868965,.09424905,.00200551);e+=u[17]*vec3(.04267481,.09795667,.00086147);e+=u[18]*vec3(.05625475,.09415219,.00036904);e+=u[19]*vec3(.0694704,.08678102,.00019143);e+=u[20]*vec3(.08305315,.07885653,.00014956);e+=u[21]*vec3(.0861261,.0635267,9.231e-5);e+=u[22]*vec3(.09046614,.05374142,6.813e-5);e+=u[23]*vec3(.08500387,.04264606,2.883e-5);e+=u[24]*vec3(.07090667,.03161735,1.577e-5);e+=u[25]*vec3(.05062889,.02088521,3.94e-6);e+=u[26]*vec3(.03547396,.01386011,1.58e-6);e+=u[27]*vec3(.02146821,.00810264,0);e+=u[28]*vec3(.01251646,.0046301,0);e+=u[29]*vec3(.00680458,.00249138,0);e+=u[30]*vec3(.00346457,.0012593,0);e+=u[31]*vec3(.00149761,.00054165,0);e+=u[32]*vec3(.0007697,.00027795,0);e+=u[33]*vec3(.00040737,.00014711,0);e+=u[34]*vec3(.00016901,6.103e-5,0);e+=u[35]*vec3(9.522e-5,3.439e-5,0);e+=u[36]*vec3(4.903e-5,1.771e-5,0);e+=u[37]*vec3(2e-5,7.22e-6,0);return e;}float f(float x,float m,float f){float z=m*pow(f,2.);return z/(x*pow(1.-f,2.)+z);}vec3 m(vec3 x,vec3 e,float o){vec3 u=f(x),m=f(e);float p[38],z[38];f(u,p);f(m,z);float y=v(p)[1],r=v(z)[1];o=f(y,r,o);float i[38];for(int S=0;S<38;S++){float b=(1.-o)*(pow(1.-p[S],2.)/(2.*p[S]))+o*(pow(1.-z[S],2.)/(2.*z[S]));i[S]=1.+b-sqrt(pow(b,2.)+2.*b);}return w(v(i));}
+
+    const int SPECTRAL_SIZE = 38;
+    const float SPECTRAL_GAMMA = 2.4;
+    const float SPECTRAL_EPSILON = 0.0001;
+
+    float spectral_uncompand(float x) {
+    return (x < 0.04045) ? x / 12.92 : pow((x + 0.055) / 1.055, SPECTRAL_GAMMA);
+    }
+
+    float spectral_compand(float x) {
+    return (x < 0.0031308) ? x * 12.92 : 1.055 * pow(x, 1.0 / SPECTRAL_GAMMA) - 0.055;
+    }
+
+    vec3 spectral_srgb_to_linear(vec3 srgb) {
+        return vec3(spectral_uncompand(srgb[0]), spectral_uncompand(srgb[1]), spectral_uncompand(srgb[2]));
+    }
+
+    vec3 spectral_linear_to_srgb(vec3 lrgb) {
+        return clamp(vec3(spectral_compand(lrgb[0]), spectral_compand(lrgb[1]), spectral_compand(lrgb[2])), 0.0, 1.0);
+    }
+
+    void spectral_upsampling(vec3 lrgb, out float w, out float c, out float m, out float y, out float r, out float g, out float b) {
+        w = min(lrgb.r, min(lrgb.g, lrgb.b));
+
+        lrgb -= w;
+
+        c = min(lrgb.g, lrgb.b);
+        m = min(lrgb.r, lrgb.b);
+        y = min(lrgb.r, lrgb.g);
+        r = min(max(0., lrgb.r - lrgb.b), max(0., lrgb.r - lrgb.g));
+        g = min(max(0., lrgb.g - lrgb.b), max(0., lrgb.g - lrgb.r));
+        b = min(max(0., lrgb.b - lrgb.g), max(0., lrgb.b - lrgb.r));
+    }
+
+    void spectral_linear_to_reflectance(vec3 lrgb, inout float R[SPECTRAL_SIZE]) {
+        float w, c, m, y, r, g, b;
+        
+        spectral_upsampling(lrgb, w, c, m, y, r, g, b);
+        
+        R[0] = max(SPECTRAL_EPSILON, w + c * 0.96853629 + m * 0.51567122 + y * 0.02055257 + r * 0.03147571 + g * 0.49108579 + b * 0.97901834);
+        R[1] = max(SPECTRAL_EPSILON, w + c * 0.96855103 + m * 0.54015520 + y * 0.02059936 + r * 0.03146636 + g * 0.46944057 + b * 0.97901649);
+        R[2] = max(SPECTRAL_EPSILON, w + c * 0.96859338 + m * 0.62645502 + y * 0.02062723 + r * 0.03140624 + g * 0.40165780 + b * 0.97901118);
+        R[3] = max(SPECTRAL_EPSILON, w + c * 0.96877345 + m * 0.75595012 + y * 0.02073387 + r * 0.03119611 + g * 0.24490420 + b * 0.97892146);
+        R[4] = max(SPECTRAL_EPSILON, w + c * 0.96942204 + m * 0.92826996 + y * 0.02114202 + r * 0.03053888 + g * 0.06826880 + b * 0.97858555);
+        R[5] = max(SPECTRAL_EPSILON, w + c * 0.97143709 + m * 0.97223624 + y * 0.02233154 + r * 0.02856855 + g * 0.02732883 + b * 0.97743705);
+        R[6] = max(SPECTRAL_EPSILON, w + c * 0.97541862 + m * 0.98616174 + y * 0.02556857 + r * 0.02459485 + g * 0.01360600 + b * 0.97428075);
+        R[7] = max(SPECTRAL_EPSILON, w + c * 0.98074186 + m * 0.98955255 + y * 0.03330189 + r * 0.01929520 + g * 0.01000187 + b * 0.96663223);
+        R[8] = max(SPECTRAL_EPSILON, w + c * 0.98580992 + m * 0.98676237 + y * 0.05185294 + r * 0.01423112 + g * 0.01284127 + b * 0.94822893);
+        R[9] = max(SPECTRAL_EPSILON, w + c * 0.98971194 + m * 0.97312575 + y * 0.10087639 + r * 0.01033111 + g * 0.02636635 + b * 0.89937713);
+        R[10] = max(SPECTRAL_EPSILON, w + c * 0.99238027 + m * 0.91944277 + y * 0.24000413 + r * 0.00765876 + g * 0.07058713 + b * 0.76070164);
+        R[11] = max(SPECTRAL_EPSILON, w + c * 0.99409844 + m * 0.32564851 + y * 0.53589066 + r * 0.00593693 + g * 0.70421692 + b * 0.46420440);
+        R[12] = max(SPECTRAL_EPSILON, w + c * 0.99517200 + m * 0.13820628 + y * 0.79874659 + r * 0.00485616 + g * 0.85473994 + b * 0.20123039);
+        R[13] = max(SPECTRAL_EPSILON, w + c * 0.99576545 + m * 0.05015143 + y * 0.91186529 + r * 0.00426186 + g * 0.95081565 + b * 0.08808402);
+        R[14] = max(SPECTRAL_EPSILON, w + c * 0.99593552 + m * 0.02912336 + y * 0.95399623 + r * 0.00409039 + g * 0.97170370 + b * 0.04592894);
+        R[15] = max(SPECTRAL_EPSILON, w + c * 0.99564041 + m * 0.02421691 + y * 0.97137099 + r * 0.00438375 + g * 0.97651888 + b * 0.02860373);
+        R[16] = max(SPECTRAL_EPSILON, w + c * 0.99464769 + m * 0.02660696 + y * 0.97939505 + r * 0.00537525 + g * 0.97429245 + b * 0.02060067);
+        R[17] = max(SPECTRAL_EPSILON, w + c * 0.99229579 + m * 0.03407586 + y * 0.98345207 + r * 0.00772962 + g * 0.97012917 + b * 0.01656701);
+        R[18] = max(SPECTRAL_EPSILON, w + c * 0.98638762 + m * 0.04835936 + y * 0.98553736 + r * 0.01366120 + g * 0.94258630 + b * 0.01451549);
+        R[19] = max(SPECTRAL_EPSILON, w + c * 0.96829712 + m * 0.00011720 + y * 0.98648905 + r * 0.03181352 + g * 0.99989207 + b * 0.01357964);
+        R[20] = max(SPECTRAL_EPSILON, w + c * 0.89228016 + m * 0.00008554 + y * 0.98674535 + r * 0.10791525 + g * 0.99989891 + b * 0.01331243);
+        R[21] = max(SPECTRAL_EPSILON, w + c * 0.53740239 + m * 0.85267882 + y * 0.98657555 + r * 0.46249516 + g * 0.13823139 + b * 0.01347661);
+        R[22] = max(SPECTRAL_EPSILON, w + c * 0.15360445 + m * 0.93188793 + y * 0.98611877 + r * 0.84604333 + g * 0.06968113 + b * 0.01387181);
+        R[23] = max(SPECTRAL_EPSILON, w + c * 0.05705719 + m * 0.94810268 + y * 0.98559942 + r * 0.94275572 + g * 0.05628787 + b * 0.01435472);
+        R[24] = max(SPECTRAL_EPSILON, w + c * 0.03126539 + m * 0.94200977 + y * 0.98507063 + r * 0.96860996 + g * 0.06111561 + b * 0.01479836);
+        R[25] = max(SPECTRAL_EPSILON, w + c * 0.02205445 + m * 0.91478045 + y * 0.98460039 + r * 0.97783966 + g * 0.08987709 + b * 0.01515250);
+        R[26] = max(SPECTRAL_EPSILON, w + c * 0.01802271 + m * 0.87065445 + y * 0.98425301 + r * 0.98187757 + g * 0.13656016 + b * 0.01540513);
+        R[27] = max(SPECTRAL_EPSILON, w + c * 0.01613460 + m * 0.78827548 + y * 0.98403909 + r * 0.98377315 + g * 0.22169624 + b * 0.01557233);
+        R[28] = max(SPECTRAL_EPSILON, w + c * 0.01520947 + m * 0.65738359 + y * 0.98388535 + r * 0.98470202 + g * 0.32176956 + b * 0.01565710);
+        R[29] = max(SPECTRAL_EPSILON, w + c * 0.01475977 + m * 0.59909403 + y * 0.98376116 + r * 0.98515481 + g * 0.36157329 + b * 0.01571025);
+        R[30] = max(SPECTRAL_EPSILON, w + c * 0.01454263 + m * 0.56817268 + y * 0.98368246 + r * 0.98537114 + g * 0.48361920 + b * 0.01571916);
+        R[31] = max(SPECTRAL_EPSILON, w + c * 0.01444459 + m * 0.54031997 + y * 0.98365023 + r * 0.98546685 + g * 0.46488579 + b * 0.01572133);
+        R[32] = max(SPECTRAL_EPSILON, w + c * 0.01439897 + m * 0.52110241 + y * 0.98361309 + r * 0.98550011 + g * 0.47440306 + b * 0.01572502);
+        R[33] = max(SPECTRAL_EPSILON, w + c * 0.01437620 + m * 0.51041094 + y * 0.98357259 + r * 0.98551031 + g * 0.48576990 + b * 0.01571717);
+        R[34] = max(SPECTRAL_EPSILON, w + c * 0.01436343 + m * 0.50526577 + y * 0.98353856 + r * 0.98550741 + g * 0.49267971 + b * 0.01571905);
+        R[35] = max(SPECTRAL_EPSILON, w + c * 0.01435687 + m * 0.50255080 + y * 0.98351247 + r * 0.98551323 + g * 0.49625685 + b * 0.01571059);
+        R[36] = max(SPECTRAL_EPSILON, w + c * 0.01435370 + m * 0.50126452 + y * 0.98350101 + r * 0.98551563 + g * 0.49807754 + b * 0.01569728);
+        R[37] = max(SPECTRAL_EPSILON, w + c * 0.01435408 + m * 0.50083021 + y * 0.98350852 + r * 0.98551547 + g * 0.49889859 + b * 0.01570020);
+    }
+
+    vec3 spectral_xyz_to_srgb(vec3 xyz) {
+        mat3 XYZ_RGB;
+
+        XYZ_RGB[0] = vec3( 3.24306333, -1.53837619, -0.49893282);
+        XYZ_RGB[1] = vec3(-0.96896309,  1.87542451,  0.04154303);
+        XYZ_RGB[2] = vec3( 0.05568392, -0.20417438,  1.05799454);
+        
+        float r = dot(XYZ_RGB[0], xyz);
+        float g = dot(XYZ_RGB[1], xyz);
+        float b = dot(XYZ_RGB[2], xyz);
+
+        return spectral_linear_to_srgb(vec3(r, g, b));
+    }
+
+    vec3 spectral_reflectance_to_xyz(float R[SPECTRAL_SIZE]) {
+        vec3 xyz = vec3(0.0);
+        
+        xyz +=  R[0] * vec3(0.00006469, 0.00000184, 0.00030502);
+        xyz +=  R[1] * vec3(0.00021941, 0.00000621, 0.00103681);
+        xyz +=  R[2] * vec3(0.00112057, 0.00003101, 0.00531314);
+        xyz +=  R[3] * vec3(0.00376661, 0.00010475, 0.01795439);
+        xyz +=  R[4] * vec3(0.01188055, 0.00035364, 0.05707758);
+        xyz +=  R[5] * vec3(0.02328644, 0.00095147, 0.11365162);
+        xyz +=  R[6] * vec3(0.03455942, 0.00228226, 0.17335873);
+        xyz +=  R[7] * vec3(0.03722379, 0.00420733, 0.19620658);
+        xyz +=  R[8] * vec3(0.03241838, 0.00668880, 0.18608237);
+        xyz +=  R[9] * vec3(0.02123321, 0.00988840, 0.13995048);
+        xyz += R[10] * vec3(0.01049099, 0.01524945, 0.08917453);
+        xyz += R[11] * vec3(0.00329584, 0.02141831, 0.04789621);
+        xyz += R[12] * vec3(0.00050704, 0.03342293, 0.02814563);
+        xyz += R[13] * vec3(0.00094867, 0.05131001, 0.01613766);
+        xyz += R[14] * vec3(0.00627372, 0.07040208, 0.00775910);
+        xyz += R[15] * vec3(0.01686462, 0.08783871, 0.00429615);
+        xyz += R[16] * vec3(0.02868965, 0.09424905, 0.00200551);
+        xyz += R[17] * vec3(0.04267481, 0.09795667, 0.00086147);
+        xyz += R[18] * vec3(0.05625475, 0.09415219, 0.00036904);
+        xyz += R[19] * vec3(0.06947040, 0.08678102, 0.00019143);
+        xyz += R[20] * vec3(0.08305315, 0.07885653, 0.00014956);
+        xyz += R[21] * vec3(0.08612610, 0.06352670, 0.00009231);
+        xyz += R[22] * vec3(0.09046614, 0.05374142, 0.00006813);
+        xyz += R[23] * vec3(0.08500387, 0.04264606, 0.00002883);
+        xyz += R[24] * vec3(0.07090667, 0.03161735, 0.00001577);
+        xyz += R[25] * vec3(0.05062889, 0.02088521, 0.00000394);
+        xyz += R[26] * vec3(0.03547396, 0.01386011, 0.00000158);
+        xyz += R[27] * vec3(0.02146821, 0.00810264, 0.00000000);
+        xyz += R[28] * vec3(0.01251646, 0.00463010, 0.00000000);
+        xyz += R[29] * vec3(0.00680458, 0.00249138, 0.00000000);
+        xyz += R[30] * vec3(0.00346457, 0.00125930, 0.00000000);
+        xyz += R[31] * vec3(0.00149761, 0.00054165, 0.00000000);
+        xyz += R[32] * vec3(0.00076970, 0.00027795, 0.00000000);
+        xyz += R[33] * vec3(0.00040737, 0.00014711, 0.00000000);
+        xyz += R[34] * vec3(0.00016901, 0.00006103, 0.00000000);
+        xyz += R[35] * vec3(0.00009522, 0.00003439, 0.00000000);
+        xyz += R[36] * vec3(0.00004903, 0.00001771, 0.00000000);
+        xyz += R[37] * vec3(0.00002000, 0.00000722, 0.00000000);
+
+        return xyz;
+    }
+
+    float spectral_linear_to_concentration(float l1, float l2, float t) {
+        float t1 = l1 * pow(1.0 - t, 2.0);
+        float t2 = l2 * pow(t, 2.0);
+
+        return t2 / (t1 + t2);
+    }
+
+    vec3 spectral_mix(vec3 color1, vec3 color2, float t) {
+        vec3 lrgb1 = spectral_srgb_to_linear(color1);
+        vec3 lrgb2 = spectral_srgb_to_linear(color2);
+
+        float R1[SPECTRAL_SIZE];
+        float R2[SPECTRAL_SIZE];
+
+        spectral_linear_to_reflectance(lrgb1, R1);
+        spectral_linear_to_reflectance(lrgb2, R2);
+
+        float l1 = spectral_reflectance_to_xyz(R1)[1];
+        float l2 = spectral_reflectance_to_xyz(R2)[1];
+
+        t = spectral_linear_to_concentration(l1, l2, t);
+
+        float R[SPECTRAL_SIZE];
+
+        for (int i = 0; i < SPECTRAL_SIZE; i++) {
+        float KS = (1.0 - t) * (pow(1.0 - R1[i], 2.0) / (2.0 * R1[i])) + t * (pow(1.0 - R2[i], 2.0) / (2.0 * R2[i]));
+        float KM = 1.0 + KS - sqrt(pow(KS, 2.0) + 2.0 * KS);
+
+        R[i] = KM;
+        }
+
+        return spectral_xyz_to_srgb(spectral_reflectance_to_xyz(R));
+    }
+
     #endif
-    void main(){vec2 e=.5*vec2(p.x,u_flip*p.y)+.5;vec4 u=texture(u_source,e);if(u_isFBO)outColor=u;else{vec4 f=texture(u_mask,e);if(f.x>0.){vec2 o=vec2(12.9898,78.233),x=vec2(7.9898,58.233),r=vec2(17.9898,3.233);float v=m(e,o.x,o.y,43358.5453)*2.-1.,y=m(e,x.x,x.y,43213.5453)*2.-1.,z=m(e,r.x,r.y,33358.5453)*2.-1.;vec4 i=vec4(u_addColor.xyz,1);if(f.w>.7&&!u_isErase){float b=.5*(f.w-.7);i=i*(1.-b)-vec4(.5)*b;}vec3 b=m(u.xyz,i.xyz,f.w);outColor=vec4(b+.01*vec3(v,y,z),1);}else outColor=u;}}`;
+
+    void main(void) {
+        vec2 uv = .5 * vec2(p.x, u_flip * p.y) + .5;
+        vec4 source = texture(u_source, uv);
+
+        if (u_isFBO) {
+            outColor = source;
+        } else {
+            vec4 maskColor = texture(u_mask, uv);
+            if (maskColor.r > 0.) {
+                vec2 r = vec2(12.9898,78.233), a = vec2(7.9898,58.233), l = vec2(17.9898,3.233); 
+                float d = rand(uv, r.x, r.y, 43358.5453) * 2. - 1., x= rand(uv, a.x, a.y, 43213.5453) * 2. - 1., s=rand(uv, l.x, l.y, 33358.5453) * 2. - 1.;
+                vec4 pigment = vec4(u_addColor.xyz,1.0);
+
+                float darken_above = 0.7;
+                if (maskColor.a > darken_above && !u_isErase) {
+                    float blacken = 0.5 * (maskColor.a - darken_above);
+                    pigment = pigment * (1. - blacken) - vec4(0.5) * blacken;
+                }
+
+                    vec3 mixedColor = spectral_mix(source.xyz, pigment.xyz, maskColor.a);
+                    outColor = vec4(mixedColor + 0.002 * vec3(d,x,s), 1);
+                
+            } else {
+                outColor = source;
+            }
+        }        
+    }`;
 
     const createProgram = (gl, vert, frag) => {
       const p = gl.createProgram();
@@ -179,7 +394,7 @@ export const gl_worker = () =>
       gl.invalidateFramebuffer(gl.READ_FRAMEBUFFER, [gl.COLOR_ATTACHMENT0]);
 
       // Display framebuffer on canvas
-      if (data.isLast) {
+      if (data.isLast && !data.sp) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.uniform1i(sh.u_isImage, false);
         gl.uniform1i(sh.u_isFBO, true);
