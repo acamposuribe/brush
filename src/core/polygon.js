@@ -1,5 +1,12 @@
+import { _ensureReady } from "./config.js";
+import { intersectLines } from "./utils.js";
+import { Mix, Color } from "./color.js";
+import { BrushState, set, line, BrushSetState } from "./brush.js";
+import { FillState, FillSetState, E, createFill } from "./fill.js";
+import { HatchState, createHatch, hatch, HatchSetState } from "./hatch.js";
+
 // =============================================================================
-// Section: Polygon and Plot Classes
+// Section: Polygon Class
 // =============================================================================
 /**
  * This section includes the Polygon class for managing polygons and functions for drawing basic geometries
@@ -9,11 +16,7 @@
  * strokes, and splines on a canvas.
  */
 
-import { _ensureReady } from "./config.js";
-import { intersectLines } from "./utils.js";
-import { Mix, Color } from "./color.js";
-import { BrushState, set, line, BrushSetState } from "./brush.js";
-import { HatchState, createHatch, hatch, HatchSetState } from "./hatch.js";
+
 
 /**
  * Represents a polygon with a set of vertices.

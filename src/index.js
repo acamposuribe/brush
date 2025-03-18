@@ -15,7 +15,7 @@
  * @license
  * MIT License
  *
- * Copyright (c) 2024 Alejandro Campos Uribe
+ * Copyright (c) 2025 Alejandro Campos Uribe
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,34 +36,22 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-// =============================================================================
 // Section: Configure and Initiate
-// =============================================================================
-export { load } from "./config.js";
+export { load, save, restore } from "./core/config.js";
 
-// =============================================================================
 // Randomness and other auxiliary functions
-// =============================================================================
 export {
   random,
   weightedRand as wRand,
   seed,
   noise,
   noiseSeed,
-} from "./utils.js";
+} from "./core/utils.js";
 
-// =============================================================================
 // Color Blending
-// =============================================================================
+export { background, drawImage, getCanvas } from "./core/color.js";
 
-import { Mix } from "./color.js";
-export { background, drawImage, getCanvas } from "./color.js";
-
-// =============================================================================
 // Matrix transformations, FlowField and Position Class
-// =============================================================================
-
-import { Matrix, FieldState, FieldSetState } from "./flowfield.js";
 export {
   field,
   noField,
@@ -74,13 +62,9 @@ export {
   rotate,
   scale,
   Position,
-} from "./flowfield.js";
+} from "./core/flowfield.js";
 
-// =============================================================================
 // Brushes
-// =============================================================================
-
-import { BrushState, BrushSetState } from "./brush.js";
 export {
   add,
   box,
@@ -94,31 +78,24 @@ export {
   noClip,
   line,
   stroke,
-} from "./brush.js";
+} from "./core/brush.js";
 
-// =============================================================================
 // Section: Hatching
-// =============================================================================
-
-import { HatchState, HatchSetState } from "./hatch.js";
 export {
   hatch,
   hatchStyle,
   noHatch,
   createHatch as hatchArray,
-} from "./hatch.js";
+} from "./core/hatch.js";
 
-// =============================================================================
+// Fill
+export { fillStyle, noFill, fillTexture, fillBleed, erase, noErase } from "./core/fill.js";
+
 // Polygon and Plot classes
-// =============================================================================
+export { Polygon } from "./core/polygon.js";
+export { Plot } from "./core/plot.js";
 
-export { Polygon } from "./polygon.js";
-export { Plot } from "./plot.js";
-
-// =============================================================================
 // Primitives
-// =============================================================================
-
 export {
   polygon,
   rect,
@@ -133,48 +110,7 @@ export {
   move,
   endStroke,
   spline,
-} from "./primitives.js";
+} from "./core/primitives.js";
 
-// =============================================================================
-// Fill
-// =============================================================================
-
-import { FillState, FillSetState } from "./fill.js";
-
-// =============================================================================
 // Drawing Loop
-// =============================================================================
-
-export { endFrame, loop, frameRate, noLoop, frameCount } from "./loop.js";
-
-// =============================================================================
-// SAVE / RESTORE
-// =============================================================================
-/**
- * Object that saves the current brush state for push and pop operations
- */
-const _saveState = {};
-/**
- * Saves current state to object
- */
-export function save() {
-  Mix.ctx.save();
-  _saveState.field = FieldState();
-  _saveState.stroke = BrushState();
-  _saveState.hatch = HatchState();
-  _saveState.fill = FillState();
-}
-/**
- * Restores previous state from object
- */
-export function restore() {
-  Mix.ctx.restore();
-  let m = Mix.ctx.getTransform();
-  Matrix.x = m.e;
-  Matrix.y = m.f;
-
-  FieldSetState(_saveState.field);
-  BrushSetState(_saveState.stroke);
-  HatchSetState(_saveState.hatch);
-  FillSetState(_saveState.fill);
-}
+export { endFrame, loop, frameRate, noLoop, frameCount } from "./core/loop.js";

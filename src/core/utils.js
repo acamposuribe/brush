@@ -1,3 +1,6 @@
+import { createNoise2D } from "simplex-noise";
+import { prng_alea } from "esm-seedrandom";
+
 // =============================================================================
 // Section: Randomness and other auxiliary functions
 // =============================================================================
@@ -8,9 +11,6 @@
  * geometric calculations such as translation extraction, line intersection,
  * and angle calculation.
  */
-
-import { createNoise2D } from "simplex-noise";
-import { prng_alea } from "esm-seedrandom";
 
 /**
  * The basic sources of randomness for random and noise

@@ -1,3 +1,7 @@
+import { BrushState, BrushSetState, set, line } from "./brush.js";
+import { toDegrees, map, cos, sin, rr } from "./utils.js";
+import { Polygon } from "./polygon.js";
+
 // =============================================================================
 // Section: Hatching
 // =============================================================================
@@ -5,10 +9,6 @@
  * The Hatching section of the code is responsible for creating and drawing hatching patterns.
  * Hatching involves drawing closely spaced parallel lines.
  */
-
-import { BrushState, BrushSetState, set, line } from "./brush.js";
-import { toDegrees, map, cos, sin, rr } from "./utils.js";
-import { Polygon } from "./polygon.js";
 
 let isActive = false;
 let hatchingParams = {

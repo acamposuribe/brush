@@ -1,5 +1,8 @@
 import { Mix } from "./color.js";
-import { createField } from "./flowfield.js";
+import { Matrix, FieldState, FieldSetState, createField } from "./flowfield.js";
+import { BrushState, BrushSetState } from "./brush.js";
+import { HatchState, HatchSetState } from "./hatch.js";
+import { FillState, FillSetState } from "./fill.js";
 
 // =============================================================================
 // Section: Configure and Initiate
@@ -42,4 +45,37 @@ export function load(canvasID, canvas) {
  */
 export function _ensureReady() {
   if (!_isReady) load();
+}
+
+// =============================================================================
+// SAVE / RESTORE
+// =============================================================================
+
+/**
+ * Object that saves the current brush state for push and pop operations
+ */
+const _saveState = {};
+/**
+ * Saves current state to object
+ */
+export function save() {
+  Mix.ctx.save();
+  _saveState.field = FieldState();
+  _saveState.stroke = BrushState();
+  _saveState.hatch = HatchState();
+  _saveState.fill = FillState();
+}
+/**
+ * Restores previous state from object
+ */
+export function restore() {
+  Mix.ctx.restore();
+  let m = Mix.ctx.getTransform();
+  Matrix.x = m.e;
+  Matrix.y = m.f;
+
+  FieldSetState(_saveState.field);
+  BrushSetState(_saveState.stroke);
+  HatchSetState(_saveState.hatch);
+  FillSetState(_saveState.fill);
 }

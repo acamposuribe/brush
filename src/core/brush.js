@@ -1,3 +1,16 @@
+import { _ensureReady, Cwidth, Cheight } from "./config.js";
+import {
+  rr,
+  map,
+  dist,
+  randInt,
+  calcAngle,
+  toDegrees,
+  gaussian,
+} from "./utils.js";
+import { Position, Matrix, BleedField } from "./flowfield.js";
+import { Color, Mix } from "./color.js";
+
 // =============================================================================
 // Section: Brushes
 // =============================================================================
@@ -22,19 +35,6 @@
  * with specific behaviors and appearances. By extending the brush types and parameters,
  * one can achieve a wide range of artistic styles and techniques.
  */
-
-import { _ensureReady, Cwidth, Cheight } from "./config.js";
-import {
-  rr,
-  map,
-  dist,
-  randInt,
-  calcAngle,
-  toDegrees,
-  gaussian,
-} from "./utils.js";
-import { Position, Matrix, BleedField } from "./flowfield.js";
-import { Color, Mix } from "./color.js";
 
 const PI2 = Math.PI * 2;
 

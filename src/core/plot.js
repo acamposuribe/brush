@@ -1,16 +1,20 @@
+import { _ensureReady } from "./config.js";
+import { toDegrees, map, rr } from "./utils.js";
+import { Position } from "./flowfield.js";
+import { Polygon } from "./polygon.js";
+import { BrushState, plot } from "./brush.js";
+import { FillState, E, bleed_strength } from "./fill.js";
+import { HatchState } from "./hatch.js";
+
+// =============================================================================
+// Section: Plot Class
+// =============================================================================
 /**
  * The Plot class is central to the plot system, serving as a blueprint for creating and manipulating a variety
  * of shapes and paths. It manages a collection of segments, each defined by an angle, length, and pressure,
  * allowing for intricate designs such as curves and custom strokes. Plot instances can be transformed by rotation,
  * and their visual representation can be controlled through pressure and angle calculations along their length.
  */
-
-import { _ensureReady } from "./config.js";
-import { toDegrees, map, rr } from "./utils.js";
-import { Position } from "./flowfield.js";
-import { Polygon } from "./polygon.js";
-import { BrushState, plot } from "./brush.js";
-import { HatchState } from "./hatch.js";
 
 export class Plot {
   /**
@@ -150,7 +154,7 @@ export class Plot {
     const vertices = [];
     const numSteps = Math.round(this.length / step);
     const pos = new Position(_x, _y);
-    let side = isHatch ? 0.15 : Fill.bleed_strength * 3;
+    let side = isHatch ? 0.15 : bleed_strength * 3;
     let pside = 0;
     let prevIdx = 0;
     for (let i = 0; i < numSteps; i++) {

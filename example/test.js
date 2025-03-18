@@ -38,7 +38,7 @@ const draw = () => {
 
   brush.save();
 
-  //brush.fillStyle(brush.random(palette), 75);
+  brush.fillStyle(brush.random(palette), 75);
 
   brush.pick("pen");
   brush.translate(100, 90);

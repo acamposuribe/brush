@@ -1,7 +1,3 @@
-// =============================================================================
-// Section: Primitives and Geommetry
-// =============================================================================
-
 import { Polygon } from "./polygon.js";
 import { Plot } from "./plot.js";
 import {
@@ -15,6 +11,10 @@ import {
   calcAngle,
   intersectLines,
 } from "./utils.js";
+
+// =============================================================================
+// Section: Primitives and Geommetry
+// =============================================================================
 
 /**
  * Creates a Polygon from a given array of points and performs drawing and filling
@@ -64,12 +64,12 @@ export function circle(x, y, radius, r = false) {
   // Initialize the angle for the drawing segments
   let angle = rr(0, 360);
   // Define a function to optionally add randomness to the segment length
-  let rr = () => (r ? 1 + 0.2 * rr() : 1);
+  let rra = () => (r ? 1 + 0.2 * rr() : 1);
   // Add segments for each quarter of the circle with optional randomness
-  p.addSegment(0 + angle * rr(), l * rr(), 1, true);
-  p.addSegment(-90 + angle * rr(), l * rr(), 1, true);
-  p.addSegment(-180 + angle * rr(), l * rr(), 1, true);
-  p.addSegment(-270 + angle * rr(), l * rr(), 1, true);
+  p.addSegment(0 + angle * rra(), l * rra(), 1, true);
+  p.addSegment(-90 + angle * rra(), l * rra(), 1, true);
+  p.addSegment(-180 + angle * rra(), l * rra(), 1, true);
+  p.addSegment(-270 + angle * rra(), l * rra(), 1, true);
   // Optionally add a random final angle for the last segment
   let angle2 = r ? randInt(-5, 5) : 0;
   if (r)
