@@ -1,4 +1,4 @@
-import { _ensureReady, Cwidth, Cheight } from "./config.js";
+import { _ensureReady, Cwidth, Cheight, State } from "../core/config.js";
 import {
   rr,
   map,
@@ -7,9 +7,11 @@ import {
   calcAngle,
   toDegrees,
   gaussian,
-} from "./utils.js";
-import { Position, Matrix, BleedField } from "./flowfield.js";
-import { Color, Mix } from "./color.js";
+} from "../core/utils.js";
+import { Color, Mix } from "../core/color.js";
+import { Position, Matrix, BleedField } from "../core/flowfield.js";
+import { Polygon } from "../core/polygon.js";
+import { Plot } from "../core/plot.js";
 
 // =============================================================================
 // Section: Brushes
@@ -42,24 +44,22 @@ const PI2 = Math.PI * 2;
 // Global Brush State, getter and setter
 // =============================================================================
 
-let current = {
+State.stroke = {
   color: new Color("black"),
   weight: 1,
   clipWindow: null,
   type: "HB",
+  isActive: false,
 };
-
-let isActive = false;
 
 let list = new Map();
 
 export function BrushState() {
-  return { isActive, current: { ...current } };
+  return { ...State.stroke }
 }
 
 export function BrushSetState(state) {
-  isActive = state.isActive;
-  current = { ...state.current };
+  State.stroke = { ...state }
 }
 
 // =============================================================================
@@ -106,7 +106,7 @@ export function scaleBrushes(scaleFactor) {
  * @param {string} brushName - The name of the brush to set as current.
  */
 export function pick(brushName) {
-  if (list.has(brushName)) current.type = brushName;
+  if (list.has(brushName)) State.stroke.type = brushName;
 }
 
 /**
@@ -116,8 +116,8 @@ export function pick(brushName) {
  * @param {number} [b] - The blue component of the color.
  */
 export function strokeStyle(r, g, b) {
-  current.color = new Color(...arguments);
-  isActive = true;
+  State.stroke.color = new Color(...arguments);
+  State.stroke.isActive = true;
 }
 
 /**
@@ -125,7 +125,7 @@ export function strokeStyle(r, g, b) {
  * @param {number} weight - The weight to set for the brush.
  */
 export function lineWidth(weight) {
-  current.weight = weight;
+  State.stroke.weight = weight;
 }
 
 /**
@@ -146,7 +146,7 @@ export function set(brushName, color, weight = 1) {
  * should be applied to the shapes drawn after this method is called.
  */
 export function noStroke() {
-  isActive = false;
+  State.stroke.isActive = false;
 }
 
 /**
@@ -154,14 +154,14 @@ export function noStroke() {
  * @param {number[]} clippingRegion - An array defining the clipping region as [x1, y1, x2, y2].
  */
 export function clip(region) {
-  current.clipWindow = region;
+  State.stroke.clipWindow = region;
 }
 
 /**
  * Disables clipping region.
  */
 export function noClip() {
-  current.clipWindow = null;
+  State.stroke.clipWindow = null;
 }
 
 /**
@@ -169,10 +169,10 @@ export function noClip() {
  * @returns {number} The calculated spacing value.
  */
 export function spacing() {
-  const { param } = list.get(current.type) ?? {};
+  const { param } = list.get(State.stroke.type) ?? {};
   if (!param) return 1;
   return param.type === "default" || param.type === "spray"
-    ? param.spacing / current.weight
+    ? param.spacing / State.stroke.weight
     : param.spacing;
 }
 
@@ -213,21 +213,22 @@ function draw(angleScale, isPlot) {
   const totalSteps = Math.round(
     (_length * (isPlot ? angleScale : 1)) / stepSize
   );
-
   for (let i = 0; i < totalSteps; i++) {
     tip();
     isPlot
-      ? _position.plotTo(_plot, stepSize, stepSize, angleScale)
+      ? _position.plotTo(_plot, stepSize, stepSize, angleScale, i < 10 ? true : false)
       : _position.moveTo(stepSize, angleScale, stepSize, _flow);
   }
   restoreState();
 }
 
+const current = {};
+
 /**
  * Sets up the environment for a brush stroke.
  */
 function saveState() {
-  const { param } = list.get(current.type) ?? {};
+  const { param } = list.get(State.stroke.type) ?? {};
   if (!param) return;
   current.p = param;
 
@@ -239,7 +240,7 @@ function saveState() {
   [current.min, current.max] = pressure.min_max;
 
   // Blend stuff
-  Mix.blend(current.color);
+  Mix.blend(State.stroke.color);
 
   // Set state
   Mix.ctx.save();
@@ -349,7 +350,7 @@ function gauss(
 function calculateAlpha() {
   return ["default", "spray"].includes(current.p.type)
     ? current.p.opacity
-    : current.p.opacity / current.weight;
+    : current.p.opacity / State.stroke.weight;
 }
 
 /**
@@ -365,12 +366,12 @@ function applyColor(alpha) {
  * @returns {boolean} True if the position is inside the clipping area, false otherwise.
  */
 function isInsideClippingArea() {
-  if (current.clipWindow)
+  if (State.stroke.clipWindow)
     return (
-      _position.x >= current.clipWindow[0] &&
-      _position.x <= current.clipWindow[2] &&
-      _position.y >= current.clipWindow[1] &&
-      _position.y <= current.clipWindow[3]
+      _position.x >= State.stroke.clipWindow[0] &&
+      _position.x <= State.stroke.clipWindow[2] &&
+      _position.y >= State.stroke.clipWindow[1] &&
+      _position.y <= State.stroke.clipWindow[3]
     );
   else {
     let w = Cwidth,
@@ -405,9 +406,9 @@ function circle(x, y, d) {
  */
 function drawSpray(pressure) {
   const vibration =
-    current.weight * current.p.vibration * pressure +
-    (current.weight * gaussian() * current.p.vibration) / 3;
-  const sw = current.weight * rr(0.9, 1.1);
+    State.stroke.weight * current.p.vibration * pressure +
+    (State.stroke.weight * gaussian() * current.p.vibration) / 3;
+  const sw = State.stroke.weight * rr(0.9, 1.1);
   const iterations = Math.ceil(current.p.quality / pressure);
   for (let j = 0; j < iterations; j++) {
     const r = rr(0.9, 1.1);
@@ -424,13 +425,13 @@ function drawSpray(pressure) {
  * @param {boolean} [vibrate=true] - Whether to apply vibration effect.
  */
 function drawMarker(pressure, vibrate = true) {
-  const vibration = vibrate ? current.weight * current.p.vibration : 0;
+  const vibration = vibrate ? State.stroke.weight * current.p.vibration : 0;
   const rx = vibrate ? vibration * rr(-1, 1) : 0;
   const ry = vibrate ? vibration * rr(-1, 1) : 0;
   circle(
     _position.x + rx,
     _position.y + ry,
-    current.weight * current.p.weight * pressure
+    State.stroke.weight * current.p.weight * pressure
   );
 }
 
@@ -443,12 +444,12 @@ function drawMarker(pressure, vibrate = true) {
 function drawCustomOrImage(pressure, alpha, vibrate = true) {
   Mix.ctx.save();
 
-  const vibration = vibrate ? current.weight * current.p.vibration : 0;
+  const vibration = vibrate ? State.stroke.weight * current.p.vibration : 0;
   const rx = vibrate ? vibration * rr(-1, 1) : 0;
   const ry = vibrate ? vibration * rr(-1, 1) : 0;
 
   Mix.ctx.translate(_position.x + rx, _position.y + ry);
-  adjustSizeAndRotation(current.weight * pressure, alpha);
+  adjustSizeAndRotation(State.stroke.weight * pressure, alpha);
 
   current.p.tip(Mix.ctx);
   Mix.ctx.restore();
@@ -460,7 +461,7 @@ function drawCustomOrImage(pressure, alpha, vibrate = true) {
  */
 function drawDefault(pressure) {
   const vibration =
-    current.weight *
+    State.stroke.weight *
     current.p.vibration *
     (current.p.definition +
       ((1 - current.p.definition) * gaussian() * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
@@ -654,3 +655,35 @@ for (let s of _standard_brushes) {
   for (let i = 0; i < s[1].length; i++) obj[_vals[i]] = s[1][i];
   add(s[0], obj);
 }
+
+// =============================================================================
+// Add method to Polygon Class and Plot Class
+// =============================================================================
+/**
+   * Draws the polygon by iterating over its sides and drawing lines between the vertices.
+   */
+  Polygon.prototype.draw = function(_brush = false, _color, _weight) {
+    let state = BrushState();
+    if (_brush) set(_brush, _color, _weight);
+    if (state.isActive) {
+      _ensureReady();
+      for (let s of this.sides) {
+        line(s[0].x, s[0].y, s[1].x, s[1].y);
+      }
+    }
+    BrushSetState(state);
+  }
+
+    /**
+   * Draws the plot on the canvas.
+   * @param {number} x - The x-coordinate to draw at.
+   * @param {number} y - The y-coordinate to draw at.
+   * @param {number} scale - The scale to draw with.
+   */
+    Plot.prototype.draw = function (x, y, scale) {
+      if (BrushState().isActive) {
+        _ensureReady(); // Ensure that the drawing environment is prepared 
+        if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+        plot(this, x, y, scale);
+      }
+    }

@@ -1,8 +1,9 @@
-import { Color, Mix } from "./color.js"
-import { _ensureReady } from "./config";
-import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, dist, rotate } from "./utils.js";
-import { Polygon, drawPolygon } from "./polygon.js";
-import { BleedField } from "./flowfield.js";
+import { _ensureReady, State } from "../core/config.js";
+import { Color, Mix, drawPolygon } from "../core/color.js"
+import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, dist, rotate } from "../core/utils.js";
+import { BleedField } from "../core/flowfield.js";
+import { Polygon } from "../core/polygon.js";
+import { Plot } from "../core/plot.js";
 
 // =============================================================================
 // Section: Fill Management
@@ -24,25 +25,22 @@ const PI2 = Math.PI * 2;
 // Global Brush State, getter and setter
 // =============================================================================
 
-let fillParams = {
+State.fill = {
   color: new Color("#002185"),
   opacity: 60,
   bleed_strength: 0.07,
   texture_strength: 0.4,
   border_strength: 0.4,
-  direction: "out"
-}
-let isActive = false;
-
-export let bleed_strength = fillParams.bleed_strength;
-
-export function FillState() {
-  return { isActive, fillParams: { ...fillParams } };
+  direction: "out",
+  isActive: false,
 }
 
-export function FillSetState(state) {
-  isActive = state.isActive;
-  fillParams = { ...state.fillParams };
+function FillState() {
+  return { ...State.fill }
+}
+
+function FillSetState(state) {
+  State.fill = { ...state }
 }
 
 // =============================================================================
@@ -58,9 +56,9 @@ export function FillSetState(state) {
  */
 export function fillStyle(a, b, c, d) {
   _ensureReady();
-  fillParams.opacity = arguments.length < 4 ? b : d;
-  fillParams.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
-  isActive = true;
+  State.fill.opacity = arguments.length < 4 ? b : d;
+  State.fill.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
+  State.fill.isActive = true;
 }
 
 /**
@@ -70,21 +68,21 @@ export function fillStyle(a, b, c, d) {
  */
 export function fillBleed(_i, _direction = "out") {
   _ensureReady();
-  fillParams.bleed_strength = constrain(_i, 0, 1);
-  fillParams.direction = _direction;
+  State.fill.bleed_strength = constrain(_i, 0, 1);
+  State.fill.direction = _direction;
 }
 
 export function fillTexture(_texture = 0.4, _border = 0.4) {
   _ensureReady();
-  fillParams.texture_strength = constrain(_texture, 0, 1);
-  fillParams.border_strength = constrain(_border, 0, 1);
+  State.fill.texture_strength = constrain(_texture, 0, 1);
+  State.fill.border_strength = constrain(_border, 0, 1);
 }
 
 /**
  * Disables the fill for subsequent drawing operations.
  */
 export function noFill() {
-  isActive = false;
+  State.fill.isActive = false;
 }
 
 let fillPolygon;
@@ -102,7 +100,7 @@ let fillPolygon;
     // Calculate fluidity once, outside the loop
     const fluid = vLength * 0.25 * weightedRand({ 1: 5, 2: 10, 3: 60 });
     // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
-    const strength = fillParams.bleed_strength;
+    const strength = State.fill.bleed_strength;
     let modifiers = v.map((_, i) => {
       let multiplier = rr(0.85, 1.2) * strength;
       return i > fluid ? multiplier : multiplier * 0.2;
@@ -114,9 +112,9 @@ let fillPolygon;
     // Create and fill the polygon with the calculated bleed effect
     let pol = new FillPolygon(v, modifiers, calcCenter(v), [], true);
     pol.fill(
-      fillParams.color,
-      map(fillParams.opacity, 0, 100, 0, 1, true),
-      fillParams.texture_strength,
+      State.fill.color,
+      map(State.fill.opacity, 0, 100, 0, 1, true),
+      State.fill.texture_strength,
       true
     );
   }
@@ -168,21 +166,15 @@ class FillPolygon {
    * @param {boolean} isFirst - Boolean = true for initial fill polygon
    */
   constructor(_v, _m, _center, dir, isFirst = false) {
-    this.pol = new Polygon(_v, true);
     this.v = _v;
     this.dir = dir;
     this.m = _m;
     this.midP = _center;
-    this.size = -Infinity;
     this.sizeX = -Infinity;
     this.sizeY = -Infinity;
     for (let v of this.v) {
-      this.sizeX = Math.max(dist(this.midP.x, 0, v.x, 0), this.sizeX);
-      this.sizeY = Math.max(dist(this.midP.y, 0, v.y, 0), this.sizeY);
-      this.size = Math.max(
-        dist(this.midP.x, this.midP.y, v.x, v.y),
-        this.size
-      );
+        this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
+        this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
     }
     // This calculates the bleed direction for the initial shape, for each of the vertices.
     if (isFirst) {
@@ -246,7 +238,7 @@ class FillPolygon {
 
     // Pre-compute values that do not change within the loop
     const modAdjustment = degrow ? -0.5 : 1;
-    const bleedDirection = fillParams.direction === "out" ? -90 : 90;
+    const bleedDirection = State.fill.direction === "out" ? -90 : 90;
     // Inline changeModifier to reduce function calls
     const changeModifier = (modifier) => {
       return modifier + pseudoGaussian(0, 0.02);
@@ -257,7 +249,7 @@ class FillPolygon {
         cond = rr(0.2, 0.4);
         break;
       case 997:
-        cond = fillParams.bleed_strength / 1.7;
+        cond = State.fill.bleed_strength / 1.7;
     }
     // Loop through each vertex to calculate the new position based on growth
     for (let i = 0; i < len; i++) {
@@ -281,8 +273,8 @@ class FillPolygon {
       let direction = rotate(0, 0, side.x, side.y, rotationDegrees);
 
       // Calculate the middle vertex position
-      let lerp = constrain(gaussian(0.5, 0.2), 0.1, 0.9);
-      let mult = gaussian(0.5, 0.2) * rr(0.6, 1.4) * mod;
+      let lerp = rr(0.35, 0.65);
+      let mult = gaussian(0.5, 0.2) * rr(0.65, 1.35) * mod;
 
       // Calculate the new vertex position
       let newVertex = {
@@ -314,7 +306,7 @@ class FillPolygon {
     Mix.blend(color);
     Mix.ctx.save();
     Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
-    Mix.ctx.strokeStyle = "rgb(255 0 0 / " + 0.008 * fillParams.border_strength + ")";
+    Mix.ctx.strokeStyle = "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
@@ -377,7 +369,7 @@ class FillPolygon {
     const halfSizeX = this.sizeX / 2;
     const halfSizeY = this.sizeY / 2;
     const minSize =
-      Math.min(this.sizeX, this.sizeY) * (1.4 - fillParams.bleed_strength);
+      Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
     const minSizeFactor = 0.03 * minSize;
     const maxSizeFactor = 0.25 * minSize;
     const midX = this.midP.x;
@@ -405,16 +397,33 @@ class FillPolygon {
 }
 
 // =============================================================================
-// Erase Functions
+// Add method to Polygon Class
 // =============================================================================
 
-export const E = {};
+Polygon.prototype.fill = function (_color = false, _opacity, _bleed, _texture, _border, _direction) {
+  let state = FillState();
+  if (_color) {
+    fillStyle(_color, _opacity);
+    fillBleed(_bleed, _direction);
+    fillTexture(_texture, _border);
+  }
+  if (state.isActive) {
+    _ensureReady();
+    createFill(this);
+  }
+  FillSetState(state);
+}    
 
-export function erase(color = _bg_Color, alpha = 255) {
-  E.isActive = true;
-  E.c = new Color(color);
-  E.a = alpha;
-}
-export function noErase() {
-  E.isActive = false;
-}
+  /**
+   * Fill the plot on the canvas.
+   * @param {number} x - The x-coordinate to draw at.
+   * @param {number} y - The y-coordinate to draw at.
+   */
+  Plot.prototype.fill = function(x, y, scale) {
+    if (FillState().isActive) {
+      _ensureReady(); // Ensure that the drawing environment is prepared
+      if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+      this.pol = this.genPol(x, y, scale, State.fill.bleed_strength * 3);
+      this.pol.fill();
+    }
+  }

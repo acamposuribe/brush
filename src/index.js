@@ -37,7 +37,7 @@
  */
 
 // Section: Configure and Initiate
-export { load, save, restore } from "./core/config.js";
+export { load } from "./core/config.js";
 
 // Randomness and other auxiliary functions
 export {
@@ -64,32 +64,11 @@ export {
   Position,
 } from "./core/flowfield.js";
 
-// Brushes
-export {
-  add,
-  box,
-  scaleBrushes,
-  pick,
-  strokeStyle,
-  lineWidth,
-  set,
-  noStroke,
-  clip,
-  noClip,
-  line,
-  stroke,
-} from "./core/brush.js";
+// Save / Restore
+export { save, restore } from "./core/save.js";
 
-// Section: Hatching
-export {
-  hatch,
-  hatchStyle,
-  noHatch,
-  createHatch as hatchArray,
-} from "./core/hatch.js";
-
-// Fill
-export { fillStyle, noFill, fillTexture, fillBleed, erase, noErase } from "./core/fill.js";
+// Erase
+export { erase, noErase } from "./core/erase.js";
 
 // Polygon and Plot classes
 export { Polygon } from "./core/polygon.js";
@@ -114,3 +93,30 @@ export {
 
 // Drawing Loop
 export { endFrame, loop, frameRate, noLoop, frameCount } from "./core/loop.js";
+
+// Brushes
+export {
+  add,
+  box,
+  scaleBrushes,
+  pick,
+  strokeStyle,
+  lineWidth,
+  set,
+  noStroke,
+  clip,
+  noClip,
+  line,
+  stroke,
+} from "./stroke/brush.js";
+
+// Section: Hatching
+export {
+  hatch,
+  hatchStyle,
+  noHatch,
+  createHatch as hatchArray,
+} from "./hatch/hatch.js";
+
+// Fill
+export { fillStyle, noFill, fillTexture, fillBleed } from "./fill/fill.js";

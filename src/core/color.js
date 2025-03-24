@@ -54,6 +54,12 @@ export class Color {
   }
 }
 
+export function isMixReady() {
+  if (!Mix.loaded) {
+    Mix.load();
+  }
+}
+
 /**
  * Object handling blending operations with WebGL shaders.
  * @property {boolean} loaded - Flag indicating if the blend shaders have been loaded.
@@ -99,6 +105,7 @@ export const Mix = {
    * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
    */
   blend(_color = false, _isLast = false, _isImg = false, _sp = false) {
+    isMixReady();
     // Check if blending is initialised
     if (!this.isBlending) {
       // If color has been provided, we initialise blending
@@ -139,6 +146,7 @@ export const Mix = {
  */
 let _bg_Color = new Color("white");
 export function background(r, g, b) {
+  isMixReady()
   if (r === "transparent") _bg_Color = new Color(g);
   else _bg_Color = new Color(...arguments);
   Mix.worker.postMessage({
@@ -176,4 +184,14 @@ export async function getCanvas() {
     };
   });
   return image;
+}
+
+export function drawPolygon(vertices) {
+  isMixReady();
+  Mix.ctx.beginPath();
+  for (let i = 0; i < vertices.length; i++) {
+    let v = vertices[i];
+    if (i == 0) Mix.ctx.moveTo(v.x, v.y);
+    else Mix.ctx.lineTo(v.x, v.y);
+  }
 }

@@ -1,10 +1,9 @@
-import { _ensureReady } from "./config.js";
+import { _ensureReady, State } from "./config.js";
+import { Mix } from "./color.js";
 import { toDegrees, map, rr } from "./utils.js";
 import { Position } from "./flowfield.js";
 import { Polygon } from "./polygon.js";
-import { BrushState, plot } from "./brush.js";
-import { FillState, E, bleed_strength } from "./fill.js";
-import { HatchState } from "./hatch.js";
+import { E } from "./erase.js";
 
 // =============================================================================
 // Section: Plot Class
@@ -148,13 +147,12 @@ export class Plot {
    * @param {number} _y - The y-coordinate for the starting point of the polygon.
    * @returns {Polygon} - The generated polygon.
    */
-  genPol(_x, _y, _scale = 1, isHatch = false) {
+  genPol(_x, _y, _scale = 1, side) {
     _ensureReady(); // Ensure that the drawing environment is prepared
     const step = 0.5;
     const vertices = [];
     const numSteps = Math.round(this.length / step);
     const pos = new Position(_x, _y);
-    let side = isHatch ? 0.15 : bleed_strength * 3;
     let pside = 0;
     let prevIdx = 0;
     for (let i = 0; i < numSteps; i++) {
@@ -173,52 +171,10 @@ export class Plot {
     return new Polygon(vertices);
   }
 
-  /**
-   * Draws the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   * @param {number} scale - The scale to draw with.
-   */
-  draw(x, y, scale) {
-    if (BrushState().isActive) {
-      _ensureReady(); // Ensure that the drawing environment is prepared
-      if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-      plot(this, x, y, scale);
-    }
-  }
-
-  /**
-   * Fill the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   */
-  fill(x, y, scale) {
-    if (FillState().isActive) {
-      _ensureReady(); // Ensure that the drawing environment is prepared
-      if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-      this.pol = this.genPol(x, y, scale);
-      this.pol.fill();
-    }
-  }
-
-  /**
-   * Hatch the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   */
-  hatch(x, y, scale) {
-    if (HatchState().isActive) {
-      _ensureReady(); // Ensure that the drawing environment is prepared
-      if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-      this.pol = this.genPol(x, y, scale, true);
-      this.pol.hatch();
-    }
-  }
-
   erase(x, y, scale) {
     if (E.isActive) {
       if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-      this.pol = this.genPol(x, y, scale, true);
+      this.pol = this.genPol(x, y, scale, 0.15);
       Mix.blend(E.c);
       Mix.isErase = true;
       Mix.ctx.save();
@@ -230,9 +186,10 @@ export class Plot {
   }
 
   show(x, y, scale = 1) {
-    this.draw(x, y, scale);
-    this.fill(x, y, scale);
-    this.hatch(x, y, scale);
+    if (State.stroke) this.draw(x, y, scale);
+
+    if (State.hatch) this.hatch(x, y, scale);
+    if (State.fill) this.fill(x, y, scale);
     this.erase(x, y, scale);
   }
 }

@@ -1,6 +1,8 @@
-import { BrushState, BrushSetState, set, line } from "./brush.js";
-import { toDegrees, map, cos, sin, rr } from "./utils.js";
-import { Polygon } from "./polygon.js";
+import { State, _ensureReady } from "../core/config.js";
+import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
+import { Polygon } from "../core/polygon.js";
+import { Plot } from "../core/plot.js";
+import { BrushState, BrushSetState, set, line } from "../stroke/brush.js";
 
 // =============================================================================
 // Section: Hatching
@@ -10,13 +12,25 @@ import { Polygon } from "./polygon.js";
  * Hatching involves drawing closely spaced parallel lines.
  */
 
-let isActive = false;
-let hatchingParams = {
+State.hatch = {
+  isActive: false,
   dist: 5,
   angle: 45,
   options: {},
-};
-let hatchingBrush = false;
+  hBrush: false,
+}
+
+/**
+ * Object to hold the current hatch state and to perform hatch calculation
+ */
+
+function HatchState() {
+  return { ...State.hatch }
+}
+
+function HatchSetState(state) {
+  State.hatch = { ...state }
+}
 
 /**
  * Activates hatching for subsequent geometries, with the given params.
@@ -33,8 +47,11 @@ export function hatch(
   angle = 45,
   options = { rand: false, continuous: false, gradient: false }
 ) {
-  isActive = true;
-  hatchingParams = { dist, angle, options };
+  let s = State.hatch
+  s.isActive = true;
+  s.dist = dist;
+  s.angle = angle;
+  s.options = options
 }
 
 /**
@@ -45,33 +62,15 @@ export function hatch(
  * @param {number} weight - The weight (size) to set for the brush.
  */
 export function hatchStyle(brush, color = "black", weight = 1) {
-  hatchingBrush = { brush, color, weight };
+  State.hatch.hBrush = { brush, color, weight };
 }
 
 /**
  * Disables hatching for subsequent shapes
  */
 export function noHatch() {
-  isActive = false;
-  hatchingBrush = false;
-}
-
-/**
- * Object to hold the current hatch state and to perform hatch calculation
- */
-
-export function HatchState() {
-  return {
-    isActive,
-    hatchingParams: { ...hatchingParams },
-    hatchingBrush: { ...hatchingBrush },
-  };
-}
-
-export function HatchSetState(state) {
-  isActive = state.isActive;
-  hatchingParams = { ...state.hatchingParams };
-  hatchingBrush = { ...state.hatchingBrush };
+  State.hatch.isActive = false;
+  State.hatch.hBrush = false;
 }
 
 /**
@@ -80,13 +79,15 @@ export function HatchSetState(state) {
  * @param {Array|Object} polygons - A single polygon or an array of polygons to apply the hatching.
  */
 export function createHatch(polygons) {
-  let { dist, angle, options } = hatchingParams;
+  let dist = State.hatch.dist;
+  let angle = State.hatch.angle;
+  let options = State.hatch.options;
 
   // Save current stroke state
   let save = BrushState();
 
   // Change state if hatch has been set to different params than stroke
-  if (hatchingBrush) set(...Object.values(hatchingBrush));
+  if (State.hatch.hBrush) set(...Object.values(State.hatch.hBrush));
 
   // Transform to degrees and between 0-180
   angle = toDegrees(angle) % 180;
@@ -207,3 +208,33 @@ function computeOverallBoundingBox(polygons) {
   }
   return overall;
 }
+
+// =============================================================================
+// Add method to Polygon Class
+// =============================================================================
+  /**
+   * Creates hatch lines across the polygon based on a given distance and angle.
+   */
+  Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
+    let state = HatchState();
+    if (_dist) hatch(_dist, _angle, _options);
+    if (state.isActive) {
+      _ensureReady();
+      createHatch(this);
+    }
+    HatchSetState(state);
+  }
+
+    /**
+   * Hatch the plot on the canvas.
+   * @param {number} x - The x-coordinate to draw at.
+   * @param {number} y - The y-coordinate to draw at.
+   */
+    Plot.prototype.hatch = function(x, y, scale) {
+      if (HatchState().isActive) {
+        _ensureReady(); // Ensure that the drawing environment is prepared
+        if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+        this.pol = this.genPol(x, y, scale, true);
+        this.pol.hatch();
+      }
+    }

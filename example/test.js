@@ -15,35 +15,36 @@ body.appendChild(canvas);
 // Load brush library
 brush.load("main", canvas);
 
-// Scale brushes to canvas
-brush.scaleBrushes(5);
+brush.seed("holsa");
+brush.noiseSeed("hola")
 
-brush.fillTexture(0.9, 0.7);
+// Scale brushes to canvas
+brush.scaleBrushes(6);
+
+brush.fillTexture(1, 0.6);
 
 // Pick a flowfield
+
 brush.field("hand");
 
-let fff = brush.random();
-console.log(fff);
-
-brush.seed(fff);
-
-brush.fillBleed(0.2);
+brush.fillBleed(0.3);
 
 // Draw Loop
 const draw = () => {
+
+  brush.save()
+
+  brush.seed("holsa");
+  
   brush.background(255);
-
-  brush.strokeStyle("#000000");
-
-  brush.save();
-
-  brush.fillStyle(brush.random(palette), 75);
-
-  brush.pick("pen");
+  
   brush.translate(100, 90);
 
+  brush.pick("pen");
+  
   brush.strokeStyle("#ff2702");
+  
+
   brush.rect(200, 200, 600, 600);
 
   brush.hatch(7, 0, { rand: 0.08 });
@@ -78,8 +79,11 @@ const draw = () => {
 
   brush.circle(765, 1390, 58);
 
-  brush.restore();
-  brush.noLoop();
+  brush.restore()
+  
+  //brush.noLoop();
 };
+
+
 
 brush.loop(draw);

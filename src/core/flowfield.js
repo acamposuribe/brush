@@ -1,7 +1,6 @@
-import { Cwidth, Cheight, _ensureReady } from "./config.js";
-import { Mix } from "./color.js";
-import { spacing } from "./brush.js";
+import { Cwidth, Cheight, _ensureReady, State } from "./config.js";
 import { randInt, noise, map, rr, sin, cos } from "./utils.js";
+import { Mix, isMixReady } from "./color.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -16,6 +15,7 @@ export const Matrix = { x: 0, y: 0 };
  * Translate function
  */
 export function translate(x, y) {
+  isMixReady();
   Mix.ctx.translate(x, y);
   let m = Mix.ctx.getTransform();
   Matrix.x = m.e;
@@ -26,6 +26,7 @@ export function translate(x, y) {
  * Captures the desired rotation.
  */
 export function rotate(a = 0) {
+  isMixReady();
   Mix.ctx.rotate(a);
 }
 
@@ -33,24 +34,58 @@ export function rotate(a = 0) {
  * Object to perform scale operations
  */
 export function scale(a) {
+  isMixReady();
   Mix.ctx.scale(a, a);
+} 
+
+let isLoaded = false;
+
+function isReady() {
+  if (!isLoaded) {
+    createField();
+    isLoaded = true;
+  }
 }
 
 // =============================================================================
 // Section: Position Class
 // =============================================================================
+
+function isInStatic() {
+    
+}
+
 /**
  * The Position class represents a point within a two-dimensional space, which can interact with a vector field.
  * It provides methods to update the position based on the field's flow and to check whether the position is
  * within certain bounds (e.g., within the field or canvas).
  */
 export class Position {
+
+  static getRowIndex (y) {
+    const y_offset = y + Matrix.y - top_y;
+    return Math.round(y_offset / resolution);
+  }
+
+  static getColIndex (x) {
+    const x_offset = x + Matrix.x - left_x;
+    return Math.round(x_offset / resolution);
+  }
+
+  static isIn (col, row) {
+    return col >= 0 &&
+          row >= 0 &&
+          col < num_columns &&
+          row < num_rows
+  }
+
   /**
    * Constructs a new Position instance.
    * @param {number} x - The initial x-coordinate.
    * @param {number} y - The initial y-coordinate.
    */
   constructor(x, y) {
+    isReady()
     this.update(x, y);
     this.plotted = 0;
   }
@@ -62,12 +97,8 @@ export class Position {
    */
   update(x, y) {
     (this.x = x), (this.y = y);
-    if (isActive || Fill.isActive) {
-      this.x_offset = this.x + Matrix.x - left_x;
-      this.y_offset = this.y + Matrix.y - top_y;
-      this.column_index = Math.round(this.x_offset / resolution);
-      this.row_index = Math.round(this.y_offset / resolution);
-    }
+      this.column_index = Position.getColIndex(x)
+      this.row_index = Position.getRowIndex(y)
   }
 
   /**
@@ -82,12 +113,9 @@ export class Position {
    * @returns {boolean} - True if the position is within the flow field, false otherwise.
    */
   isIn() {
-    return isActive
-      ? this.column_index >= 0 &&
-          this.row_index >= 0 &&
-          this.column_index < num_columns &&
-          this.row_index < num_rows
-      : this.isInCanvas();
+    return State.field.isActive
+      ? Position.isIn(this.column_index, this.row_index)
+      : this.isInCanvas(this.x,this.y);
   }
 
   /**
@@ -107,7 +135,7 @@ export class Position {
    * @returns {number} - The angle in radians, or 0 if the position is not in the flow field or if the flow field is not active.
    */
   angle() {
-    return this.isIn() && isActive
+    return this.isIn() && State.field.isActive
       ? flow_field()[this.column_index][this.row_index]
       : 0;
   }
@@ -119,7 +147,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    * @param {boolean} isFlow - Whether to use the flow field for movement.
    */
-  moveTo(_length, _dir, _step_length = spacing(), isFlow = true) {
+  moveTo(_length, _dir, _step_length, isFlow = true) {
     if (this.isIn()) {
       let a, b;
       if (!isFlow) {
@@ -149,7 +177,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    * @param {number} _scale - The scaling factor for the plotting path.
    */
-  plotTo(_plot, _length, _step_length, _scale) {
+  plotTo(_plot, _length, _step_length, _scale, bool) {
     if (this.isIn()) {
       const inverse_scale = 1 / _scale;
       for (let i = 0; i < _length / _step_length; i++) {
@@ -163,6 +191,7 @@ export class Position {
     } else {
       this.plotted += _step_length / scale;
     }
+    
   }
 }
 
@@ -170,19 +199,21 @@ export class Position {
 // Section: VectorField
 // =============================================================================
 
-let isActive = false;
-let current = null;
+State.field = {
+  isActive: false,
+  current: null
+}
+
 let list = new Map();
 
 let resolution, left_x, top_y, num_columns, num_rows;
 
 export function FieldState() {
-  return { isActive, current };
+  return { ...State.field };
 }
 
 export function FieldSetState(state) {
-  isActive = state.isActive;
-  current = state.current;
+  State.field = { ...state }
 }
 
 /**
@@ -194,7 +225,7 @@ export function createField() {
   top_y = -0.5 * Cheight; // Top boundary of the field
   num_columns = Math.round((2 * Cwidth) / resolution); // Number of columns in the grid
   num_rows = Math.round((2 * Cheight) / resolution); // Number of columns in the grid
-  addStandard(); // Add default vector fields
+  addStandard(); // Add default vector field
   BleedField.genField();
 }
 
@@ -203,7 +234,7 @@ export function createField() {
  * @returns {Float32Array[]} The current vector field grid.
  */
 function flow_field() {
-  return list.get(current).field;
+  return list.get(State.field.current).field;
 }
 
 /**
@@ -211,7 +242,7 @@ function flow_field() {
  * @param {number} [t=0] - An optional time parameter that can affect field generation.
  */
 export function refreshField(t = 0) {
-  list.get(current).field = list.get(current).gen(t, genField());
+  list.get(State.field.current).field = list.get(State.field.current).gen(t, genField());
 }
 
 /**
@@ -232,16 +263,17 @@ function genField() {
  */
 export function field(a) {
   _ensureReady();
+  isReady()
   // Check if field exists
-  isActive = true; // Mark the field framework as active
-  current = a; // Update the current field
+  State.field.isActive = true; // Mark the field framework as active
+  State.field.current = a; // Update the current field
 }
 
 /**
  * Deactivates the current vector field.
  */
 export function noField() {
-  isActive = false;
+  State.field.isActive = false;
 }
 
 /**
@@ -252,7 +284,7 @@ export function noField() {
 export function addField(name, funct) {
   _ensureReady();
   list.set(name, { gen: funct }); // Map the field name to its generator function
-  current = name; // Set the newly added field as the current one to be used
+  State.field.current = name; // Set the newly added field as the current one to be used
   refreshField(); // Refresh the field values using the generator function
 }
 
@@ -320,21 +352,18 @@ export const BleedField = {
   genField() {
     this.field = genField();
     this.fieldTemp = genField();
-    this.brush = genField().map((row) => row.map(() => rr(0, 0.25)));
+    this.brush = genField().map((row) => row.map(() => rr(-0.25, 0.25)));
   },
   get(x, y, value = false) {
-    const Pos = new Position(x, y);
-    if (!Pos.isIn()) return value ?? 0;
-    const { column_index: col, row_index: row } = Pos;
-    const current = this.field?.[col]?.[row];
+    const col = Position.getColIndex(x)
+    const row = Position.getRowIndex(y)
+    const current = this.field?.[col]?.[row] ?? 0;
     if (value) {
       const biggest = Math.max(current, value);
-      this.fieldTemp[col][row] = Math.max(
-        biggest,
-        (this.fieldTemp[col]?.[row] ?? 0) * 0.75
-      );
+      const tempValue = (this.fieldTemp[col]?.[row] ?? 0) * 0.75;
+      this.fieldTemp[col][row] = Math.max(biggest, tempValue);
       return biggest;
-    }
+  }
     return current;
   },
   bField(Pos) {
