@@ -6,11 +6,17 @@ import resolve from '@rollup/plugin-node-resolve';
 
 const config = {
     input: 'src/index.js',
-    output: {
+    output: [{
       file: 'example/brush.js',
       format: 'umd',
       name: 'brush',
     },
+    {
+    file: 'dist/brush.js',
+    format: 'umd',
+    name: 'brush',
+  }
+  ],
     plugins: [
       resolve({
         browser: true

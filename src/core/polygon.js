@@ -1,4 +1,4 @@
-import { _ensureReady, State } from "./config.js";
+import { State } from "./config.js";
 import { intersectLines } from "./utils.js";
 import { Mix, Color, drawPolygon } from "./color.js";
 import { E } from "./erase.js";

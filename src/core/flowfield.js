@@ -1,5 +1,5 @@
-import { Cwidth, Cheight, _ensureReady, State } from "./config.js";
-import { randInt, noise, map, rr, sin, cos } from "./utils.js";
+import { Cwidth, Cheight, State } from "./config.js";
+import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
 import { Mix, isMixReady } from "./color.js";
 
 // =============================================================================
@@ -15,7 +15,7 @@ export const Matrix = { x: 0, y: 0 };
  * Translate function
  */
 export function translate(x, y) {
-  isMixReady();
+  isFieldReady()
   Mix.ctx.translate(x, y);
   let m = Mix.ctx.getTransform();
   Matrix.x = m.e;
@@ -26,7 +26,7 @@ export function translate(x, y) {
  * Captures the desired rotation.
  */
 export function rotate(a = 0) {
-  isMixReady();
+  isFieldReady()
   Mix.ctx.rotate(a);
 }
 
@@ -34,14 +34,15 @@ export function rotate(a = 0) {
  * Object to perform scale operations
  */
 export function scale(a) {
-  isMixReady();
+  isFieldReady()
   Mix.ctx.scale(a, a);
 } 
 
 let isLoaded = false;
 
-function isReady() {
+export function isFieldReady() {
   if (!isLoaded) {
+    isMixReady();
     createField();
     isLoaded = true;
   }
@@ -50,10 +51,6 @@ function isReady() {
 // =============================================================================
 // Section: Position Class
 // =============================================================================
-
-function isInStatic() {
-    
-}
 
 /**
  * The Position class represents a point within a two-dimensional space, which can interact with a vector field.
@@ -85,7 +82,6 @@ export class Position {
    * @param {number} y - The initial y-coordinate.
    */
   constructor(x, y) {
-    isReady()
     this.update(x, y);
     this.plotted = 0;
   }
@@ -262,8 +258,6 @@ function genField() {
  * @param {string} a - The name of the vector field to activate.
  */
 export function field(a) {
-  _ensureReady();
-  isReady()
   // Check if field exists
   State.field.isActive = true; // Mark the field framework as active
   State.field.current = a; // Update the current field
@@ -282,7 +276,6 @@ export function noField() {
  * @param {Function} funct - The function that generates the field values.
  */
 export function addField(name, funct) {
-  _ensureReady();
   list.set(name, { gen: funct }); // Map the field name to its generator function
   State.field.current = name; // Set the newly added field as the current one to be used
   refreshField(); // Refresh the field values using the generator function
@@ -370,11 +363,22 @@ export const BleedField = {
     return Pos.isIn() ? this.brush[Pos.column_index][Pos.row_index] : 0;
   },
   update() {
-    this.field = this.fieldTemp.slice();
+    this.field = cloneArray(this.fieldTemp);
   },
   increase(x, y) {
-    const Pos = new Position(x, y);
-    if (!Pos.isIn()) return;
-    this.brush[Pos.column_index][Pos.row_index] = rr(0.2, 0.5);
+    const col = Position.getColIndex(x)
+    const row = Position.getRowIndex(y)
+    if (!Position.isIn(col, row)) return;
+    this.brush[col][row] = rr(0.2, 0.5);
   },
+  save() {
+    this.A = cloneArray(this.field)
+    this.B = cloneArray(this.fieldTemp)
+    this.C = cloneArray(this.brush)
+  },
+  restore() {
+    this.field = this.A
+    this.fieldTemp = this.B
+    this.brush = this.C
+  }
 };

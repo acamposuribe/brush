@@ -1,7 +1,7 @@
-import { _ensureReady, State } from "./config.js";
+import { State } from "./config.js";
 import { Mix } from "./color.js";
+import { Position, isFieldReady } from "./flowfield.js";
 import { toDegrees, map, rr } from "./utils.js";
-import { Position } from "./flowfield.js";
 import { Polygon } from "./polygon.js";
 import { E } from "./erase.js";
 
@@ -148,7 +148,7 @@ export class Plot {
    * @returns {Polygon} - The generated polygon.
    */
   genPol(_x, _y, _scale = 1, side) {
-    _ensureReady(); // Ensure that the drawing environment is prepared
+    isFieldReady() // Ensure that the drawing environment is prepared
     const step = 0.5;
     const vertices = [];
     const numSteps = Math.round(this.length / step);

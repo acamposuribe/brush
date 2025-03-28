@@ -233,3 +233,9 @@ export function rotate(cx, cy, x, y, angle) {
     ny = coseno * (y - cy) - seno * (x - cx) + cy;
   return { x: nx, y: ny };
 }
+
+export function cloneArray (array) {
+  return array.map(function(arr) {
+    return arr.slice();
+  });
+}

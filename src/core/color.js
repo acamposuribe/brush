@@ -1,4 +1,4 @@
-import { Canvases, Cwidth, Cheight, cID } from "./config.js";
+import { Canvases, Cwidth, Cheight, cID, isCanvasReady } from "./config.js";
 import { gl_worker } from "./workers.js";
 
 // =============================================================================
@@ -56,6 +56,7 @@ export class Color {
 
 export function isMixReady() {
   if (!Mix.loaded) {
+    isCanvasReady();
     Mix.load();
   }
 }
@@ -159,6 +160,7 @@ export function background(r, g, b) {
  * This function draws an image into the canvas
  */
 export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
+  isMixReady()
   if (
     Object.prototype.toString.call(img) !== "[object ImageBitmap]" ||
     x !== 0
@@ -173,6 +175,7 @@ export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
  * This function gets the canvas as an ImageBitmap
  */
 export async function getCanvas() {
+  isMixReady()
   let image;
   await new Promise(function (resolve) {
     Mix.worker.postMessage({ get: true });

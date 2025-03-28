@@ -33,7 +33,7 @@ export function load(canvasID, canvas) {
  * Ensures that the drawing system is ready before any drawing operation.
  * Loads the system if it hasn't been loaded already.
  */
-export function _ensureReady() {
+export function isCanvasReady() {
   if (!_isReady) load();
 }
 

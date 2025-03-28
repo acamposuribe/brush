@@ -1,7 +1,7 @@
-import { _ensureReady, State } from "../core/config.js";
+import { State } from "../core/config.js";
 import { Color, Mix, drawPolygon } from "../core/color.js"
 import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, dist, rotate } from "../core/utils.js";
-import { BleedField } from "../core/flowfield.js";
+import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 
@@ -55,7 +55,6 @@ function FillSetState(state) {
  * @param {number} [d] - The opacity of the color.
  */
 export function fillStyle(a, b, c, d) {
-  _ensureReady();
   State.fill.opacity = arguments.length < 4 ? b : d;
   State.fill.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
   State.fill.isActive = true;
@@ -67,13 +66,11 @@ export function fillStyle(a, b, c, d) {
  * @param {number} _texture - The texture of the watercolor effect, from 0 to 1.
  */
 export function fillBleed(_i, _direction = "out") {
-  _ensureReady();
   State.fill.bleed_strength = constrain(_i, 0, 1);
   State.fill.direction = _direction;
 }
 
 export function fillTexture(_texture = 0.4, _border = 0.4) {
-  _ensureReady();
   State.fill.texture_strength = constrain(_texture, 0, 1);
   State.fill.border_strength = constrain(_border, 0, 1);
 }
@@ -252,7 +249,7 @@ class FillPolygon {
         cond = State.fill.bleed_strength / 1.7;
     }
     // Loop through each vertex to calculate the new position based on growth
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < len - 1; i++) {
       const currentVertex = tr_v[i];
       const nextVertex = tr_v[(i + 1) % len];
       // Determine the growth modifier
@@ -368,6 +365,7 @@ class FillPolygon {
     const numCircles = rr(40, 60) * map(texture, 0, 1, 2, 3);
     const halfSizeX = this.sizeX / 2;
     const halfSizeY = this.sizeY / 2;
+
     const minSize =
       Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
     const minSizeFactor = 0.03 * minSize;
@@ -385,11 +383,7 @@ class FillPolygon {
       Mix.ctx.beginPath();
       this.circle(x, y, size);
       if (i % 4 !== 0) Mix.ctx.fill();
-      if (
-        Math.abs(x - midX) < 2 * halfSizeX &&
-        Math.abs(y - midY) < 2 * halfSizeY
-      )
-        BleedField.increase(x, y);
+      BleedField.increase(x, y);
     }
     Mix.ctx.globalCompositeOperation = "source-over";
     Mix.ctx.restore();
@@ -408,7 +402,7 @@ Polygon.prototype.fill = function (_color = false, _opacity, _bleed, _texture, _
     fillTexture(_texture, _border);
   }
   if (state.isActive) {
-    _ensureReady();
+    isFieldReady();
     createFill(this);
   }
   FillSetState(state);
@@ -421,7 +415,6 @@ Polygon.prototype.fill = function (_color = false, _opacity, _bleed, _texture, _
    */
   Plot.prototype.fill = function(x, y, scale) {
     if (FillState().isActive) {
-      _ensureReady(); // Ensure that the drawing environment is prepared
       if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
       this.pol = this.genPol(x, y, scale, State.fill.bleed_strength * 3);
       this.pol.fill();

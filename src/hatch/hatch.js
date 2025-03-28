@@ -1,4 +1,4 @@
-import { State, _ensureReady } from "../core/config.js";
+import { State } from "../core/config.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
@@ -219,7 +219,6 @@ function computeOverallBoundingBox(polygons) {
     let state = HatchState();
     if (_dist) hatch(_dist, _angle, _options);
     if (state.isActive) {
-      _ensureReady();
       createHatch(this);
     }
     HatchSetState(state);
@@ -232,7 +231,6 @@ function computeOverallBoundingBox(polygons) {
    */
     Plot.prototype.hatch = function(x, y, scale) {
       if (HatchState().isActive) {
-        _ensureReady(); // Ensure that the drawing environment is prepared
         if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
         this.pol = this.genPol(x, y, scale, true);
         this.pol.hatch();

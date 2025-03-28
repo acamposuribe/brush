@@ -1,4 +1,4 @@
-import { _ensureReady, Cwidth, Cheight, State } from "../core/config.js";
+import { Cwidth, Cheight, State } from "../core/config.js";
 import {
   rr,
   map,
@@ -9,7 +9,7 @@ import {
   gaussian,
 } from "../core/utils.js";
 import { Color, Mix } from "../core/color.js";
-import { Position, Matrix, BleedField } from "../core/flowfield.js";
+import { Position, Matrix, BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 
@@ -529,7 +529,7 @@ function markerTip() {
  * @param {number} y2 - The y-coordinate of the end point.
  */
 export function line(x1, y1, x2, y2) {
-  _ensureReady();
+  isFieldReady();
   let d = dist(x1, y1, x2, y2);
   if (d == 0) return;
   initializeDrawingState(x1, y1, d, true, false);
@@ -545,7 +545,7 @@ export function line(x1, y1, x2, y2) {
  * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
  */
 export function stroke(x, y, length, dir) {
-  _ensureReady();
+  isFieldReady();
   initializeDrawingState(x, y, length, true, false);
   draw(toDegrees(dir), false);
 }
@@ -557,8 +557,8 @@ export function stroke(x, y, length, dir) {
  * @param {number} y - The y-coordinate of the starting position to draw the shape.
  * @param {number} scale - The scale at which to draw the shape.
  */
-export function plot(p, x, y, scale) {
-  _ensureReady();
+function plot(p, x, y, scale) {
+  isFieldReady();
   initializeDrawingState(x, y, p.length, true, p);
   draw(scale, true);
 }
@@ -666,7 +666,6 @@ for (let s of _standard_brushes) {
     let state = BrushState();
     if (_brush) set(_brush, _color, _weight);
     if (state.isActive) {
-      _ensureReady();
       for (let s of this.sides) {
         line(s[0].x, s[0].y, s[1].x, s[1].y);
       }
@@ -682,7 +681,6 @@ for (let s of _standard_brushes) {
    */
     Plot.prototype.draw = function (x, y, scale) {
       if (BrushState().isActive) {
-        _ensureReady(); // Ensure that the drawing environment is prepared 
         if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
         plot(this, x, y, scale);
       }

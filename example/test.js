@@ -25,31 +25,39 @@ brush.fillTexture(1, 0.6);
 
 // Pick a flowfield
 
-brush.field("hand");
+//brush.field("hand");
 
 brush.fillBleed(0.3);
 
 // Draw Loop
 const draw = () => {
 
-  brush.save()
+  brush.background(255);
+
+  brush.save();
 
   brush.seed("holsa");
-  
-  brush.background(255);
+
+  brush.fillStyle(brush.random(palette),75)
   
   brush.translate(100, 90);
 
   brush.pick("pen");
+
+  
   
   brush.strokeStyle("#ff2702");
   
-
   brush.rect(200, 200, 600, 600);
+
+  
+  
 
   brush.hatch(7, 0, { rand: 0.08 });
   brush.hatchStyle("charcoal", "#ff2702", 0.7);
   brush.rect(200, 200, 600, 100);
+  
+
 
   brush.noHatch();
 
@@ -78,6 +86,7 @@ const draw = () => {
   brush.drawPath();
 
   brush.circle(765, 1390, 58);
+  
 
   brush.restore()
   
@@ -85,5 +94,5 @@ const draw = () => {
 };
 
 
-
+brush.frameRate(1)
 brush.loop(draw);
