@@ -37,7 +37,7 @@ To set up your project, add `brush.js` to your HTML file. You can download the l
 ```
 Replace path_to with the actual path to the script in your project directory or the URL if you are using a CDN.
 
-### Use a hosted version of the p5.brush.js library 
+### Use a hosted version of the brush.js library 
 
 Alternatively, you can link to a `brush.js` file hosted online. All versions are stored in a CDN (Content Delivery Network). In this case you can change the link to:
 
@@ -58,6 +58,23 @@ After that, import brush functions to your sketch:
 
 ```
 import * as brush from 'brush'
+```
+
+### Load the brush.js library
+
+In order to load the library, you need to create a canvas and pass it through the brush.load() function. You can load brush.js in several canvas and and change accordingly. That's why you need to choose a canvas name within the load function.
+
+```js
+
+// Create canvas. There are many ways of doing this
+const canvas = document.createElement("canvas");
+canvas.width = 1200;
+canvas.height = 1750;
+var body = document.getElementsByTagName("body")[0];
+body.appendChild(canvas);
+
+// Pass the canvas to the brush.js library through load(). Pick a name for said canvas.
+brush.load("CANVAS_NAME", canvas);
 ```
 
 ## Features
