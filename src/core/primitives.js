@@ -180,6 +180,8 @@ export function endStroke(angle, pressure) {
   _strokeArray = false; // Clear the _strokeArray to indicate the end of this stroke
 }
 
+const PI2 = Math.PI * 2
+
 /**
  * Creates a new Plot object.
  * @param {Array<Array<number>>} array_points - An array of points defining the spline curve.

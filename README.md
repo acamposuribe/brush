@@ -29,77 +29,38 @@ Embrace the full potential of your creative coding projects with p5.brush.js, wh
 
 ### Local Installation
 
-To set up your project, add `p5.min.js` `p5.brush.js` to your HTML file. You can download the last version of the p5.brush.js library in the [dist](/dist) folder.
-Place the script tags in the following order:
+To set up your project, add `brush.js` to your HTML file. You can download the last version of the brush.js library in the [dist](/dist) folder.
 
 ```html
 <!-- Commented version of p5.brush.js, with a Spectral.js dependency -->
-<script src="path_to/p5.min.js"></script>
-<script src="path_to/p5.brush.js"></script>
+<script src="path_to/brush.js"></script>
 ```
 Replace path_to with the actual path to the script in your project directory or the URL if you are using a CDN.
 
 ### Use a hosted version of the p5.brush.js library 
 
-Alternatively, you can link to a `p5.brush.js` file hosted online. All versions are stored in a CDN (Content Delivery Network). You can find a history of these versions in the p5.js CDN. In this case you can change the link to:
+Alternatively, you can link to a `brush.js` file hosted online. All versions are stored in a CDN (Content Delivery Network). In this case you can change the link to:
 
 ```html
 <!-- Online version of p5.brush -->
-<script src="https://cdn.jsdelivr.net/npm/p5.brush@1.1/dist/p5.brush.js"></script>
+<script src="LINK_TO_BE_UPDATED"></script>
 ```
 
 ### Install with NPM and other modular-based apps
 
-Install the npm package. p5.brush requires p5.js as a peer dependency.
+Install the npm package
 
 ```
-npm install p5.brush --save
+npm install brush --save
 ```
 
-After that, import p5.brush functions to your sketch:
+After that, import brush functions to your sketch:
 
 ```
-import * as brush from 'p5.brush'
+import * as brush from 'brush'
 ```
-
-If you are using p5 and p5.brush as modules, you will need to use instance mode. Read below.
-
-
-### Note for p5 instance mode
-
-By default, all p5.js functions are in the global namespace (i.e. bound to the window object), meaning you can call them simply ellipse(), fill(), etc. However, this might be inconvenient if you are mixing with other JS libraries (synchronously or asynchronously) or writing long programs of your own. p5.js currently supports a way around this problem called "instance mode". In instance mode, all p5 functions are bound up in a single variable instead of polluting your global namespace. 
-
-If you plan to use p5 instance mode, you need to load p5.brush in a specific way:
-    
-    - Use `brush.instance()` before the setup and draw functions, pointing to your sketch id and the p5 function argument
-    Example:
-    ```javascript
-      let sketch = function(p) {
-        let x = 100;
-        let y = 100;
-
-        // Register instance method here, sending your function arg p
-        brush.instance(p)
-
-        p.setup = function() {
-          p.createCanvas(700, 410);
-        };
-
-        p.draw = function() {
-          p.background(0);
-          brush.fill("red", 75);
-          brush.rect(x, y, 50, 50);
-        };
-      };
-
-      let myp5 = new p5(sketch);
-      ```
-
----
 
 ## Features
-
-p5.brush.js enhances the p5.js framework with a set of tools that allow for sophisticated drawing and rendering techniques.
 
 - **Custom Configuration**: Customize your drawing strokes with the ability to select different buffers and leverage a custom random number generator to introduce variability in procedural designs.
 - **Vector Field Integration**: Direct the motion of your brush strokes with vector fields, crafting fluid, dynamic visuals within your sketches.
@@ -112,41 +73,41 @@ p5.brush.js enhances the p5.js framework with a set of tools that allow for soph
 - **Intuitive Spline and Curve Generation**: Generate smooth and accurate curves and splines effortlessly, simplifying the process of intricate path creation.
 - **Watercolor Fill System**: Achieve the subtle nuances of watercolor with a digital fill system designed to blend and diffuse colors in a naturally fluid way.
 
-With p5.brush.js, your digital canvas becomes a playground for innovation and expression, where each tool is fine-tuned to complement your unique creative process.
+With brush.js, your digital canvas becomes a playground for innovation and expression, where each tool is fine-tuned to complement your unique creative process.
 
 .
 
 ## Reference
 
-p5.brush.js provides a comprehensive API for creating complex drawings and effects. Below are the categorized functions and classes available in the library.
+brush.js provides a comprehensive API for creating complex drawings and effects. Below are the categorized functions and classes available in the library.
 
 ### Table of Functions
 
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
-| [Utility](#utility-functions)              | brush.push()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
-|                                            | brush.pop()         |   |                                            | brush.noHatch()     |
-|                                            | brush.rotate()      |   |                                            | brush.setHatch()    |
+| [Utility](#utility-functions)              | brush.save()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
+|                                            | brush.restore()         |   |                                            | brush.noHatch()     |
+|                                            | brush.rotate()      |   |                                            | brush.hatchStyle()    |
 |                                            | brush.scale()       |   | [Geometry](#geometry)                      | brush.line()        |
-|                                            | brush.reDraw()      |   |                                            | brush.flowLine()    |
+|                                            | brush.reDraw()      |   |                                            | brush.stroke()    |
 |                                            | brush.reBlend()     |   |                                            | brush.beginStroke() |
-| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.segment()     |
+| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.move()     |
 |                                            | brush.noField()     |   |                                            | brush.endStroke()   |
 |                                            | brush.refreshField()|   |                                            | brush.spline()      |
-|                                            | brush.listFields()  |   |                                            | brush.plot()        |
-|                                            | brush.addField()    |   |                                            | brush.rect()        |
-| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.circle()      |
-|                                            | brush.add()         |   |                                            | brush.beginShape()  |
-|                                            | brush.clip()        |   |                                            | brush.vertex()      |
-|                                            | brush.noClip()      |   |                                            | brush.endShape()    |
-| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.polygon()     |
+|                                            | brush.listFields()  |   |                                            | brush.rect()        |
+|                                            | brush.addField()    |   |                                            | brush.circle()        |
+| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.beginPath()      |
+|                                            | brush.add()         |   |                                            | brush.moveTo()  |
+|                                            | brush.clip()        |   |                                            | brush.lineTo()      |
+|                                            | brush.noClip()      |   |                                            | brush.closePath()    |
+| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.drawPath()     |
 |                                            | brush.pick()        |   | [Configuration](#optional-configuration)   | brush.seed()        |
-|                                            | brush.stroke()      |   |                                            | brush.load()        |
-|                                            | brush.noStroke()    |   |                                            | brush.preload()     |
-|                                            | brush.strokeWeight()|   |                                            | brush.colorCache()  |
-| [Fill Operations](#fill-operations)        | brush.fill()        |   |                                            | brush.scaleBrushes()|
-|                                            | brush.noFill()      |   |                                            | brush.remove()      |
-|                                            | brush.bleed()       |   |                                            | brush.instance()    |
+|                                            | brush.strokeStyle()      |   |                                            | brush.noiseSeed()        |
+|                                            | brush.noStroke()    |   |                                            | brush.load()     |
+|                                            | brush.lineWidth()|   |                                            |   |
+| [Fill Operations](#fill-operations)        | brush.fillStyle()        |   |                                            | brush.scaleBrushes()|
+|                                            | brush.noFill()      |   |                                            | ()      |
+|                                            | brush.fillBleed()       |   |                                            | ()    |
 |                                            | brush.fillTexture() |   | [Classes](#exposed-classes)                | brush.Polygon()     |
 |                                            |                     |   |                                            | brush.Plot()        |
 |                                            |                     |   |                                            | brush.Position()    |

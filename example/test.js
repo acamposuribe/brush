@@ -15,19 +15,38 @@ body.appendChild(canvas);
 // Load brush library
 brush.load("main", canvas);
 
-brush.seed("holsa");
-brush.noiseSeed("hola")
+
 
 // Scale brushes to canvas
 brush.scaleBrushes(6);
 
-brush.fillTexture(0.6, 0.6);
 
 // Pick a flowfield
 
 brush.field("hand");
 
-brush.fillBleed(0.3);
+
+let vertexes = []
+for (let i = 0; i < 8; i++) {
+  vertexes.push([brush.random(0,canvas.width),brush.random(0, canvas.height)])
+}
+
+function shape() {
+  brush.beginPath(1)
+  for (let i = 0; i < vertexes.length; i++) {
+    let v = vertexes[i]
+    if (i==0) brush.moveTo(v[0],v[1])
+    else brush.lineTo(v[0],v[1])
+  }
+  brush.closePath();
+  brush.drawPath();
+}
+
+function hatchRect(angle) {
+  brush.refreshField();
+  brush.hatch(brush.random(2,4),angle*brush.random(0.85,1.15),{rand: brush.random(0.1,0.3), gradient: brush.random(0.2,0.4)})
+  shape()
+}
 
 // Draw Loop
 const draw = () => {
@@ -35,22 +54,21 @@ const draw = () => {
   brush.background(255);
 
   brush.save();
-
-  brush.seed("holsa");
-
-  brush.fillStyle(brush.random(palette),100)
   
-  brush.translate(100, 90);
+  //brush.translate(500,500);
 
-  brush.pick("pen");
 
-  
-  
-  brush.strokeStyle("#ff2702");
-  
-  brush.rect(200, 200, 600, 600);
+  brush.hatchStyle("2H", brush.random(palette), 0.5)
+  for (let i=0; i < 35; i++) hatchRect(Math.PI/4);
 
-  
+  brush.hatchStyle("2H", brush.random(palette), 0.5)
+  vertexes = []
+for (let i = 0; i < 8; i++) {
+  vertexes.push([brush.random(0,canvas.width),brush.random(0, canvas.height)])
+}
+for (let i=0; i < 35; i++) hatchRect(Math.PI/2);
+
+  /*
   
 
   brush.hatch(7, 0, { rand: 0.08 });
@@ -88,11 +106,12 @@ const draw = () => {
   brush.circle(765, 1390, 58);
   
 
+  */
   brush.restore()
   
   brush.noLoop();
 };
 
 
-brush.frameRate(1)
+brush.frameRate(10)
 brush.loop(draw);

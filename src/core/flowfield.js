@@ -359,6 +359,7 @@ export const BleedField = {
     return current;
   },
   bField(Pos) {
+    return 0;
     return Pos.isIn() ? this.brush[Pos.column_index][Pos.row_index] : 0;
   },
   update() {
