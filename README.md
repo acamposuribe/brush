@@ -1,5 +1,3 @@
-![Teaser](/images/teaser.gif)
-
 # brush.js
 
 
