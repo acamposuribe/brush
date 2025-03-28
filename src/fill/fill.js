@@ -1,6 +1,6 @@
 import { State } from "../core/config.js";
 import { Color, Mix, drawPolygon } from "../core/color.js"
-import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, dist, rotate } from "../core/utils.js";
+import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, rotate } from "../core/utils.js";
 import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
@@ -324,7 +324,7 @@ class FillPolygon {
       // Draw layers
       for (let p of pols) p.grow(997).grow().layer(i);
       pol.grow(0.1).grow(999).layer(i);
-      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 3, intensity);
+      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 5, intensity);
 
       if (i % 6 === 0) {
         Mix.blend(color, true, false, true);

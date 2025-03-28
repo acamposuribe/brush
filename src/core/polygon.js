@@ -1,6 +1,6 @@
 import { State } from "./config.js";
-import { intersectLines } from "./utils.js";
 import { Mix, Color, drawPolygon } from "./color.js";
+import { intersectLines } from "./utils.js";
 import { E } from "./erase.js";
 
 // =============================================================================

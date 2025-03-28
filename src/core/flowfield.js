@@ -1,6 +1,6 @@
 import { Cwidth, Cheight, State } from "./config.js";
-import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
 import { Mix, isMixReady } from "./color.js";
+import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -277,8 +277,7 @@ export function noField() {
  */
 export function addField(name, funct) {
   list.set(name, { gen: funct }); // Map the field name to its generator function
-  State.field.current = name; // Set the newly added field as the current one to be used
-  refreshField(); // Refresh the field values using the generator function
+  list.get(name).field = list.get(name).gen(0, genField());
 }
 
 /**

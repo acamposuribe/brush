@@ -1,9 +1,9 @@
 import { State } from "./config.js";
 import { Mix } from "./color.js";
-import { Position, isFieldReady } from "./flowfield.js";
 import { toDegrees, map, rr } from "./utils.js";
-import { Polygon } from "./polygon.js";
+import { Position, isFieldReady } from "./flowfield.js";
 import { E } from "./erase.js";
+import { Polygon } from "./polygon.js";
 
 // =============================================================================
 // Section: Plot Class

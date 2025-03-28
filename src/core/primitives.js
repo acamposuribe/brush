@@ -1,5 +1,3 @@
-import { Polygon } from "./polygon.js";
-import { Plot } from "./plot.js";
 import {
   rr,
   randInt,
@@ -11,6 +9,8 @@ import {
   calcAngle,
   intersectLines,
 } from "./utils.js";
+import { Polygon } from "./polygon.js";
+import { Plot } from "./plot.js";
 
 // =============================================================================
 // Section: Primitives and Geommetry

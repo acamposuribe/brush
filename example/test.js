@@ -21,11 +21,11 @@ brush.noiseSeed("hola")
 // Scale brushes to canvas
 brush.scaleBrushes(6);
 
-brush.fillTexture(1, 0.6);
+brush.fillTexture(0.6, 0.6);
 
 // Pick a flowfield
 
-//brush.field("hand");
+brush.field("hand");
 
 brush.fillBleed(0.3);
 
@@ -38,7 +38,7 @@ const draw = () => {
 
   brush.seed("holsa");
 
-  brush.fillStyle(brush.random(palette),75)
+  brush.fillStyle(brush.random(palette),100)
   
   brush.translate(100, 90);
 

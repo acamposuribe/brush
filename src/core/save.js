@@ -1,7 +1,6 @@
 import { State } from "./config.js";
 import { Mix } from "./color.js";
 import { Matrix, BleedField, isFieldReady } from "./flowfield.js";
-import { cloneArray } from "./utils.js";
 
 // =============================================================================
 // SAVE / RESTORE

@@ -1,4 +1,5 @@
 import { Cwidth, Cheight, State } from "../core/config.js";
+import { Color, Mix } from "../core/color.js";
 import {
   rr,
   map,
@@ -8,7 +9,6 @@ import {
   toDegrees,
   gaussian,
 } from "../core/utils.js";
-import { Color, Mix } from "../core/color.js";
 import { Position, Matrix, BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
@@ -168,7 +168,7 @@ export function noClip() {
  * Calculates the tip spacing based on the current brush parameters.
  * @returns {number} The calculated spacing value.
  */
-export function spacing() {
+function spacing() {
   const { param } = list.get(State.stroke.type) ?? {};
   if (!param) return 1;
   return param.type === "default" || param.type === "spray"
@@ -589,9 +589,6 @@ const _vals = [
   "rotate",
 ];
 const _standard_brushes = [
-  // Define each brush with a name and a set of parameters
-  // For example, the "pen" brush has a weight of 0.35, a vibration of 0.12, etc.
-  // The "marker2" brush has a custom tip defined by a function that draws rectangles.
   [
     "pen",
     [0.35, 0.12, 0.5, 8, 88, 0.3, { curve: [0.15, 0.2], min_max: [1.4, 0.9] }],
