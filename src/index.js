@@ -76,7 +76,6 @@ export { Plot } from "./core/plot.js";
 
 // Primitives
 export {
-  polygon,
   rect,
   circle,
   arc,

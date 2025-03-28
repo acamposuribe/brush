@@ -86,31 +86,29 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
 | [Utility](#utility-functions)              | brush.save()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
-|                                            | brush.restore()         |   |                                            | brush.noHatch()     |
-|                                            | brush.rotate()      |   |                                            | brush.hatchStyle()    |
+|                                            | brush.restore()     |   |                                            | brush.noHatch()     |
+|                                            | brush.rotate()      |   |                                            | brush.hatchStyle()  |
 |                                            | brush.scale()       |   | [Geometry](#geometry)                      | brush.line()        |
-|                                            | brush.reDraw()      |   |                                            | brush.stroke()    |
+|                                            | brush.reDraw()      |   |                                            | brush.stroke()      |
 |                                            | brush.reBlend()     |   |                                            | brush.beginStroke() |
-| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.move()     |
+| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.move()        |
 |                                            | brush.noField()     |   |                                            | brush.endStroke()   |
 |                                            | brush.refreshField()|   |                                            | brush.spline()      |
 |                                            | brush.listFields()  |   |                                            | brush.rect()        |
-|                                            | brush.addField()    |   |                                            | brush.circle()        |
-| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.beginPath()      |
-|                                            | brush.add()         |   |                                            | brush.moveTo()  |
+|                                            | brush.addField()    |   |                                            | brush.circle()      |
+| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.beginPath()   |
+|                                            | brush.add()         |   |                                            | brush.moveTo()      |
 |                                            | brush.clip()        |   |                                            | brush.lineTo()      |
-|                                            | brush.noClip()      |   |                                            | brush.closePath()    |
-| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.drawPath()     |
+|                                            | brush.noClip()      |   |                                            | brush.closePath()   |
+| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.drawPath()    |
 |                                            | brush.pick()        |   | [Configuration](#optional-configuration)   | brush.seed()        |
-|                                            | brush.strokeStyle()      |   |                                            | brush.noiseSeed()        |
-|                                            | brush.noStroke()    |   |                                            | brush.load()     |
-|                                            | brush.lineWidth()|   |                                            |   |
-| [Fill Operations](#fill-operations)        | brush.fillStyle()        |   |                                            | brush.scaleBrushes()|
-|                                            | brush.noFill()      |   |                                            | ()      |
-|                                            | brush.fillBleed()       |   |                                            | ()    |
-|                                            | brush.fillTexture() |   | [Classes](#exposed-classes)                | brush.Polygon()     |
-|                                            |                     |   |                                            | brush.Plot()        |
-|                                            |                     |   |                                            | brush.Position()    |
+|                                            | brush.strokeStyle() |   |                                            | brush.noiseSeed()   |
+|                                            | brush.noStroke()    |   |                                            | brush.load()        |
+|                                            | brush.lineWidth()   |   |                                            | brush.scaleBrushes()|
+| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   | [Classes](#exposed-classes)                | brush.Polygon()     |
+|                                            | brush.noFill()      |   |                                            | brush.Plot()        |
+|                                            | brush.fillBleed()   |   |                                            | brush.Position()    |
+|                                            | brush.fillTexture() |   |                                            |                     |
 
 ---
 
