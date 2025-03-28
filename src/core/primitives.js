@@ -45,7 +45,7 @@ export function rect(x, y, w, h, mode = "corner") {
   lineTo(x + w, y + h);
   lineTo(x, y + h);
   closePath();
-  drawPath();
+  endPath();
 }
 
 /**
@@ -137,7 +137,7 @@ export function closePath() {
   _current.isClosed = true;
 }
 
-export function drawPath() {
+export function endPath() {
   for (let sub of _pathArray) {
     sub.show();
   }

@@ -83,11 +83,12 @@ export {
   moveTo,
   lineTo,
   closePath,
-  drawPath,
+  endPath,
   beginStroke,
   move,
   endStroke,
   spline,
+  polygon,
 } from "./core/primitives.js";
 
 // Drawing Loop

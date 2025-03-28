@@ -5,17 +5,6 @@
 
 NEEDS TO BE UPDATED
 
-
-p5.brush.js is a versatile library for the p5.js ecosystem, tailored for artists, designers, and hobbyists who wish to explore natural textures in generative art. This library extends the drawing capabilities of p5.js by introducing a rich set of tools that allow for the creation of dynamic and customizable brushes, vector-fields, and fill modes.
-
-With p5.brush.js, you can easily configure and manage intricate drawing systems, inject life into your sketches with organic movements, and apply complex vector fields to control the flow and form of strokes. The library is designed with texture quality in mind, and may only be suitable for high-resolution artworks, not real-time interactive pieces.
-
-Whether you're looking to simulate natural media, create patterned backgrounds, or design intricate particle systems, p5.brush.js offers the functionalities to turn your vision into reality. The API is straightforward and modular, providing both high-level functions for quick setup and in-depth customization options for advanced users.
-
-Embrace the full potential of your creative coding projects with p5.brush.js, where every stroke is a brush with possibility.
-
-[Visit the library website here! (more examples soon)](https://p5-brush.cargo.site/)
-
 ## Table of Contents
 - [Installation](#installation)
 - [Features](#features)
@@ -32,7 +21,7 @@ Embrace the full potential of your creative coding projects with p5.brush.js, wh
 To set up your project, add `brush.js` to your HTML file. You can download the last version of the brush.js library in the [dist](/dist) folder.
 
 ```html
-<!-- Commented version of p5.brush.js, with a Spectral.js dependency -->
+<!-- Commented version of brush.js, with a Spectral.js dependency -->
 <script src="path_to/brush.js"></script>
 ```
 Replace path_to with the actual path to the script in your project directory or the URL if you are using a CDN.
@@ -42,7 +31,7 @@ Replace path_to with the actual path to the script in your project directory or 
 Alternatively, you can link to a `brush.js` file hosted online. All versions are stored in a CDN (Content Delivery Network). In this case you can change the link to:
 
 ```html
-<!-- Online version of p5.brush -->
+<!-- Online version of brush -->
 <script src="LINK_TO_BE_UPDATED"></script>
 ```
 
@@ -135,7 +124,7 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 <sub>[back to table](#table-of-functions)</sub>
 ### Important: Configuration
 
-This section covers functions for initializing the drawing system, preloading required assets, and configuring system behavior. The library doesn't work without executing the load function!.
+This section covers functions for initializing the drawing system, preloading required assets, and configuring system behavior. The library doesn't work without executing the load function!
 
 ---
 
@@ -144,7 +133,7 @@ This section covers functions for initializing the drawing system, preloading re
   - **Parameters**: 
     - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
     - `canva_obj` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
-  - **Example (load p5.brush on buffer)**: 
+  - **Example**: 
     ```javascript
       // Create canvas. There are many ways of doing this
       const canvas = document.createElement("canvas");
@@ -156,13 +145,15 @@ This section covers functions for initializing the drawing system, preloading re
 
       // Pass the canvas to the brush.js library through load(). Pick a name for said canvas.
       brush.load("first_canvas", canvas);
-
       // Perform Drawing operations
       brush.line(0, 0, 200, 300)
+      // Push things to canvas at the end
+      brush.draw()
 
       // You can load brush.js on a second canvas and draw on it
       brush.load("second_canvas", canvas2)
       brush.line(50, 20, 100, 100)
+      brush.draw()
 
       // And change between canvas like this
       brush.load("first_canvas")
@@ -211,6 +202,8 @@ This section covers functions for initializing the drawing system, preloading re
 
 ### Drawing Loop
 
+TBW. 
+
 ---
 
 - `brush.draw()`
@@ -248,11 +241,6 @@ This section covers functions for initializing the drawing system, preloading re
 
 - `brush.frameCount`
   - **Description**: Variable that stores the number of frames already drawn
-
----
-
-- `brush.endFrame()`
-  - **Description**: In case you don't use a the loop function, Use endFrame() when you're done drawing, to show elements on canvas. If you don't add this at the end of your sketch, elements will be missing from the screen.
 
 ---
 
@@ -396,6 +384,7 @@ Vector Fields allow for dynamic control over brush stroke behavior, enabling the
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Brush Management
 
 Functions for managing brush behaviors and properties.
@@ -415,6 +404,8 @@ Functions for managing brush behaviors and properties.
     `brush.box()` allows you to explore and select from the various brushes, facilitating the choice of the appropriate brush for different artistic needs.
 
 ---
+
+**NOTE: Image brush types are currently not working. Will fix soon**
 
 - `brush.add(name, params)`
   - **Description**: Adds a new brush to the brush list with specified parameters, defining the brush's behavior and appearance. This function allows for extensive customization, enabling the creation of unique brush types suited to various artistic needs.
@@ -516,6 +507,7 @@ Functions for managing brush behaviors and properties.
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Stroke Operations
 
 Stroke Operations encompass methods for manipulating and applying brushes to strokes (aka lines), providing artists with precise control over their brushwork.
@@ -526,7 +518,7 @@ Stroke Operations encompass methods for manipulating and applying brushes to str
   - **Description**: Selects and sets up the current brush with a specific name, color, and weight. This function is crucial for preparing the brush to draw strokes with the desired characteristics.
   - **Parameters**:
     - `brushName` (String): The name of the brush to be used.
-    - `color` (String|p5.Color): The color for the brush, which can be specified as a HEX string or a p5.Color object.
+    - `color` (String): The color for the brush, which can be specified as a HEX string.
     - `weight` (Number): The weight or size of the brush.
   - **Note**: This function will automatically activate stroke mode for subsequent geometries.
   - **Usage**:
@@ -551,20 +543,20 @@ Stroke Operations encompass methods for manipulating and applying brushes to str
 
 ---
 
-- `brush.stroke(r, g, b)` or `brush.stroke(color)`
-  - **Description**: Sets the color of the current brush. This function can take either RGB color components or a CSS color string/p5.Color object. It also activates stroke mode for subsequent shapes.
+- `brush.strokeStyle(r, g, b)` or `brush.strokeStyle(color)`
+  - **Description**: Sets the color of the current brush. This function can take either RGB color components or a CSS color string. It also activates stroke mode for subsequent shapes.
   - **Parameters**:
-    - `r` (Number|String|p5.Color): The red component of the color, a CSS color string, or a p5.Color object.
+    - `r` (Number|String): The red component of the color, a CSS color string.
     - `g` (Number): Optional. The green component of the color.
     - `b` (Number): Optional. The blue component of the color.
   - **Usage**:
     ```javascript
     // Set the brush color using RGB values
-    brush.stroke(105, 111, 34);
+    brush.strokeStyle(105, 111, 34);
     // Or set the brush color using a HEX string
-    brush.stroke("#002185");
+    brush.strokeStyle("#002185");
     ```
-    Use `brush.stroke()` to define the color of your brush strokes, enabling a diverse palette for your artwork.
+    Use `brush.strokeStyle()` to define the color of your brush strokes, enabling a diverse palette for your artwork.
 
 ---
 
@@ -579,7 +571,7 @@ Stroke Operations encompass methods for manipulating and applying brushes to str
 
 ---
 
-- `brush.strokeWeight(weight)`
+- `brush.lineWidth(weight)`
   - **Description**: Sets the weight or size of the current brush. The specified weight acts as a multiplier to the base size of the brush, allowing for dynamic adjustments.
   - **Parameters**:
     - `weight` (Number): The weight to set for the brush.
@@ -587,13 +579,14 @@ Stroke Operations encompass methods for manipulating and applying brushes to str
   - **Usage**:
     ```javascript
     // Set the brush stroke weight to 2.3 times the base size
-    brush.strokeWeight(2.3);
+    brush.lineWidth(2.3);
     ```
-    `brush.strokeWeight()` provides the flexibility to easily adjust the thickness of your brush strokes, enhancing the expressiveness of your drawing tools.
+    `brush.lineWidth()` provides the flexibility to easily adjust the thickness of your brush strokes, enhancing the expressiveness of your drawing tools.
 
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Fill Operations
 
 The Fill Management section focuses on managing fill properties for shapes, enabling complex fill operations with effects like bleeding to simulate watercolor-like textures. These methods set fill colors with opacity, control bleed intensity, and manage fill operations. The watercolor fill effect is inspired by Tyler Hobbs' generative art techniques.
@@ -602,21 +595,21 @@ The Fill Management section focuses on managing fill properties for shapes, enab
 
 ---
 
-- `brush.fill(a, b, c, d)` or `brush.fill(color, opacity)`
-  - **Description**: Sets the fill color and opacity for subsequent shapes, activating fill mode. This function can accept either RGB color components with opacity or a CSS color string/p5.Color object with an optional opacity.
+- `brush.fillStyle(a, b, c, d)` or `brush.fill(color, opacity)`
+  - **Description**: Sets the fill color and opacity for subsequent shapes, activating fill mode. This function can accept either RGB color components with opacity or a CSS color string with an optional opacity.
   - **Parameters**:
-    - `a` (Number|String|p5.Color): The red component of the color or grayscale value, a CSS color string, or a p5.Color object.
+    - `a` (Number|String): The red component of the color or grayscale value, a CSS color string.
     - `b` (Number): Optional. The green component of the color or grayscale opacity if two arguments are used.
     - `c` (Number): Optional. The blue component of the color.
     - `d` (Number): Optional. The opacity of the color.
   - **Usage**:
     ```javascript
     // Set the fill color using RGB values and opacity
-    brush.fill(244, 15, 24, 75);
+    brush.fillStyle(244, 15, 24, 75);
     // Or set the fill color using a HEX string and opacity
-    brush.fill("#002185", 110);
+    brush.fillStyle("#002185", 110);
     ```
-    `brush.fill()` allows for detailed control over the color and transparency of the fill.
+    `brush.fillStyle()` allows for detailed control over the color and transparency of the fill.
 
 ---
 
@@ -630,7 +623,7 @@ The Fill Management section focuses on managing fill properties for shapes, enab
 
 ---
 
-- `brush.bleed(strength, direction)`
+- `brush.fillBleed(strength, direction)`
   - **Description**: Adjusts the bleed and texture levels for the fill operation, mimicking the behavior of watercolor paints. This function adds a natural and organic feel to digital artwork.
   - **Parameters**:
     - `strength` (Number): The intensity of the bleed effect, capped at 0.5.
@@ -639,7 +632,7 @@ The Fill Management section focuses on managing fill properties for shapes, enab
   - **Usage**:
     ```javascript
     // Set the bleed intensity and direction for a watercolor effect
-    brush.bleed(0.3, "out");
+    brush.fillBleed(0.3, "out");
     ```
 
 ---
@@ -657,20 +650,8 @@ The Fill Management section focuses on managing fill properties for shapes, enab
 
 ---
 
-- `brush.fillAnimatedMode(mode)`
-  - **Description**: Toggles certain operations on or off to ensure a consistent bleed effect for animations, especially useful at varying bleed levels.
-  - **Parameters**:
-    - `mode` (Boolean): Set to `true` to enable animated mode, `false` to disable.
-  - **Usage**:
-    ```javascript
-    // Enable animated mode for consistent bleed effects in animations
-    brush.fillAnimatedMode(true);
-    ```
-    `brush.fillAnimatedMode()` is valuable for animators and artists working on dynamic projects, where maintaining consistent fill effects across frames is crucial.
-
----
-
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Hatch Operations
 
 The Hatching section focuses on creating and drawing hatching patterns, which involves drawing closely spaced parallel lines. These functions offer control over the hatching style and application.
@@ -681,7 +662,7 @@ The Hatching section focuses on creating and drawing hatching patterns, which in
   - **Description**: Activates hatching with specified parameters for subsequent geometries. This function enables the drawing of hatching patterns with controlled line spacing, angle, and additional stylistic options.
   - **Parameters**:
     - `dist` (Number): The distance between hatching lines, in canvas units.
-    - `angle` (Number): The angle at which hatching lines are drawn. The angle mode (degrees or radians) is set by p5's `angleMode()`.
+    - `angle` (Number): The angle at which hatching lines are drawn, in RADIANS.
     - `options` (Object): Optional settings to affect the hatching style, including:
       - `rand`: Randomness in line placement (0 to 1 or false).
       - `continuous`: Whether to connect the end of a line with the start of the next.
@@ -705,16 +686,16 @@ The Hatching section focuses on creating and drawing hatching patterns, which in
 
 ---
 
-- `brush.setHatch(brushName, color, weight)`
+- `brush.hatchStyle(brushName, color, weight)`
   - **Description**: Sets the brush type, color, and weight specifically for hatching. If not called, hatching will use the parameters defined by the current stroke settings.
   - **Parameters**:
     - `brushName` (String): The name of the brush to use for hatching.
-    - `color` (String|p5.Color): The color for the brush, either as a CSS string or a p5.Color object.
+    - `color` (String): The color for the brush, either as a CSS string.
     - `weight` (Number): The weight or size of the brush for hatching.
   - **Usage**:
     ```javascript
     // Set the hatching brush to "rotring" with green color and specific weight
-    brush.setHatch("rotring", "green", 1.3);
+    brush.hatchStyle("rotring", "green", 1.3);
     ```
 
 ---
@@ -748,6 +729,7 @@ In essence, the hatching system activates hatches for subsequent shapes, similar
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Geometry
 
 This section details the functions for creating various shapes and strokes with the set brush, fill, and hatch parameters.
@@ -768,14 +750,14 @@ The following functions are only affected by stroke() operations, completely ign
   - **Usage**:
     ```javascript
     // Set the brush color and draw a line
-    brush.stroke("red");
+    brush.strokeStyle("red");
     brush.line(15, 10, 200, 10);
     ```
 
 ---
 
-- `brush.flowLine(x, y, length, dir)`
-  - **Description**: Draws a flow line that adheres to the currently selected vector field. Flow lines are defined by a starting point, length, and direction. They are useful for creating strokes that dynamically follow the flow of the vector field.
+- `brush.stroke(x, y, length, dir)`
+  - **Description**: Draws a stroke that adheres to the currently selected vector field. Strokes are defined by a starting point, length, and direction. They are useful for creating lines that dynamically follow the flow of the vector field.
   - **Parameters**:
     - `x` (Number): The x-coordinate of the starting point.
     - `y` (Number): The y-coordinate of the starting point.
@@ -785,7 +767,7 @@ The following functions are only affected by stroke() operations, completely ign
     ```javascript
     // Set a vector field and draw a flow line
     brush.field("seabed");
-    brush.flowLine(15, 10, 185, 0);
+    brush.stroke(15, 10, 185, 0);
     ```
 
 ---
@@ -806,7 +788,7 @@ These functions allow for the creation of strokes with varied pressures and dire
     brush.beginStroke("curve", 15, 30);
     ```
 
-- `brush.segment(angle, length, pressure)`
+- `brush.move(angle, length, pressure)`
   - **Description**: Adds a segment to the stroke, defining its path by specifying the angle, length, and pressure. This function is used after `brush.beginStroke()` and before `brush.endStroke()` to outline the stroke's trajectory and characteristics.
   - **Parameters**:
     - `angle` (Number): The initial angle of the segment, relative to the canvas, measured anticlockwise from the x-axis.
@@ -815,8 +797,8 @@ These functions allow for the creation of strokes with varied pressures and dire
   - **Usage**:
     ```javascript
     // Add two segments to the stroke
-    brush.segment(30, 150, 0.6);
-    brush.segment(75, 40, 1.1);
+    brush.move(30, 150, 0.6);
+    brush.move(75, 40, 1.1);
     ```
 
 - `brush.endStroke(angle, pressure)`
@@ -844,25 +826,6 @@ These functions allow for the creation of strokes with varied pressures and dire
     let points = [[30, 70], [85, 20], [130, 100], [180, 50]];
     // Create a spline curve with a specified curvature
     brush.spline(points, 0.5);
-    ```
-
----
-
-- `brush.plot(p, x, y, scale)`
-  - **Description**: Renders a predefined shape or plot with a flowing brush stroke, following the currently active vector field. The shape is drawn at a specified starting position and scale. The plot object should be defined following the instructions in the Exposed Classes section.
-  - **Parameters**:
-    - `p` (Plot Object): A plot object representing the shape.
-    - `x` (Number): The x-coordinate of the starting position.
-    - `y` (Number): The y-coordinate of the starting position.
-    - `scale` (Number): The scale at which to draw the shape.
-  - **Note**: This is an alternative to beginStroke() - endStroke() operations. It is useful for drawing the same Plot at different starting points and scales.
-  - **Usage**:
-    ```javascript
-    // Define a plot (heart shape)
-    let heart = new brush.Plot();
-    // ... Define the heart plot here ...
-    // Draw the heart shape with a flowing stroke
-    brush.flowShape(heart, 200, 200, 1.3);
     ```
 
 ---
@@ -905,9 +868,9 @@ The following functions are affected by stroke(), fill() and hatch() operations.
 
 ---
 
-These three functions perform similarly to the p5.js beginShape(), vertex(), and endShape() functions, althouh curvature calculation is very different. These allow you to draw custom shapes, with fine control over brush pressure at the different points of the perimeter.
+These next five functions allow you to draw custom shapes, with fine control over brush pressure at the different points of the perimeter.
 
-- `brush.beginShape(curvature)`
+- `brush.beginPath(curvature)`
   - **Description**: Initiates the creation of a custom shape by starting to record vertices. An optional curvature can be defined for the vertices.
   - **Parameters**:
     - `curvature` (Number): Optional. A value from 0 to 1 that defines the curvature of the shape's edges.
@@ -915,33 +878,48 @@ These three functions perform similarly to the p5.js beginShape(), vertex(), and
   - **Usage**:
     ```javascript
     // Begin defining a custom shape with a specified curvature
-    brush.beginShape(0.3);
+    brush.beginPath(0.3);
     ```
 
-- `brush.vertex(x, y, pressure)`
-  - **Description**: Adds a vertex to the custom shape currently being defined. The function is used between `brush.beginShape()` and `brush.endShape()` calls. An optional pressure parameter can be applied at each vertex.
+- `brush.moveTo(x, y, pressure)`
+  - **Description**: Initiates the creation of a subPath, just like the ctx.moveTo function in the Canvas API. The coordinates will define the starting point for the shape.
   - **Parameters**:
     - `x` (Number): The x-coordinate of the vertex.
     - `y` (Number): The y-coordinate of the vertex.
     - `pressure` (Number): Optional. The pressure at the vertex, affecting properties like width.
-  - **Returns**: None.
+  - **Usage**:
+    ```javascript
+    // Begin defining a custom shape with a specified curvature
+    brush.moveTo(50, 100);
+    ```
+
+- `brush.lineTo(x, y, pressure)`
+  - **Description**: Adds a vertex to the custom shape currently being defined. An optional pressure parameter can be applied at each vertex.
+  - **Parameters**:
+    - `x` (Number): The x-coordinate of the vertex.
+    - `y` (Number): The y-coordinate of the vertex.
+    - `pressure` (Number): Optional. The pressure at the vertex, affecting properties like width.
   - **Usage**:
     ```javascript
     // Add vertices to the custom shape
-    brush.vertex(50, 100);
     brush.vertex(100, 150, 0.5);
     brush.vertex(150, 100);
     ```
 
-- `brush.endShape(a)`
-  - **Description**: Completes the custom shape, finalizing the recording of vertices. The shape can be either closed or left open based on the optional argument. The function also triggers the rendering of the shape with the current stroke, fill, and hatch settings.
-  - **Parameters**:
-    - `a` (String): Optional. If set to `CLOSE`, the shape is closed.
-  - **Returns**: None.
+- `brush.closePath()`
+  - **Description**: The current subpath can be closed with this function
+  - **Usage**:
+    ```javascript
+    // Close the custom subpath
+    brush.closePath();
+    ```
+
+- `brush.endPath()`
+  - **Description**: Completes the custom shape, finalizing the recording of vertices. The function also triggers the rendering of the shape with the current stroke, fill, and hatch settings.
   - **Usage**:
     ```javascript
     // Finish the custom shape and close it with a straight line
-    brush.endShape(CLOSE);
+    brush.endPath();
     ```
 
 ---
@@ -962,6 +940,7 @@ These three functions perform similarly to the p5.js beginShape(), vertex(), and
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Exposed Classes
 
 Exposed Classes provide foundational elements for creating and manipulating shapes and paths, as well as interacting with vector-fields in a more advanced manner.
@@ -1087,18 +1066,14 @@ Exposed Classes provide foundational elements for creating and manipulating shap
 
 ## Examples
 
-- Basic examples: [collection in p5.editor (more soon)](https://editor.p5js.org/acamposuribe/collections/PmyBeAfQP)
-- GenArt project 1: [Enfantines I](https://www.fxhash.xyz/generative/20569)
-- GenArt project 2: [Enfantines II](https://www.fxhash.xyz/generative/22739)
-- GenArt project 3: [Fuga a tientas](https://verse.works/exhibitions/fugaatientas-imperfections)
+- TBD
 
 ## Contributing
 We welcome contributions from the community. If you find a bug or have a feature request, please open an issue on Github.
 
 ## License
-p5.brush.js is released under the MIT License. See the LICENSE file for details.
+brush.js is released under the MIT License. See the LICENSE file for details.
 
 ## Acknowledgements
 - The fill() operations followed the steps explained by Tyler Hobbs [here](https://tylerxhobbs.com/essays/2017/a-generative-approach-to-simulating-watercolor-paints)
 - The realistic color blending is calculated with [spectral.js](https://github.com/rvanwijnen/spectral.js), by Ronald van Wijnen
-- Several p5 bugs that impacted the library have been found and solved with the help of [Dave Pagurek](https://twitter.com/davepvm)
