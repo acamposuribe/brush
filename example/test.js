@@ -39,7 +39,7 @@ function shape() {
     else brush.lineTo(v[0],v[1])
   }
   brush.closePath();
-  brush.drawPath();
+  brush.endPath();
 }
 
 function hatchRect(angle) {
@@ -68,7 +68,7 @@ for (let i = 0; i < 8; i++) {
 }
 for (let i=0; i < 35; i++) hatchRect(Math.PI/2);
 
-  /*
+  
   
 
   brush.hatch(7, 0, { rand: 0.08 });
@@ -101,12 +101,12 @@ for (let i=0; i < 35; i++) hatchRect(Math.PI/2);
   brush.lineTo(710, 720, 1);
   brush.lineTo(820, 720, 1);
   brush.lineTo(820, 1370, 1);
-  brush.drawPath();
+  brush.endPath();
 
   brush.circle(765, 1390, 58);
   
 
-  */
+  
   brush.restore()
   
   brush.noLoop();
