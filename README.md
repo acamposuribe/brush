@@ -102,66 +102,74 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
+| [Drawing Loop](#drawing-loop)              | brush.endFrame()    |   |                                            |                     |
+|                                            | brush.loop()        |   |                                            |                     |
+|                                            | brush.noLoop()      |   |                                            |                     |
+|                                            | brush.frameRate()   |   |                                            |                     |
 | [Utility](#utility-functions)              | brush.save()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
 |                                            | brush.restore()     |   |                                            | brush.noHatch()     |
 |                                            | brush.rotate()      |   |                                            | brush.hatchStyle()  |
 |                                            | brush.scale()       |   | [Geometry](#geometry)                      | brush.line()        |
-|                                            | brush.reDraw()      |   |                                            | brush.stroke()      |
-|                                            | brush.reBlend()     |   |                                            | brush.beginStroke() |
-| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.move()        |
-|                                            | brush.noField()     |   |                                            | brush.endStroke()   |
-|                                            | brush.refreshField()|   |                                            | brush.spline()      |
-|                                            | brush.listFields()  |   |                                            | brush.rect()        |
-|                                            | brush.addField()    |   |                                            | brush.circle()      |
-| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.beginPath()   |
-|                                            | brush.add()         |   |                                            | brush.moveTo()      |
-|                                            | brush.clip()        |   |                                            | brush.lineTo()      |
-|                                            | brush.noClip()      |   |                                            | brush.closePath()   |
-| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.drawPath()    |
-|                                            | brush.pick()        |   | [Configuration](#optional-configuration)   | brush.seed()        |
-|                                            | brush.strokeStyle() |   |                                            | brush.noiseSeed()   |
-|                                            | brush.noStroke()    |   |                                            | brush.load()        |
-|                                            | brush.lineWidth()   |   |                                            | brush.scaleBrushes()|
-| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   | [Classes](#exposed-classes)                | brush.Polygon()     |
-|                                            | brush.noFill()      |   |                                            | brush.Plot()        |
-|                                            | brush.fillBleed()   |   |                                            | brush.Position()    |
-|                                            | brush.fillTexture() |   |                                            |                     |
+|                                            | brush.translate()   |   |                                            | brush.stroke()      |
+| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.beginStroke() |
+|                                            | brush.noField()     |   |                                            | brush.move()        |
+|                                            | brush.refreshField()|   |                                            | brush.endStroke()   |
+|                                            | brush.listFields()  |   |                                            | brush.spline()      |
+|                                            | brush.addField()    |   |                                            | brush.rect()        |
+| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.circle()      |
+|                                            | brush.add()         |   |                                            | brush.beginPath()   |
+|                                            | brush.clip()        |   |                                            | brush.moveTo()      |
+|                                            | brush.noClip()      |   |                                            | brush.lineTo()      |
+| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.closePath()   |
+|                                            | brush.pick()        |   |                                            | brush.drawPath()    |
+|                                            | brush.strokeStyle() |   | [Configuration](#optional-configuration)   | brush.seed()        |
+|                                            | brush.noStroke()    |   |                                            | brush.noiseSeed()   |
+|                                            | brush.lineWidth()   |   |                                            | brush.load()        |
+| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   |                                            | brush.scaleBrushes()|
+|                                            | brush.noFill()      |   | [Classes](#exposed-classes)                | brush.Polygon()     |
+|                                            | brush.fillBleed()   |   |                                            | brush.Plot()        |
+|                                            | brush.fillTexture() |   |                                            | brush.Position()    |
 
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
+### Drawing Loop
+
+---
+
+- `brush.endFrame()`
+  - **Description**: Use the endFrame function to show all drawn elements on canvas. If you don't add this at the end of your sketch, elements will be missing from your canvas.
+
+---
+
+<sub>[back to table](#table-of-functions)</sub>
+
 ### Utility Functions
 
 ---
  
-- `brush.push()`
+- `brush.save()`
   - **Description**: The push() function saves the current brush, hatch, and fill settings and transformations, while pop() restores these settings. Note that these functions are always used together.
 
-- `brush.pop()`
+- `brush.restore()`
   - **Description**: The push() function saves the current brush, hatch, and fill settings and transformations, while pop() restores these settings. Note that these functions are always used together.
 
 ---
 
 - `brush.rotate(angle)`
-  - **Description**: Rotates following shapes by the amount specified by the angle parameter. This function accounts for angleMode(), so angles can be entered in either RADIANS or DEGREES. Objects are always rotated around their relative position to the origin and positive numbers rotate objects in an anti-clockwise direction. Transformations apply to everything that happens after and subsequent calls to the function accumulate the effect. This function can be further controlled by brush.push() and brush.pop().
-
----
+  - **Description**: Rotates following shapes by the amount specified by the angle parameter. Angles must be entered in RADIANS. Objects are always rotated around their relative position to the origin and positive numbers rotate objects in an anti-clockwise direction. Transformations apply to everything that happens after and subsequent calls to the function accumulate the effect. This function can be further controlled by brush.save() and brush.restore().
 
 - `brush.scale(scale)`
   - **Description**: Increases or decreases the size of shapes and strokes by expanding or contracting vertices. Objects always scale from their relative origin to the coordinate system. Scale values are specified as decimal percentages. For example, the function call scale(2.0) increases the dimension of a shape by 200%. Transformations apply to everything that happens after and subsequent calls to the function multiply the effect. For example, calling scale(2.0) and then scale(1.5) is the same as scale(3.0).
 
----
-
-- `brush.reDraw()`
-  - **Description**: p5.brush uses several buffers and caches to make the drawing operations more performant. Use the reDraw() function if you want to force noBlend brushes to be drawn into the canvas. This function is designed to help maintain the correct draw order for the different strokes and shapes.
-
-- `brush.reBlend()`
-  - **Description**: p5.brush uses several buffers and caches to make the drawing operations more performant. Use the reDraw() function if you want to force Blend brushes to be drawn into the canvas. This function is designed to help maintain the correct draw order for the different strokes and shapes.
-
+- `brush.translate(x, y)`
+  - **Description**: TBD
 
 ---
 
 <sub>[back to table](#table-of-functions)</sub>
+
 ### Vector Fields
 
 Vector Fields allow for dynamic control over brush stroke behavior, enabling the creation of complex and fluid motion within sketches.
