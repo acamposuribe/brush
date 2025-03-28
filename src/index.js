@@ -43,8 +43,8 @@ export { load } from "./core/config.js";
 export {
   random,
   weightedRand as wRand,
-  seed,
   noise,
+  seed,
   noiseSeed,
 } from "./core/utils.js";
 

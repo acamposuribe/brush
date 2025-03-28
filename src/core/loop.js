@@ -9,8 +9,8 @@ let _time = 0,
   _drawingLoop,
   _fps = 30;
 
-export function loop(drawingLoop) {
-  _drawingLoop = drawingLoop;
+export function loop(drawingLoop = false) {
+  if (drawingLoop) _drawingLoop = drawingLoop;
   _isLoop = true;
   requestAnimationFrame(drawLoop);
 }

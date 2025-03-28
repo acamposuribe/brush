@@ -62,19 +62,19 @@ import * as brush from 'brush'
 
 ### Load the brush.js library
 
-In order to load the library, you need to create a canvas and pass it through the brush.load() function. You can load brush.js in several canvas and and change accordingly. That's why you need to choose a canvas name within the load function.
+In order to load the library, you need to create a canvas and pass it through the brush.load() function. You can load brush.js in several canvas and and change accordingly. That's why you need to choose a canvas id within the load function.
 
 ```js
-
 // Create canvas. There are many ways of doing this
 const canvas = document.createElement("canvas");
+canvas.setAttribute("id", "canvas_name");
 canvas.width = 1200;
 canvas.height = 1750;
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
 
 // Pass the canvas to the brush.js library through load(). Pick a name for said canvas.
-brush.load("CANVAS_NAME", canvas);
+brush.load("canvas_name", canvas);
 ```
 
 ## Features
@@ -102,10 +102,10 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
-| [Drawing Loop](#drawing-loop)              | brush.endFrame()    |   |                                            |                     |
-|                                            | brush.loop()        |   |                                            |                     |
-|                                            | brush.noLoop()      |   |                                            |                     |
-|                                            | brush.frameRate()   |   |                                            |                     |
+| [Drawing Loop](#drawing-loop)              | brush.endFrame()    |   | [Configuration](#optional-configuration)   | brush.load()        |
+|                                            | brush.loop()        |   |                                            | brush.seed()        |
+|                                            | brush.noLoop()      |   |                                            | brush.noiseSeed()   |
+|                                            | brush.frameRate()   |   |                                            | brush.scaleBrushes()|
 | [Utility](#utility-functions)              | brush.save()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
 |                                            | brush.restore()     |   |                                            | brush.noHatch()     |
 |                                            | brush.rotate()      |   |                                            | brush.hatchStyle()  |
@@ -122,13 +122,88 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |                                            | brush.noClip()      |   |                                            | brush.lineTo()      |
 | [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.closePath()   |
 |                                            | brush.pick()        |   |                                            | brush.drawPath()    |
-|                                            | brush.strokeStyle() |   | [Configuration](#optional-configuration)   | brush.seed()        |
-|                                            | brush.noStroke()    |   |                                            | brush.noiseSeed()   |
-|                                            | brush.lineWidth()   |   |                                            | brush.load()        |
-| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   |                                            | brush.scaleBrushes()|
-|                                            | brush.noFill()      |   | [Classes](#exposed-classes)                | brush.Polygon()     |
-|                                            | brush.fillBleed()   |   |                                            | brush.Plot()        |
-|                                            | brush.fillTexture() |   |                                            | brush.Position()    |
+|                                            | brush.strokeStyle() |   | [Classes](#exposed-classes)                | brush.Polygon()     |
+|                                            | brush.noStroke()    |   |                                            | brush.Plot()        |
+|                                            | brush.lineWidth()   |   |                                            | brush.Position()    |
+| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   | [Utils](#utils)                            | brush.random()      |
+|                                            | brush.noFill()      |   |                                            | brush.noise()       |
+|                                            | brush.fillBleed()   |   |                                            | brush.wRand()       |
+|                                            | brush.fillTexture() |   |                                            |                     |
+
+---
+
+<sub>[back to table](#table-of-functions)</sub>
+### Important: Configuration
+
+This section covers functions for initializing the drawing system, preloading required assets, and configuring system behavior. The library doesn't work without executing the load function!.
+
+---
+
+- `brush.load(canvasID, canvas_obj)`
+  - **Description**: Initializes the drawing system and sets up the environment.
+  - **Parameters**: 
+    - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
+    - `canva_obj` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
+  - **Example (load p5.brush on buffer)**: 
+    ```javascript
+      // Create canvas. There are many ways of doing this
+      const canvas = document.createElement("canvas");
+      canvas.setAttribute("id", "first_canvas");
+      canvas.width = 1200;
+      canvas.height = 1750;
+      var body = document.getElementsByTagName("body")[0];
+      body.appendChild(canvas);
+
+      // Pass the canvas to the brush.js library through load(). Pick a name for said canvas.
+      brush.load("first_canvas", canvas);
+
+      // Perform Drawing operations
+      brush.line(0, 0, 200, 300)
+
+      // You can load brush.js on a second canvas and draw on it
+      brush.load("second_canvas", canvas2)
+      brush.line(50, 20, 100, 100)
+
+      // And change between canvas like this
+      brush.load("first_canvas")
+      ```
+      **Important note:** You can only load brush.js on canvas that don't have a drawingContext. The canvas context will be created and captured by brush.js and will become unusable to perform other canvas api operations.
+
+---
+
+- `brush.scaleBrushes(scale)`
+  - **Description**: Adjusts the global scale of all standard brush parameters, including weight, vibration, and spacing, based on the given scaling factor. This function is specifically designed to affect default brushes only, allowing for uniform scaling across various brush types.
+  - **Parameters**:
+    - `scale` (Number): The scaling factor to be applied to the brush parameters.
+  - **Note**: This function only impacts the default brushes. Custom brushes may not be affected by this scaling, since they are defined per case basis.
+  - **Usage**:
+    ```javascript
+    // Scale all standard brushes by a factor of 1.5
+    brush.scaleBrushes(1.5);
+    ```
+    Using `brush.scaleBrushes()`, you can easily adjust the size and spacing characteristics of standard brushes in your project, providing a convenient way to adapt to different canvas sizes or artistic styles.
+    
+---
+
+- `brush.seed(seed)`
+  - **Description**: Sets a custom seed for deterministic drawing results.
+  - **Parameters**: 
+    - `seed` (String | Number): A seed.
+  - **Example**: 
+    ```javascript
+    brush.seed('hello');
+    ```
+    Replace `hello` with the actual seed.
+
+- `brush.noiseSeed(seed)`
+  - **Description**: Sets a custom seed for deterministic noise, affecting fields and the noise() function.
+  - **Parameters**: 
+    - `seed` (String | Number): A seed.
+  - **Example**: 
+    ```javascript
+    brush.noiseSeed('hello');
+    ```
+    Replace `hello` with the actual seed.
 
 ---
 
@@ -139,7 +214,45 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 ---
 
 - `brush.endFrame()`
-  - **Description**: Use the endFrame function to show all drawn elements on canvas. If you don't add this at the end of your sketch, elements will be missing from your canvas.
+  - **Description**: In case you don't use a the loop function, Use endFrame() when you're done drawing, to show elements on canvas. If you don't add this at the end of your sketch, elements will be missing from the screen.
+
+---
+
+- `brush.loop(function)`
+  - **Description**: Use the loop function to create a drawing loop that will be drawn at 30fps (by default)
+  - **Parameters**:
+   - `function` (function): Pass a function that will be executed on a loop.
+   - **Usage**:
+    ```javascript
+    const palette = ["red", "blue", "yellow", "green", "black"];
+    // Create a drawing function that will be repeated each frame
+    const draw = () => {
+      // We select a random color
+      brush.strokeStyle(brush.random(palette))
+      // We draw a line from 0,0 to a random coordinate
+      brush.line(0, 0, brush.random(0, width), brush.random(0, height))
+    }
+    // Start the drawing loop
+    brush.loop(draw)
+    ```
+    If you use brush.loop() without parameter, it will restart the loop with the previously passed function.
+
+- `brush.noLoop()`
+  - **Description**: Stops the drawing loop.
+
+- `brush.frameRate(fps)`
+  - **Description**: Sets the frameRate for the loop
+  - **Parameters**:
+   - `fps` (number): Expected frames per second
+  - **Default value**: 30 fps
+
+- `brush.frameCount`
+  - **Description**: Variable that stores the number of frames already drawn
+
+---
+
+- `brush.endFrame()`
+  - **Description**: In case you don't use a the loop function, Use endFrame() when you're done drawing, to show elements on canvas. If you don't add this at the end of your sketch, elements will be missing from the screen.
 
 ---
 
@@ -845,147 +958,6 @@ These three functions perform similarly to the p5.js beginShape(), vertex(), and
     brush.polygon(points);
     ```
     `brush.polygon()` is ideal for drawing fixed shapes that remain unaffected by vector fields, providing precise control over their form and appearance.
-
-
----
-
-<sub>[back to table](#table-of-functions)</sub>
-### Optional: Configuration
-
-This section covers functions for initializing the drawing system, preloading required assets, and configuring system behavior. By default, the library works without executing these functions, but you might want to configure them to your liking.
-
-- `brush.seed(seed)`
-  - **Description**: Sets a custom seed for deterministic drawing results.
-  - **Parameters**: 
-    - `seed` (String | Number): A seed.
-  - **Example**: 
-    ```javascript
-    brush.seed('hello');
-    ```
-    Replace `hello` with the actual seed.
-
----
-
-- `brush.load(canvasID)`
-  - **Description**: Initializes the drawing system and sets up the environment. If `canvasID` is not provided, the current window is used as the rendering context. If you want to load the library on a custom p5.Graphics element, you can do it by executing this function.
-  - **Parameters**: 
-    - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
-  - **Example (load p5.brush on buffer)**: 
-    ```javascript
-      function setup() {
-        createCanvas(400,400,WEBGL)
-        // Draw stuff to global canvas
-        brush.set("HB","black",1)
-        brush.rect(40,40,150,100)
-        // Force draw stuff to canvas
-        brush.reDraw()
-
-        // Create buffer
-        let buffer = createGraphics(200,300)
-        brush.load(buffer)
-        brush.set("HB","black",1)
-        brush.rect(40,40,150,100)
-        // Force draw stuff to buffer
-        brush.reDraw()
-
-        image(buffer,20,40)
-
-        // Load p5.brush again on global canvas
-        brush.load()
-      }
-      ```
-  - **Note for Instance Mode**: If you want to use the p5 instance mode, you need to pass the proper variable as canvasID.
-      ```javascript
-      let sketch = function(p) {
-        let x = 100;
-        let y = 100;
-
-        // Register instance method here, sending your function arg p
-        brush.instance(p)
-
-        p.setup = function() {
-          p.createCanvas(700, 410);
-        };
-
-        p.draw = function() {
-          p.background(0);
-          brush.fill("red", 75);
-          brush.rect(x, y, 50, 50);
-        };
-      };
-
-      let myp5 = new p5(sketch);
-      ```
-
----
-
-- `brush.preload()`
-  - **Description**: Preloads necessary assets or configurations for brushes. If you are using custom image tip brushes, you need to include this question within the preload() function of your p5 sketch.
-  - **Parameters**: None
-  - **Example**: To use a deterministic random number generator, such as one from a generative art platform like fx(hash), you might configure your system as follows:
-    ```javascript
-    // Your p5 preload function
-    function preload () {
-      brush.preload() // Add this if you want to use custom img brushes
-    }
-    ```
-
----
-
-- `brush.colorCache(bool = true)`
-  - **Description**: Enables or disables color caching for WebGL shaders. Color caching can increase performance but may produce less accurate textures when the same color is used repeatedly. It's set to _true_ by default
-  - **Parameters**: 
-    - `bool` (boolean): Set to true to enable caching, or false to disable it.
-
----
-
-- `brush.scaleBrushes(scale)`
-  - **Description**: Adjusts the global scale of all standard brush parameters, including weight, vibration, and spacing, based on the given scaling factor. This function is specifically designed to affect default brushes only, allowing for uniform scaling across various brush types.
-  - **Parameters**:
-    - `scale` (Number): The scaling factor to be applied to the brush parameters.
-  - **Note**: This function only impacts the default brushes. Custom brushes may not be affected by this scaling, since they are defined per case basis.
-  - **Usage**:
-    ```javascript
-    // Scale all standard brushes by a factor of 1.5
-    brush.scaleBrushes(1.5);
-    ```
-    Using `brush.scaleBrushes()`, you can easily adjust the size and spacing characteristics of standard brushes in your project, providing a convenient way to adapt to different canvas sizes or artistic styles.
-    
----
-
----
-
-- `brush.remove()`
-  - **Description**: Removes brush library brushes and unloads the library. This can be useful if you only used the library to draw into a buffer, and you want to perform only normal p5 operations after that.
-    
----
-
-- `brush.instance(p)`
-  - **Description**: Execute before the setup() and draw() functions if you need to use p5 in instance mode
-  - **Parameters**: 
-    - `p` (variable): Variable used as the function argument. See below
-  - **Example**:
-      ```javascript
-      let sketch = function(p) {
-        let x = 100;
-        let y = 100;
-
-        // Register instance method here, sending your function arg p
-        brush.instance(p)
-
-        p.setup = function() {
-          p.createCanvas(700, 410);
-        };
-
-        p.draw = function() {
-          p.background(0);
-          brush.fill("red", 75);
-          brush.rect(x, y, 50, 50);
-        };
-      };
-
-      let myp5 = new p5(sketch);
-      ```
 
 ---
 
