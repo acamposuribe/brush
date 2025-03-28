@@ -1,7 +1,6 @@
 # brush.js
 
-
-NEEDS TO BE UPDATED
+brush.js is a javascript library dedicated to the creation and management of custom brushes. It extends the drawing capabilities of the canvas api by allowing users to simulate a wide range of brush strokes, vector fields, hatching patterns, and fill textures. These features are essential for emulating the nuanced effects found in traditional sketching and painting. Whether for digital art applications or procedural generation of graphics, brush.js provides a robust framework for artists and developers to create rich, dynamic, and textured visuals.
 
 ## Table of Contents
 - [Installation](#installation)
