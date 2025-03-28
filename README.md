@@ -102,33 +102,33 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
-| [Drawing Loop](#drawing-loop)              | brush.endFrame()    |   | [Configuration](#optional-configuration)   | brush.load()        |
-|                                            | brush.loop()        |   |                                            | brush.seed()        |
-|                                            | brush.noLoop()      |   |                                            | brush.noiseSeed()   |
-|                                            | brush.frameRate()   |   |                                            | brush.scaleBrushes()|
-| [Utility](#utility-functions)              | brush.save()        |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
-|                                            | brush.restore()     |   |                                            | brush.noHatch()     |
-|                                            | brush.rotate()      |   |                                            | brush.hatchStyle()  |
-|                                            | brush.scale()       |   | [Geometry](#geometry)                      | brush.line()        |
-|                                            | brush.translate()   |   |                                            | brush.stroke()      |
-| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.beginStroke() |
-|                                            | brush.noField()     |   |                                            | brush.move()        |
-|                                            | brush.refreshField()|   |                                            | brush.endStroke()   |
-|                                            | brush.listFields()  |   |                                            | brush.spline()      |
-|                                            | brush.addField()    |   |                                            | brush.rect()        |
-| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.circle()      |
-|                                            | brush.add()         |   |                                            | brush.beginPath()   |
-|                                            | brush.clip()        |   |                                            | brush.moveTo()      |
-|                                            | brush.noClip()      |   |                                            | brush.lineTo()      |
-| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.closePath()   |
-|                                            | brush.pick()        |   |                                            | brush.drawPath()    |
-|                                            | brush.strokeStyle() |   | [Classes](#exposed-classes)                | brush.Polygon()     |
-|                                            | brush.noStroke()    |   |                                            | brush.Plot()        |
-|                                            | brush.lineWidth()   |   |                                            | brush.Position()    |
-| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   | [Utils](#utils)                            | brush.random()      |
-|                                            | brush.noFill()      |   |                                            | brush.noise()       |
-|                                            | brush.fillBleed()   |   |                                            | brush.wRand()       |
-|                                            | brush.fillTexture() |   |                                            |                     |
+| [Configuration](#important-configuration)  | brush.load()        |   | [Drawing Loop](#drawing-loop)              | brush.draw()        |
+|                                            | brush.scaleBrushes()|   |                                            | brush.loop()        |
+|                                            | brush.seed()        |   |                                            | brush.noLoop()      |
+|                                            | brush.noiseSeed()   |   |                                            | brush.frameRate()   |
+| [Utility](#utility-functions)              | brush.save()        |   |                                            | brush.frameCount    |
+|                                            | brush.restore()     |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
+|                                            | brush.rotate()      |   |                                            | brush.noHatch()     |
+|                                            | brush.scale()       |   |                                            | brush.hatchStyle()  |
+|                                            | brush.translate()   |   | [Geometry](#geometry)                      | brush.line()        |
+| [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.stroke()      |
+|                                            | brush.noField()     |   |                                            | brush.beginStroke() |
+|                                            | brush.refreshField()|   |                                            | brush.move()        |
+|                                            | brush.listFields()  |   |                                            | brush.endStroke()   |
+|                                            | brush.addField()    |   |                                            | brush.spline()      |
+| [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.rect()        |
+|                                            | brush.add()         |   |                                            | brush.circle()      |
+|                                            | brush.clip()        |   |                                            | brush.beginPath()   |
+|                                            | brush.noClip()      |   |                                            | brush.moveTo()      |
+| [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.lineTo()      |
+|                                            | brush.pick()        |   |                                            | brush.closePath()   |
+|                                            | brush.strokeStyle() |   |                                            | brush.drawPath()    |
+|                                            | brush.noStroke()    |   | [Classes](#exposed-classes)                | brush.Polygon()     |
+|                                            | brush.lineWidth()   |   |                                            | brush.Plot()        |
+| [Fill Operations](#fill-operations)        | brush.fillStyle()   |   |                                            | brush.Position()    |
+|                                            | brush.noFill()      |   | [Utils](#utils)                            | brush.random()      |
+|                                            | brush.fillBleed()   |   |                                            | brush.noise()       |
+|                                            | brush.fillTexture() |   |                                            | brush.wRand()       |
 
 ---
 
@@ -213,8 +213,8 @@ This section covers functions for initializing the drawing system, preloading re
 
 ---
 
-- `brush.endFrame()`
-  - **Description**: In case you don't use a the loop function, Use endFrame() when you're done drawing, to show elements on canvas. If you don't add this at the end of your sketch, elements will be missing from the screen.
+- `brush.draw()`
+  - **Description**: In case you don't use a the loop function, Use draw() when you're done drawing, to show elements on canvas. If you don't add this at the end of your sketch, elements will be missing from the screen.
 
 ---
 

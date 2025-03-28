@@ -91,7 +91,7 @@ export {
 } from "./core/primitives.js";
 
 // Drawing Loop
-export { endFrame, loop, frameRate, noLoop, frameCount } from "./core/loop.js";
+export { endFrame as draw, loop, frameRate, noLoop, frameCount } from "./core/loop.js";
 
 // Brushes
 export {
