@@ -121,6 +121,7 @@ let fillPolygon;
    * @returns {Object} Object representing the centroid of the polygon.
    */
   function calcCenter(pts) {
+    pts = [...pts]
     var first = pts[0],
       last = pts[pts.length - 1];
     if (first.x != last.x || first.y != last.y) pts.push(first);
@@ -249,7 +250,7 @@ class FillPolygon {
         cond = State.fill.bleed_strength / 1.7;
     }
     // Loop through each vertex to calculate the new position based on growth
-    for (let i = 0; i < len - 1; i++) {
+    for (let i = 0; i < len; i++) {
       const currentVertex = tr_v[i];
       const nextVertex = tr_v[(i + 1) % len];
       // Determine the growth modifier

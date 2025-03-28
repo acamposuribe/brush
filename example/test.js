@@ -90,7 +90,7 @@ const draw = () => {
 
   brush.restore()
   
-  //brush.noLoop();
+  brush.noLoop();
 };
 
 
