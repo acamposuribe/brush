@@ -7,9 +7,10 @@ import {
   randInt,
   calcAngle,
   toDegrees,
-  gaussian,
+  gaussian, 
+  noise, noiseSeed,
 } from "../core/utils.js";
-import { Position, Matrix, BleedField, isFieldReady } from "../core/flowfield.js";
+import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 
@@ -256,6 +257,7 @@ function saveState() {
 function restoreState() {
   Mix.ctx.fill();
   markerTip();
+  noiseSeed(rr()*10000)
   Mix.ctx.restore();
 }
 
@@ -266,7 +268,7 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return; // Check if it's inside clipping area
   let pressure = customPressure || calculatePressure(); // Calculate Pressure
-  //pressure *= 1 - BleedField.bField(_position); // Enable this for BleedField
+  pressure *= (1 + 0.5 * noise(_position.x * 0.007,_position.y * 0.007))
   // Draw different tip types
   switch (current.p.type) {
     case "spray":
