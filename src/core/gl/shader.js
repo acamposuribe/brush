@@ -5,6 +5,7 @@ export const fsSource = `#version 300 es
 precision highp float;
 uniform vec4 u_addColor;
 uniform bool u_isErase;
+uniform bool u_isImage;
 uniform float u_flip;
 uniform bool u_isFBO;
 uniform sampler2D u_source,u_mask;
@@ -127,6 +128,10 @@ void main()
   vec4 v=texture(u_source,e);
   if(u_isFBO)
     outColor=v;
+  else if(u_isImage) 
+    {
+    outColor = texture(u_mask,e);
+    }
   else
     {
       vec4 f=texture(u_mask,e);

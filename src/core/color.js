@@ -1,5 +1,6 @@
 import { Canvases, Cwidth, Cheight, cID, isCanvasReady } from "./config.js";
 import { gl_worker } from "./workers.js";
+import { constrain } from "./utils.js";
 
 // =============================================================================
 // Section: Color Blending - Uses spectral.js as a module
@@ -21,18 +22,19 @@ const colorCtx = colorCanvas.getContext("2d");
  */
 export class Color {
   constructor(r, g, b) {
-    if (!this.g && isNaN(r)) {
+    if (isNaN(r)) {
       this.hex = this.standardize(r);
       let rgb = this.hexToRgb(this.hex);
       (this.r = rgb.r), (this.g = rgb.g), (this.b = rgb.b);
     } else {
-      (this.r = r), (this.g = !g ? r : g), (this.b = !b ? r : b);
+      r = constrain(r,0,255), g = constrain(g,0,255), b = constrain(b,0,255);
+      (this.r = r), (this.g = isNaN(g) ? r : g), (this.b = isNaN(b) ? r : b);
       this.hex = this.rgbToHex(this.r, this.g, this.b);
     }
     this.gl = [this.r / 255, this.g / 255, this.b / 255, 1];
   }
   rgbToHex(r, g, b) {
-    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+    return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
   }
   hexToRgb(hex) {
     let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -167,6 +169,7 @@ export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
   ) {
     Mix.ctx.drawImage(...arguments);
     img = Mix.mask.transferToImageBitmap();
+    console.log(img)
   }
   Mix.blend(false, false, img);
 }

@@ -266,7 +266,7 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return; // Check if it's inside clipping area
   let pressure = customPressure || calculatePressure(); // Calculate Pressure
-  pressure *= 1 - BleedField.bField(_position);
+  //pressure *= 1 - BleedField.bField(_position); // Enable this for BleedField
   // Draw different tip types
   switch (current.p.type) {
     case "spray":
@@ -615,7 +615,7 @@ const _standard_brushes = [
   ],
   [
     "2H",
-    [0.2, 0.4, 0.3, 2, 100, 0.2, { curve: [0.15, 0.2], min_max: [1.2, 0.9] }],
+    [0.2, 0.4, 0.3, 2, 60, 0.2, { curve: [0.15, 0.2], min_max: [1.2, 0.9] }],
   ],
   [
     "cpencil",

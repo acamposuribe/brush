@@ -1,5 +1,6 @@
 import { State } from "../core/config.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
+import { BleedField } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 import { BrushState, BrushSetState, set, line } from "../stroke/brush.js";
@@ -222,6 +223,7 @@ function computeOverallBoundingBox(polygons) {
       createHatch(this);
     }
     HatchSetState(state);
+    //BleedField.refresh() Enable BleedField
   }
 
     /**
@@ -232,7 +234,7 @@ function computeOverallBoundingBox(polygons) {
     Plot.prototype.hatch = function(x, y, scale) {
       if (HatchState().isActive) {
         if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-        this.pol = this.genPol(x, y, scale, true);
+        this.pol = this.genPol(x, y, scale, 0.25);
         this.pol.hatch();
       }
     }

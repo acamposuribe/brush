@@ -4,10 +4,11 @@ precision highp float;
 
 uniform vec4 u_addColor;
 uniform bool u_isErase;
+uniform bool u_isImage;
 uniform float u_flip;
 uniform bool u_isFBO;
 uniform sampler2D u_source;
-uniform sampler2D u_mask;
+uniform sampler2D u_mask; 
 
 in vec2 p;
 
@@ -194,6 +195,9 @@ void main(void) {
 
     if (u_isFBO) {
         outColor = source;
+    } else if (u_isImage) {
+        vec4 maskColor = texture(u_mask, uv);
+        outColor = maskColor;
     } else {
         vec4 maskColor = texture(u_mask, uv);
         if (maskColor.r > 0.) {

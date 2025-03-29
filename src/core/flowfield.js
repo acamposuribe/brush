@@ -1,6 +1,6 @@
 import { Cwidth, Cheight, State } from "./config.js";
 import { Mix, isMixReady } from "./color.js";
-import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
+import { randInt, noise, map, rr, sin, cos, cloneArray, calcAngle } from "./utils.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -225,6 +225,10 @@ export function createField() {
   BleedField.genField();
 }
 
+function coord(col, row) {
+  return { x: left_x + col * resolution, y: top_y + row * resolution } 
+}
+
 /**
  * Retrieves the field values for the current vector field.
  * @returns {Float32Array[]} The current vector field grid.
@@ -309,15 +313,12 @@ function addStandard() {
   addField("hand", function (t, field) {
     let baseSize = rr(0.2, 0.8);
     let baseAngle = randInt(5, 10);
-
     for (let column = 0; column < num_columns; column++) {
       for (let row = 0; row < num_rows; row++) {
         let addition = randInt(15, 25);
         let angle = baseAngle * sin(baseSize * row * column + addition);
-
         let noise_val = noise(column * 0.1 + t, row * 0.1 + t);
-
-        field[column][row] = 0.5 * angle * cos(t) + noise_val * angle;
+        field[column][row] = 0.5 * angle * cos(t) + noise_val * baseAngle * 0.5;
       }
     }
     return field;
@@ -344,7 +345,8 @@ export const BleedField = {
   genField() {
     this.field = genField();
     this.fieldTemp = genField();
-    this.brush = genField().map((row) => row.map(() => rr(-0.25, 0.25)));
+    this.brush = genField().map((row) => row.map(() => rr(-0.35, 0.35)));
+    this.brushTemp = cloneArray(this.brush)
   },
   get(x, y, value = false) {
     const col = Position.getColIndex(x)
@@ -359,8 +361,10 @@ export const BleedField = {
     return current;
   },
   bField(Pos) {
-    return 0;
-    return Pos.isIn() ? this.brush[Pos.column_index][Pos.row_index] : 0;
+    return Pos.isIn()? this.brush[Pos.column_index][Pos.row_index] : 0;
+  },
+  refresh() {
+    this.brush = genField().map((row) => row.map(() => rr(-0.25, 0.25)));
   },
   update() {
     this.field = cloneArray(this.fieldTemp);

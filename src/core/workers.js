@@ -183,6 +183,9 @@ export const gl_worker = () =>
       if (event.data.canvas) {
         canvas = event.data.canvas;
         prepareGL();
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
+        gl.clearColor(1,1,1,0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       } else if (event.data.isBG) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
         gl.clearColor(...event.data.color);
