@@ -1,6 +1,6 @@
 import { Cwidth, Cheight, State } from "./config.js";
 import { Mix, isMixReady } from "./color.js";
-import { randInt, noise, map, rr, sin, cos, cloneArray, calcAngle } from "./utils.js";
+import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -15,7 +15,7 @@ export const Matrix = { x: 0, y: 0 };
  * Translate function
  */
 export function translate(x, y) {
-  isFieldReady()
+  isFieldReady();
   Mix.ctx.translate(x, y);
   let m = Mix.ctx.getTransform();
   Matrix.x = m.e;
@@ -26,7 +26,7 @@ export function translate(x, y) {
  * Captures the desired rotation.
  */
 export function rotate(a = 0) {
-  isFieldReady()
+  isFieldReady();
   Mix.ctx.rotate(a);
 }
 
@@ -34,9 +34,9 @@ export function rotate(a = 0) {
  * Object to perform scale operations
  */
 export function scale(a) {
-  isFieldReady()
+  isFieldReady();
   Mix.ctx.scale(a, a);
-} 
+}
 
 let isLoaded = false;
 
@@ -58,22 +58,18 @@ export function isFieldReady() {
  * within certain bounds (e.g., within the field or canvas).
  */
 export class Position {
-
-  static getRowIndex (y) {
+  static getRowIndex(y) {
     const y_offset = y + Matrix.y - top_y;
     return Math.round(y_offset / resolution);
   }
 
-  static getColIndex (x) {
+  static getColIndex(x) {
     const x_offset = x + Matrix.x - left_x;
     return Math.round(x_offset / resolution);
   }
 
-  static isIn (col, row) {
-    return col >= 0 &&
-          row >= 0 &&
-          col < num_columns &&
-          row < num_rows
+  static isIn(col, row) {
+    return col >= 0 && row >= 0 && col < num_columns && row < num_rows;
   }
 
   /**
@@ -93,8 +89,8 @@ export class Position {
    */
   update(x, y) {
     (this.x = x), (this.y = y);
-      this.column_index = Position.getColIndex(x)
-      this.row_index = Position.getRowIndex(y)
+    this.column_index = Position.getColIndex(x);
+    this.row_index = Position.getRowIndex(y);
   }
 
   /**
@@ -111,7 +107,7 @@ export class Position {
   isIn() {
     return State.field.isActive
       ? Position.isIn(this.column_index, this.row_index)
-      : this.isInCanvas(this.x,this.y);
+      : this.isInCanvas(this.x, this.y);
   }
 
   /**
@@ -187,7 +183,6 @@ export class Position {
     } else {
       this.plotted += _step_length / scale;
     }
-    
   }
 }
 
@@ -197,8 +192,8 @@ export class Position {
 
 State.field = {
   isActive: false,
-  current: null
-}
+  current: null,
+};
 
 let list = new Map();
 
@@ -209,7 +204,7 @@ export function FieldState() {
 }
 
 export function FieldSetState(state) {
-  State.field = { ...state }
+  State.field = { ...state };
 }
 
 /**
@@ -226,7 +221,7 @@ export function createField() {
 }
 
 function coord(col, row) {
-  return { x: left_x + col * resolution, y: top_y + row * resolution } 
+  return { x: left_x + col * resolution, y: top_y + row * resolution };
 }
 
 /**
@@ -242,7 +237,9 @@ function flow_field() {
  * @param {number} [t=0] - An optional time parameter that can affect field generation.
  */
 export function refreshField(t = 0) {
-  list.get(State.field.current).field = list.get(State.field.current).gen(t, genField());
+  list.get(State.field.current).field = list
+    .get(State.field.current)
+    .gen(t, genField());
 }
 
 /**
@@ -346,22 +343,22 @@ export const BleedField = {
     this.field = genField();
     this.fieldTemp = genField();
     this.brush = genField().map((row) => row.map(() => rr(-0.35, 0.35)));
-    this.brushTemp = cloneArray(this.brush)
+    this.brushTemp = cloneArray(this.brush);
   },
   get(x, y, value = false) {
-    const col = Position.getColIndex(x)
-    const row = Position.getRowIndex(y)
+    const col = Position.getColIndex(x);
+    const row = Position.getRowIndex(y);
     const current = this.field?.[col]?.[row] ?? 0;
     if (value) {
       const biggest = Math.max(current, value);
       const tempValue = (this.fieldTemp[col]?.[row] ?? 0) * 0.75;
       this.fieldTemp[col][row] = Math.max(biggest, tempValue);
       return biggest;
-  }
+    }
     return current;
   },
   bField(Pos) {
-    return Pos.isIn()? this.brush[Pos.column_index][Pos.row_index] : 0;
+    return Pos.isIn() ? this.brush[Pos.column_index][Pos.row_index] : 0;
   },
   refresh() {
     this.brush = genField().map((row) => row.map(() => rr(-0.25, 0.25)));
@@ -370,19 +367,19 @@ export const BleedField = {
     this.field = cloneArray(this.fieldTemp);
   },
   increase(x, y) {
-    const col = Position.getColIndex(x)
-    const row = Position.getRowIndex(y)
+    const col = Position.getColIndex(x);
+    const row = Position.getRowIndex(y);
     if (!Position.isIn(col, row)) return;
     this.brush[col][row] = rr(0.2, 0.5);
   },
   save() {
-    this.A = cloneArray(this.field)
-    this.B = cloneArray(this.fieldTemp)
-    this.C = cloneArray(this.brush)
+    this.A = cloneArray(this.field);
+    this.B = cloneArray(this.fieldTemp);
+    this.C = cloneArray(this.brush);
   },
   restore() {
-    this.field = this.A
-    this.fieldTemp = this.B
-    this.brush = this.C
-  }
+    this.field = this.A;
+    this.fieldTemp = this.B;
+    this.brush = this.C;
+  },
 };

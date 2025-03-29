@@ -1,4 +1,4 @@
-import { vsSource, fsSource } from "./gl/shader.js"
+import { vsSource, fsSource } from "./gl/shader.js";
 
 Worker.createURL = function (func_or_string) {
   const str =
@@ -184,7 +184,7 @@ export const gl_worker = () =>
         canvas = event.data.canvas;
         prepareGL();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
-        gl.clearColor(1,1,1,0);
+        gl.clearColor(1, 1, 1, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       } else if (event.data.isBG) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);

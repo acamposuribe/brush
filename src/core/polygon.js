@@ -40,22 +40,22 @@ export class Polygon {
    */
   intersect(line) {
     // Check if the result has been cached
-        let cacheKey = `${line.point1.x},${line.point1.y}-${line.point2.x},${line.point2.y}`;
-        if (this._intersectionCache && this._intersectionCache[cacheKey]) {
-          return this._intersectionCache[cacheKey];
-        }
-        let points = [];
-        for (let s of this.sides) {
-          let intersection = intersectLines(line.point1, line.point2, s[0], s[1]);
-          if (intersection !== false) {
-            points.push(intersection);
-          }
-        }
-        // Cache the result
-        if (!this._intersectionCache) this._intersectionCache = {};
-        this._intersectionCache[cacheKey] = points;
-    
-        return points;
+    let cacheKey = `${line.point1.x},${line.point1.y}-${line.point2.x},${line.point2.y}`;
+    if (this._intersectionCache && this._intersectionCache[cacheKey]) {
+      return this._intersectionCache[cacheKey];
+    }
+    let points = [];
+    for (let s of this.sides) {
+      let intersection = intersectLines(line.point1, line.point2, s[0], s[1]);
+      if (intersection !== false) {
+        points.push(intersection);
+      }
+    }
+    // Cache the result
+    if (!this._intersectionCache) this._intersectionCache = {};
+    this._intersectionCache[cacheKey] = points;
+
+    return points;
   }
   erase(c = false, a = E.a) {
     if (E.isActive || c) {

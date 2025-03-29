@@ -7,8 +7,9 @@ import {
   randInt,
   calcAngle,
   toDegrees,
-  gaussian, 
-  noise, noiseSeed,
+  gaussian,
+  noise,
+  noiseSeed,
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -56,11 +57,11 @@ State.stroke = {
 let list = new Map();
 
 export function BrushState() {
-  return { ...State.stroke }
+  return { ...State.stroke };
 }
 
 export function BrushSetState(state) {
-  State.stroke = { ...state }
+  State.stroke = { ...state };
 }
 
 // =============================================================================
@@ -217,7 +218,13 @@ function draw(angleScale, isPlot) {
   for (let i = 0; i < totalSteps; i++) {
     tip();
     isPlot
-      ? _position.plotTo(_plot, stepSize, stepSize, angleScale, i < 10 ? true : false)
+      ? _position.plotTo(
+          _plot,
+          stepSize,
+          stepSize,
+          angleScale,
+          i < 10 ? true : false
+        )
       : _position.moveTo(stepSize, angleScale, stepSize, _flow);
   }
   restoreState();
@@ -257,7 +264,7 @@ function saveState() {
 function restoreState() {
   Mix.ctx.fill();
   markerTip();
-  noiseSeed(rr()*10000)
+  noiseSeed(rr() * 10000);
   Mix.ctx.restore();
 }
 
@@ -268,7 +275,7 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return; // Check if it's inside clipping area
   let pressure = customPressure || calculatePressure(); // Calculate Pressure
-  pressure *= (1 + 0.5 * noise(_position.x * 0.007,_position.y * 0.007))
+  pressure *= 1 + 0.5 * noise(_position.x * 0.007, _position.y * 0.007);
   // Draw different tip types
   switch (current.p.type) {
     case "spray":
@@ -659,28 +666,28 @@ for (let s of _standard_brushes) {
 // Add method to Polygon Class and Plot Class
 // =============================================================================
 /**
-   * Draws the polygon by iterating over its sides and drawing lines between the vertices.
-   */
-  Polygon.prototype.draw = function(_brush = false, _color, _weight) {
-    let state = BrushState();
-    if (_brush) set(_brush, _color, _weight);
-    if (state.isActive) {
-      for (let s of this.sides) {
-        line(s[0].x, s[0].y, s[1].x, s[1].y);
-      }
+ * Draws the polygon by iterating over its sides and drawing lines between the vertices.
+ */
+Polygon.prototype.draw = function (_brush = false, _color, _weight) {
+  let state = BrushState();
+  if (_brush) set(_brush, _color, _weight);
+  if (state.isActive) {
+    for (let s of this.sides) {
+      line(s[0].x, s[0].y, s[1].x, s[1].y);
     }
-    BrushSetState(state);
   }
+  BrushSetState(state);
+};
 
-    /**
-   * Draws the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   * @param {number} scale - The scale to draw with.
-   */
-    Plot.prototype.draw = function (x, y, scale) {
-      if (BrushState().isActive) {
-        if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-        plot(this, x, y, scale);
-      }
-    }
+/**
+ * Draws the plot on the canvas.
+ * @param {number} x - The x-coordinate to draw at.
+ * @param {number} y - The y-coordinate to draw at.
+ * @param {number} scale - The scale to draw with.
+ */
+Plot.prototype.draw = function (x, y, scale) {
+  if (BrushState().isActive) {
+    if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+    plot(this, x, y, scale);
+  }
+};

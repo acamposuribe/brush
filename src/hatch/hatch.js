@@ -1,6 +1,5 @@
 import { State } from "../core/config.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
-import { BleedField } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 import { BrushState, BrushSetState, set, line } from "../stroke/brush.js";
@@ -19,18 +18,18 @@ State.hatch = {
   angle: 45,
   options: {},
   hBrush: false,
-}
+};
 
 /**
  * Object to hold the current hatch state and to perform hatch calculation
  */
 
 function HatchState() {
-  return { ...State.hatch }
+  return { ...State.hatch };
 }
 
 function HatchSetState(state) {
-  State.hatch = { ...state }
+  State.hatch = { ...state };
 }
 
 /**
@@ -48,11 +47,11 @@ export function hatch(
   angle = 45,
   options = { rand: false, continuous: false, gradient: false }
 ) {
-  let s = State.hatch
+  let s = State.hatch;
   s.isActive = true;
   s.dist = dist;
   s.angle = angle;
-  s.options = options
+  s.options = options;
 }
 
 /**
@@ -213,28 +212,27 @@ function computeOverallBoundingBox(polygons) {
 // =============================================================================
 // Add method to Polygon Class
 // =============================================================================
-  /**
-   * Creates hatch lines across the polygon based on a given distance and angle.
-   */
-  Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
-    let state = HatchState();
-    if (_dist) hatch(_dist, _angle, _options);
-    if (state.isActive) {
-      createHatch(this);
-    }
-    HatchSetState(state);
-    //BleedField.refresh() Enable BleedField
+/**
+ * Creates hatch lines across the polygon based on a given distance and angle.
+ */
+Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
+  let state = HatchState();
+  if (_dist) hatch(_dist, _angle, _options);
+  if (state.isActive) {
+    createHatch(this);
   }
+  HatchSetState(state);
+};
 
-    /**
-   * Hatch the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   */
-    Plot.prototype.hatch = function(x, y, scale) {
-      if (HatchState().isActive) {
-        if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-        this.pol = this.genPol(x, y, scale, 0.25);
-        this.pol.hatch();
-      }
-    }
+/**
+ * Hatch the plot on the canvas.
+ * @param {number} x - The x-coordinate to draw at.
+ * @param {number} y - The y-coordinate to draw at.
+ */
+Plot.prototype.hatch = function (x, y, scale) {
+  if (HatchState().isActive) {
+    if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+    this.pol = this.genPol(x, y, scale, 0.25);
+    this.pol.hatch();
+  }
+};

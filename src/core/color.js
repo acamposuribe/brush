@@ -27,14 +27,16 @@ export class Color {
       let rgb = this.hexToRgb(this.hex);
       (this.r = rgb.r), (this.g = rgb.g), (this.b = rgb.b);
     } else {
-      r = constrain(r,0,255), g = constrain(g,0,255), b = constrain(b,0,255);
+      (r = constrain(r, 0, 255)),
+        (g = constrain(g, 0, 255)),
+        (b = constrain(b, 0, 255));
       (this.r = r), (this.g = isNaN(g) ? r : g), (this.b = isNaN(b) ? r : b);
       this.hex = this.rgbToHex(this.r, this.g, this.b);
     }
     this.gl = [this.r / 255, this.g / 255, this.b / 255, 1];
   }
   rgbToHex(r, g, b) {
-    return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
   hexToRgb(hex) {
     let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -149,7 +151,7 @@ export const Mix = {
  */
 let _bg_Color = new Color("white");
 export function background(r, g, b) {
-  isMixReady()
+  isMixReady();
   if (r === "transparent") _bg_Color = new Color(g);
   else _bg_Color = new Color(...arguments);
   Mix.worker.postMessage({
@@ -162,14 +164,14 @@ export function background(r, g, b) {
  * This function draws an image into the canvas
  */
 export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
-  isMixReady()
+  isMixReady();
   if (
     Object.prototype.toString.call(img) !== "[object ImageBitmap]" ||
     x !== 0
   ) {
     Mix.ctx.drawImage(...arguments);
     img = Mix.mask.transferToImageBitmap();
-    console.log(img)
+    console.log(img);
   }
   Mix.blend(false, false, img);
 }
@@ -178,7 +180,7 @@ export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
  * This function gets the canvas as an ImageBitmap
  */
 export async function getCanvas() {
-  isMixReady()
+  isMixReady();
   let image;
   await new Promise(function (resolve) {
     Mix.worker.postMessage({ get: true });

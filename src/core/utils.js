@@ -234,8 +234,8 @@ export function rotate(cx, cy, x, y, angle) {
   return { x: nx, y: ny };
 }
 
-export function cloneArray (array) {
-  return array.map(function(arr) {
+export function cloneArray(array) {
+  return array.map(function (arr) {
     return arr.slice();
   });
 }

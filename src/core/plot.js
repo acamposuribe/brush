@@ -148,7 +148,7 @@ export class Plot {
    * @returns {Polygon} - The generated polygon.
    */
   genPol(_x, _y, _scale = 1, side) {
-    isFieldReady() // Ensure that the drawing environment is prepared
+    isFieldReady(); // Ensure that the drawing environment is prepared
     const step = 0.5;
     const vertices = [];
     const numSteps = Math.round(this.length / step);
@@ -187,7 +187,6 @@ export class Plot {
 
   show(x, y, scale = 1) {
     if (State.stroke) this.draw(x, y, scale);
-
     if (State.hatch) this.hatch(x, y, scale);
     if (State.fill) this.fill(x, y, scale);
     this.erase(x, y, scale);

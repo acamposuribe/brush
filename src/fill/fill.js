@@ -1,6 +1,15 @@
 import { State } from "../core/config.js";
-import { Color, Mix, drawPolygon } from "../core/color.js"
-import { constrain, weightedRand, rr, map, randInt, gaussian, pseudoGaussian, rotate } from "../core/utils.js";
+import { Color, Mix, drawPolygon } from "../core/color.js";
+import {
+  constrain,
+  weightedRand,
+  rr,
+  map,
+  randInt,
+  gaussian,
+  pseudoGaussian,
+  rotate,
+} from "../core/utils.js";
 import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
@@ -33,14 +42,14 @@ State.fill = {
   border_strength: 0.4,
   direction: "out",
   isActive: false,
-}
+};
 
 function FillState() {
-  return { ...State.fill }
+  return { ...State.fill };
 }
 
 function FillSetState(state) {
-  State.fill = { ...state }
+  State.fill = { ...state };
 }
 
 // =============================================================================
@@ -84,68 +93,66 @@ export function noFill() {
 
 let fillPolygon;
 
-  /**
-   * Fills the given polygon with a watercolor effect.
-   * @param {Object} polygon - The polygon to fill.
-   */
-  export function createFill(polygon) {
-    // Store polygon
-    fillPolygon = polygon;
-    // Map polygon vertices to Vector objects
-    let v = [...polygon.vertices];
-    const vLength = v.length;
-    // Calculate fluidity once, outside the loop
-    const fluid = vLength * 0.25 * weightedRand({ 1: 5, 2: 10, 3: 60 });
-    // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
-    const strength = State.fill.bleed_strength;
-    let modifiers = v.map((_, i) => {
-      let multiplier = rr(0.85, 1.2) * strength;
-      return i > fluid ? multiplier : multiplier * 0.2;
-    });
+/**
+ * Fills the given polygon with a watercolor effect.
+ * @param {Object} polygon - The polygon to fill.
+ */
+export function createFill(polygon) {
+  // Store polygon
+  fillPolygon = polygon;
+  // Map polygon vertices to Vector objects
+  let v = [...polygon.vertices];
+  const vLength = v.length;
+  // Calculate fluidity once, outside the loop
+  const fluid = vLength * 0.25 * weightedRand({ 1: 5, 2: 10, 3: 60 });
+  // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
+  const strength = State.fill.bleed_strength;
+  let modifiers = v.map((_, i) => {
+    let multiplier = rr(0.85, 1.2) * strength;
+    return i > fluid ? multiplier : multiplier * 0.2;
+  });
 
-    // Shift vertices randomly to create a more natural watercolor edge
-    let shift = randInt(0, vLength);
-    v = [...v.slice(shift), ...v.slice(0, shift)];
-    // Create and fill the polygon with the calculated bleed effect
-    let pol = new FillPolygon(v, modifiers, calcCenter(v), [], true);
-    pol.fill(
-      State.fill.color,
-      map(State.fill.opacity, 0, 100, 0, 1, true),
-      State.fill.texture_strength,
-      true
-    );
+  // Shift vertices randomly to create a more natural watercolor edge
+  let shift = randInt(0, vLength);
+  v = [...v.slice(shift), ...v.slice(0, shift)];
+  // Create and fill the polygon with the calculated bleed effect
+  let pol = new FillPolygon(v, modifiers, calcCenter(v), [], true);
+  pol.fill(
+    State.fill.color,
+    map(State.fill.opacity, 0, 100, 0, 1, true),
+    State.fill.texture_strength,
+    true
+  );
+}
+
+/**
+ * Calculates the center point of the polygon based on the vertices.
+ * @returns {Object} Object representing the centroid of the polygon.
+ */
+function calcCenter(pts) {
+  pts = [...pts];
+  var first = pts[0],
+    last = pts[pts.length - 1];
+  if (first.x != last.x || first.y != last.y) pts.push(first);
+  var twicearea = 0,
+    x = 0,
+    y = 0,
+    nPts = pts.length,
+    p1,
+    p2,
+    f;
+  for (var i = 0, j = nPts - 1; i < nPts; j = i++) {
+    p1 = pts[i];
+    p2 = pts[j];
+    f =
+      (p1.y - first.y) * (p2.x - first.x) - (p2.y - first.y) * (p1.x - first.x);
+    twicearea += f;
+    x += (p1.x + p2.x - 2 * first.x) * f;
+    y += (p1.y + p2.y - 2 * first.y) * f;
   }
-
-  /**
-   * Calculates the center point of the polygon based on the vertices.
-   * @returns {Object} Object representing the centroid of the polygon.
-   */
-  function calcCenter(pts) {
-    pts = [...pts]
-    var first = pts[0],
-      last = pts[pts.length - 1];
-    if (first.x != last.x || first.y != last.y) pts.push(first);
-    var twicearea = 0,
-      x = 0,
-      y = 0,
-      nPts = pts.length,
-      p1,
-      p2,
-      f;
-    for (var i = 0, j = nPts - 1; i < nPts; j = i++) {
-      p1 = pts[i];
-      p2 = pts[j];
-      f =
-        (p1.y - first.y) * (p2.x - first.x) -
-        (p2.y - first.y) * (p1.x - first.x);
-      twicearea += f;
-      x += (p1.x + p2.x - 2 * first.x) * f;
-      y += (p1.y + p2.y - 2 * first.y) * f;
-    }
-    f = twicearea * 3;
-    return { x: x / f + first.x, y: y / f + first.y };
-  }
-
+  f = twicearea * 3;
+  return { x: x / f + first.x, y: y / f + first.y };
+}
 
 /**
  * The FillPolygon class is used to create and manage the properties of the polygons that produces
@@ -171,8 +178,8 @@ class FillPolygon {
     this.sizeX = -Infinity;
     this.sizeY = -Infinity;
     for (let v of this.v) {
-        this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
-        this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
+      this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
+      this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
     }
     // This calculates the bleed direction for the initial shape, for each of the vertices.
     if (isFirst) {
@@ -304,7 +311,8 @@ class FillPolygon {
     Mix.blend(color);
     Mix.ctx.save();
     Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
-    Mix.ctx.strokeStyle = "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
+    Mix.ctx.strokeStyle =
+      "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
@@ -395,7 +403,14 @@ class FillPolygon {
 // Add method to Polygon Class
 // =============================================================================
 
-Polygon.prototype.fill = function (_color = false, _opacity, _bleed, _texture, _border, _direction) {
+Polygon.prototype.fill = function (
+  _color = false,
+  _opacity,
+  _bleed,
+  _texture,
+  _border,
+  _direction
+) {
   let state = FillState();
   if (_color) {
     fillStyle(_color, _opacity);
@@ -407,17 +422,17 @@ Polygon.prototype.fill = function (_color = false, _opacity, _bleed, _texture, _
     createFill(this);
   }
   FillSetState(state);
-}    
+};
 
-  /**
-   * Fill the plot on the canvas.
-   * @param {number} x - The x-coordinate to draw at.
-   * @param {number} y - The y-coordinate to draw at.
-   */
-  Plot.prototype.fill = function(x, y, scale) {
-    if (FillState().isActive) {
-      if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-      this.pol = this.genPol(x, y, scale, State.fill.bleed_strength * 3);
-      this.pol.fill();
-    }
+/**
+ * Fill the plot on the canvas.
+ * @param {number} x - The x-coordinate to draw at.
+ * @param {number} y - The y-coordinate to draw at.
+ */
+Plot.prototype.fill = function (x, y, scale) {
+  if (FillState().isActive) {
+    if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
+    this.pol = this.genPol(x, y, scale, State.fill.bleed_strength * 3);
+    this.pol.fill();
   }
+};
