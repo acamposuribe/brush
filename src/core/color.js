@@ -111,36 +111,34 @@ export const Mix = {
    */
   blend(_color = false, _isLast = false, _isImg = false, _sp = false) {
     isMixReady();
+    
     // Check if blending is initialised
-    if (!this.isBlending) {
-      // If color has been provided, we initialise blending
-      if (_color) (this.currentColor = _color.gl), (this.isBlending = true);
-    }
+    if (!this.isBlending && _color) (this.currentColor = _color.gl), (this.isBlending = true);
     // Checks if newColor is the same than the cadhedColor
-    // If it is the same, we wait before applying the shader for color mixing
-    // If it's NOT the same, we apply the shader and cache the new color
-    let newColor = !_color ? this.currentColor : _color.gl;
+    const newColor = !_color ? this.currentColor : _color.gl;
+    // Check if blending is necessary
+    const shouldBlend = _isLast || _isImg || newColor.toString() !== this.currentColor.toString();
 
-    let cond;
-    if (_isLast || _isImg) cond = true;
-    else cond = newColor.toString() !== this.currentColor.toString();
-
-    if (cond) {
-      let imageData = _isImg ? _isImg : this.mask.transferToImageBitmap();
+    if (shouldBlend) {
+      // Use existing image data or transfer mask to ImageBitmap
+      const imageData = _isImg || this.mask.transferToImageBitmap();
+      // Post message to the worker with transferable objects
       this.worker.postMessage(
         {
           addColor: this.currentColor,
           mask: imageData,
           isLast: _isLast,
           isErase: this.isErase,
-          isImage: _isImg ? true : false,
+          isImage: Boolean(_isImg),
           sp: _sp,
         },
         [imageData]
       );
+      // Reset erase flag and update state
       this.isErase = false;
-      // We cache the new color here
+      // Cache the new color if not the last operation
       if (!_isLast) this.currentColor = _color.gl;
+      // Reset blending state if this is the last operation and not a special case
       if (_isLast && !_sp) this.isBlending = false;
     }
   },
