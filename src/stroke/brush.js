@@ -9,7 +9,6 @@ import {
   toDegrees,
   gaussian,
   noise,
-  noiseSeed,
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -236,6 +235,7 @@ const current = {};
  * Sets up the environment for a brush stroke.
  */
 function saveState() {
+  current.seed = rr() * 99999;
   const { param } = list.get(State.stroke.type) ?? {};
   if (!param) return;
   current.p = param;
@@ -264,7 +264,6 @@ function saveState() {
 function restoreState() {
   Mix.ctx.fill();
   markerTip();
-  noiseSeed(rr() * 10000);
   Mix.ctx.restore();
 }
 
@@ -275,7 +274,15 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return; // Check if it's inside clipping area
   let pressure = customPressure || calculatePressure(); // Calculate Pressure
-  pressure *= 1 + 0.5 * noise(_position.x * 0.007, _position.y * 0.007);
+  pressure *=
+    1 -
+    0.3 *
+      noise(
+        _position.x * 0.007 + current.seed,
+        _position.y * 0.007 + current.seed
+      ) -
+    0.1 * noise(_position.x * 0.002, _position.y * 0.002);
+
   // Draw different tip types
   switch (current.p.type) {
     case "spray":
@@ -632,7 +639,19 @@ const _standard_brushes = [
   ],
   [
     "charcoal",
-    [0.5, 2, 0.8, 300, 70, 0.06, { curve: [0.15, 0.2], min_max: [1.5, 0.8] }],
+    [
+      0.35,
+      1.5,
+      0.65,
+      300,
+      80,
+      0.06,
+      { curve: [0.15, 0.2], min_max: [1.3, 0.9] },
+    ],
+  ],
+  [
+    "crayon",
+    [0.25, 2, 0.8, 300, 60, 0.06, { curve: [0.35, 0.2], min_max: [0.9, 1.1] }],
   ],
   [
     "spray",

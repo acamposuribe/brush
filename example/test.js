@@ -6,12 +6,10 @@ let palette = [
   "#6b9404",
   "#C64123",
   "#002185",
-  "#514221",
   "#7b4800",
   "#4e93cc",
   "#fce365",
   "#003c32",
-  "#080f15",
   "#e2e7dc",
 ];
 
@@ -33,20 +31,28 @@ brush.load("main", canvas);
 brush.scaleBrushes(9);
 
 // Pick a flowfield
-brush.field("hand");
 
 function hatchRect(x, y, w, l, angle, color) {
-  for (let i = 0; i < 12; i++) {
-    let add = brush.random(-0.07, 0.07) * Math.PI;
-    brush.hatchStyle("2H", color, 0.75);
-    brush.refreshField();
-    brush.hatch(brush.random(3, 10), angle + add, {
-      continuous: true,
-      rand: brush.random(0.2, 0.35),
-      gradient: brush.random(0.2, 0.6),
-    });
-    brush.rect(x, y, w, l);
-  }
+  brush.save();
+  brush.translate(x, y);
+  let add = brush.random(-0.1, 0.1) * Math.PI;
+  brush.hatchStyle("crayon", color, 0.7);
+  brush.hatch(brush.random(4, 9), angle + add, {
+    continuous: true,
+    rand: brush.random(0.2, 0.35),
+    gradient: brush.random(0.2, 0.6),
+  });
+
+  brush.circle(0, 0, w / 2);
+  brush.rotate((Math.PI / 2) * ~~brush.random(0, 4));
+  brush.hatchStyle("crayon", color, 0.5);
+  brush.hatch(brush.random(2, 6), angle - add, {
+    continuous: true,
+    rand: brush.random(0.2, 0.35),
+    gradient: 0.2,
+  });
+  brush.circle(0, 0, w / 2);
+  brush.restore();
 }
 
 // Draw Loop
@@ -55,29 +61,64 @@ const draw = () => {
 
   brush.save();
 
+  brush.field("seabed");
+
+  for (let i = 0; i < 4; i++) {
+    brush.set("charcoal", brush.random(palette), 1);
+    brush.rect(
+      brush.random(400, canvas.width - 400),
+      brush.random(400, canvas.height - 400),
+      brush.random(400, 600),
+      brush.random(400, 800),
+      "center"
+    );
+  }
+  brush.noStroke();
+
+  brush.field("hand");
+
+  // Crayon circles
   let colors = [];
   let coords = [];
   let angles = [];
-
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     colors.push(brush.random(palette));
     coords.push([
-      brush.random(0, canvas.width - 600),
-      brush.random(canvas.height - 600),
+      brush.random(400, canvas.width - 400),
+      brush.random(400, canvas.height - 400),
     ]);
     angles.push(brush.random(Math.PI / 6, Math.PI / 3));
   }
-
+  for (let i = 0; i < colors.length; i++) {
+    let c = colors[i];
+    let co = coords[i];
+    hatchRect(co[0], co[1], 600, 600, angles[i], c);
+  }
+  brush.refreshField();
+  for (let i = 0; i < colors.length; i++) {
+    let c = colors[i];
+    let co = coords[i];
+    hatchRect(co[0], co[1], 600, 600, angles[i], c);
+  }
+  brush.refreshField();
   for (let i = 0; i < colors.length; i++) {
     let c = colors[i];
     let co = coords[i];
     hatchRect(co[0], co[1], 600, 600, angles[i], c);
   }
 
-  for (let i = 0; i < colors.length; i++) {
-    let c = colors[i];
-    let co = coords[i];
-    hatchRect(co[0], co[1], 600, 600, angles[i], c);
+  // Crayon line rectangles
+  brush.field("seabed");
+
+  for (let i = 0; i < 5; i++) {
+    brush.set("charcoal", brush.random(palette), 1);
+    brush.rect(
+      brush.random(400, canvas.width - 400),
+      brush.random(400, canvas.height - 400),
+      brush.random(400, 600),
+      brush.random(400, 800),
+      "center"
+    );
   }
 
   brush.restore();
