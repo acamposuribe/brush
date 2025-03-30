@@ -37,13 +37,13 @@ Alternatively, you can link to a `brush.js` file hosted online. All versions are
 Install the npm package
 
 ```
-npm install brush --save
+npm install @acamposuribe/brush --save
 ```
 
 After that, import brush functions to your sketch:
 
 ```
-import * as brush from 'brush'
+import * as brush from '@acamposuribe/brush'
 ```
 
 ### Load the brush.js library

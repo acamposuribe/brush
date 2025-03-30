@@ -1,20 +1,21 @@
 {
-  "name": "brush",
-  "version": "0.0.1",
+  "name": "@acamposuribe/brush",
+  "version": "0.0.2-alpha",
   "description": "Unlock custom brushes, natural fill effects and intuitive hatching in vanilla js",
   "main": "src/index.js",
   "module": "src/index.js",
   "browser": "dist/brush.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rollup --config -w"
+    "build": "rollup --config"
   },
   "type": "module",
   "keywords": [
     "brush",
     "brushes",
     "watercolor",
-    "flowfield"
+    "flowfield",
+    "hatching"
   ],
   "author": "Alejandro Campos Uribe",
   "license": "MIT",
