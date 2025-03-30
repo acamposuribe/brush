@@ -3,13 +3,18 @@ import { gl_worker } from "./workers.js";
 import { constrain } from "./utils.js";
 
 // =============================================================================
-// Section: Color Blending - Uses spectral.js as a module
+// Section: Color Manager
 // =============================================================================
 /**
- * The Mix object is responsible for handling color blending operations within
- * the rendering context. It utilizes WebGL shaders to apply advanced blending
- * effects based on Kubelka-Munk theory. It depends on spectral.js for the
- * blending logic incorporated into its fragment shader.
+ * The Color Manager is responsible for handling color-related operations,
+ * including color creation, conversion, and standardization. It provides
+ * utilities to work with colors in various formats (e.g., RGB, Hexadecimal,
+ * and named colors) and ensures compatibility with WebGL rendering.
+ *
+ * The `Color` class is the core of this section, offering methods to:
+ * - Convert between RGB and Hexadecimal formats.
+ * - Standardize color strings to their canonical form.
+ * - Store color data in WebGL-compatible formats (normalized RGBA).
  */
 
 const colorCanvas = document.createElement("canvas");
@@ -23,21 +28,42 @@ const colorCtx = colorCanvas.getContext("2d");
 export class Color {
   constructor(r, g, b) {
     if (isNaN(r)) {
+      // If the input is not a number, assume it's a color string (e.g., hex or named color)
       this.hex = this.standardize(r);
       let rgb = this.hexToRgb(this.hex);
-      (this.r = rgb.r), (this.g = rgb.g), (this.b = rgb.b);
+      this.r = rgb.r;
+      this.g = rgb.g;
+      this.b = rgb.b;
     } else {
-      (r = constrain(r, 0, 255)),
-        (g = constrain(g, 0, 255)),
-        (b = constrain(b, 0, 255));
-      (this.r = r), (this.g = isNaN(g) ? r : g), (this.b = isNaN(b) ? r : b);
+      // Constrain RGB values to the range [0, 255]
+      r = constrain(r, 0, 255);
+      g = constrain(g, 0, 255);
+      b = constrain(b, 0, 255);
+      this.r = r;
+      this.g = isNaN(g) ? r : g;
+      this.b = isNaN(b) ? r : b;
       this.hex = this.rgbToHex(this.r, this.g, this.b);
     }
+    // Store the color in WebGL format (normalized RGBA)
     this.gl = [this.r / 255, this.g / 255, this.b / 255, 1];
   }
+
+  /**
+   * Converts RGB values to a hexadecimal color string.
+   * @param {number} r - Red value (0-255).
+   * @param {number} g - Green value (0-255).
+   * @param {number} b - Blue value (0-255).
+   * @returns {string} Hexadecimal color string.
+   */
   rgbToHex(r, g, b) {
     return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
+
+  /**
+   * Converts a hexadecimal color string to RGB values.
+   * @param {string} hex - Hexadecimal color string.
+   * @returns {object} An object with r, g, and b properties.
+   */
   hexToRgb(hex) {
     let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
     hex = hex.replace(shorthandRegex, function (m, r, g, b) {
@@ -52,12 +78,29 @@ export class Color {
         }
       : null;
   }
+
+  /**
+   * Standardizes a color string to its canonical form.
+   * @param {string} str - Color string (e.g., "red", "#f00").
+   * @returns {string} Standardized color string.
+   */
   standardize(str) {
     colorCtx.fillStyle = str;
     return colorCtx.fillStyle;
   }
 }
 
+// =============================================================================
+// Section: Color Blending
+// =============================================================================
+/**
+ * Handles color blending using WebGL shaders. Implements advanced blending
+ * effects based on Kubelka-Munk theory. Relies on spectral.js for blending logic.
+ */
+
+/**
+ * Ensures the Mix object is initialized and ready for blending.
+ */
 export function isMixReady() {
   if (!Mix.loaded) {
     isCanvasReady();
@@ -66,12 +109,12 @@ export function isMixReady() {
 }
 
 /**
- * Object handling blending operations with WebGL shaders.
- * @property {boolean} loaded - Flag indicating if the blend shaders have been loaded.
- * @property {boolean} isBlending - Flag indicating if the blending has been initiated.
- * @property {obj} currentColor - Holds color values for shaders.
- * @property {function} load - Loads resources and initializes blend operations.
- * @property {function} blend - Applies blending effects using the initialized shader.
+ * Manages blending operations with WebGL shaders.
+ * @property {boolean} loaded - Indicates if shaders are loaded.
+ * @property {boolean} isBlending - Indicates if blending is active.
+ * @property {object} currentColor - Current color in WebGL format.
+ * @property {function} load - Initializes blending resources.
+ * @property {function} blend - Applies blending effects.
  */
 export const Mix = {
   loaded: false,
@@ -83,46 +126,58 @@ export const Mix = {
    */
   load() {
     if (!Canvases[cID].worker) {
-      let ca = Canvases[cID];
+      const ca = Canvases[cID];
+
       // Create 2d offscreen mask
       ca.mask = new OffscreenCanvas(Cwidth, Cheight);
       ca.ctx = ca.mask.getContext("2d");
       ca.ctx.lineWidth = 0;
 
-      // Create offscreen webgl canvas and link to main canvas
+      // Create an offscreen WebGL canvas and link it to the main canvas
       ca.offscreen = Canvases[cID].canvas.transferControlToOffscreen();
-      // Init worker
+
+      // Initialize the WebGL worker
       ca.worker = gl_worker();
       ca.worker.postMessage("init");
-      // Send Offscreen webgl canvas to web worker as transferrable object
+
+      // Send the offscreen WebGL canvas to the worker
       ca.worker.postMessage({ canvas: ca.offscreen }, [ca.offscreen]);
     }
 
+    // Store references to the mask, context, and worker
     this.mask = Canvases[cID].mask;
     this.ctx = Canvases[cID].ctx;
     this.worker = Canvases[cID].worker;
   },
 
   /**
-   * Applies the blend shader to the current rendering context.
-   * @param {string} _c - The color used for blending, as a Color object.
-   * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
-   * @param {boolean} _isLast - Indicates if this is the last blend after setup and draw.
+   * Applies blending effects using the current color and mask.
+   * @param {Color} _color - Color to blend.
+   * @param {boolean} _isLast - If this is the final blend operation.
+   * @param {boolean} _isImg - If blending an image.
+   * @param {boolean} _isFillLayer - If this is a special case.
    */
-  blend(_color = false, _isLast = false, _isImg = false, _sp = false) {
+  blend(_color = false, _isLast = false, _isImg = false, _isFillLayer = false) {
     isMixReady();
-    
-    // Check if blending is initialised
-    if (!this.isBlending && _color) (this.currentColor = _color.gl), (this.isBlending = true);
-    // Checks if newColor is the same than the cadhedColor
+
+    // Initialize blending if not already active
+    if (!this.isBlending && _color) {
+      this.currentColor = _color.gl;
+      this.isBlending = true;
+    }
+
+    // Determine the new color
     const newColor = !_color ? this.currentColor : _color.gl;
+
     // Check if blending is necessary
-    const shouldBlend = _isLast || _isImg || newColor.toString() !== this.currentColor.toString();
+    const shouldBlend =
+      _isLast || _isImg || newColor.toString() !== this.currentColor.toString();
 
     if (shouldBlend) {
       // Use existing image data or transfer mask to ImageBitmap
       const imageData = _isImg || this.mask.transferToImageBitmap();
-      // Post message to the worker with transferable objects
+
+      // Send blending data to the worker
       this.worker.postMessage(
         {
           addColor: this.currentColor,
@@ -130,28 +185,45 @@ export const Mix = {
           isLast: _isLast,
           isErase: this.isErase,
           isImage: Boolean(_isImg),
-          sp: _sp,
+          sp: _isFillLayer,
         },
         [imageData]
       );
-      // Reset erase flag and update state
+
+      // Reset erase flag
       this.isErase = false;
+
       // Cache the new color if not the last operation
       if (!_isLast) this.currentColor = _color.gl;
-      // Reset blending state if this is the last operation and not a special case
-      if (_isLast && !_sp) this.isBlending = false;
+
+      // Reset blending state if this is the last operation and is not a fill layer
+      if (_isLast && !_isFillLayer) this.isBlending = false;
     }
   },
 };
 
+// =============================================================================
+// Section: Functions Exposed to Users
+// =============================================================================
+
 /**
- * This function draws the background color
+ * Stores the background color. Defaults to white.
  */
 let _bg_Color = new Color("white");
+
+/**
+ * Sets the background color of the canvas.
+ * @param {number|string} r - Red value (0-255) or a color string.
+ * @param {number|string} g - Green value (0-255) or a color string.
+ * @param {number} b - Blue value (0-255).
+ */
 export function background(r, g, b) {
   isMixReady();
-  if (r === "transparent") _bg_Color = new Color(g);
-  else _bg_Color = new Color(...arguments);
+
+  // Create a new Color object with the provided arguments
+  _bg_Color = new Color(...arguments);
+
+  // Send the background color to the worker
   Mix.worker.postMessage({
     color: _bg_Color.gl,
     isBG: true,
@@ -159,45 +231,48 @@ export function background(r, g, b) {
 }
 
 /**
- * This function draws an image into the canvas
+ * Draws an image onto the canvas.
+ * @param {ImageBitmap|HTMLImageElement} img - The image to draw.
+ * @param {number} [x=0] - X-coordinate of the image.
+ * @param {number} [y=0] - Y-coordinate of the image.
+ * @param {number} [w=img.width] - Width of the image.
+ * @param {number} [h=img.height] - Height of the image.
  */
 export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
   isMixReady();
+
+  // Check if the image is not an ImageBitmap or if coordinates are non-default
   if (
     Object.prototype.toString.call(img) !== "[object ImageBitmap]" ||
     x !== 0
   ) {
-    Mix.ctx.drawImage(...arguments);
+    // Draw the image onto the mask context
+    Mix.ctx.drawImage(img, x, y, w, h);
+
+    // Convert the mask to an ImageBitmap
     img = Mix.mask.transferToImageBitmap();
-    console.log(img);
   }
+
+  // Blend the image into the canvas
   Mix.blend(false, false, img);
 }
 
 /**
- * This function gets the canvas as an ImageBitmap
+ * Retrieves the canvas as an ImageBitmap.
+ * @returns {Promise<ImageBitmap>} A promise that resolves to the canvas as an ImageBitmap.
  */
 export async function getCanvas() {
   isMixReady();
-  let image;
-  await new Promise(function (resolve) {
+
+  // Request the canvas from the worker
+  return new Promise((resolve) => {
     Mix.worker.postMessage({ get: true });
-    Mix.worker.onmessage = function (event) {
+
+    // Listen for the worker's response
+    Mix.worker.onmessage = (event) => {
       if (event.data !== 0) {
-        image = event.data.canvas;
-        resolve();
+        resolve(event.data.canvas);
       }
     };
   });
-  return image;
-}
-
-export function drawPolygon(vertices) {
-  isMixReady();
-  Mix.ctx.beginPath();
-  for (let i = 0; i < vertices.length; i++) {
-    let v = vertices[i];
-    if (i == 0) Mix.ctx.moveTo(v.x, v.y);
-    else Mix.ctx.lineTo(v.x, v.y);
-  }
 }

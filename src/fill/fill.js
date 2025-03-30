@@ -1,5 +1,6 @@
 import { State } from "../core/config.js";
-import { Color, Mix, drawPolygon } from "../core/color.js";
+import { Color, Mix } from "../core/color.js";
+import { drawPolygon, circle } from "../core/mask.js";
 import {
   constrain,
   weightedRand,
@@ -27,8 +28,6 @@ import { Plot } from "../core/plot.js";
  * The watercolor effect implementation is inspired by Tyler Hobbs' generative art
  * techniques for simulating watercolor paints.
  */
-
-const PI2 = Math.PI * 2;
 
 // =============================================================================
 // Global Brush State, getter and setter
@@ -358,12 +357,6 @@ class FillPolygon {
     Mix.ctx.fill();
   }
 
-  circle(x, y, d) {
-    const radius = d / 2;
-    Mix.ctx.moveTo(x + radius, y);
-    Mix.ctx.arc(x, y, radius, 0, PI2);
-  }
-
   /**
    * Erases parts of the polygon to create a more natural, uneven watercolor texture.
    * Uses random placement and sizing of circles to simulate texture.
@@ -390,9 +383,8 @@ class FillPolygon {
       const y = midY + gaussian(0, halfSizeY);
       const size = rr(minSizeFactor, maxSizeFactor);
       Mix.ctx.beginPath();
-      this.circle(x, y, size);
+      circle(x, y, size);
       if (i % 4 !== 0) Mix.ctx.fill();
-      BleedField.increase(x, y);
     }
     Mix.ctx.globalCompositeOperation = "source-over";
     Mix.ctx.restore();

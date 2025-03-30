@@ -1,5 +1,6 @@
 import { Cwidth, Cheight, State } from "../core/config.js";
 import { Color, Mix } from "../core/color.js";
+import { rect, circle } from "../core/mask.js";
 import {
   rr,
   map,
@@ -397,23 +398,6 @@ function isInsideClippingArea() {
     let y = _position.y + Matrix.y;
     return x >= -o && x <= w + o && y >= -o && y <= h + o;
   }
-}
-
-/**
- * Draws a rectangle to the mask.
- */
-function rect(x, y, d) {
-  const size = d / 1.2;
-  Mix.ctx.rect(x - size / 2, y - size / 2, size, size);
-}
-
-/**
- * Draws a circle to the mask.
- */
-function circle(x, y, d) {
-  const radius = d / 2;
-  Mix.ctx.moveTo(x + radius, y);
-  Mix.ctx.arc(x, y, radius, 0, PI2);
 }
 
 /**

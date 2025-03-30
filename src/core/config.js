@@ -2,14 +2,13 @@
 // Section: Configure and Initiate
 // =============================================================================
 /**
- * This section contains functions for setting up the drawing system. It allows
- * for configuration with custom options, initialization of the system, preloading
- * necessary assets, and a check to ensure the system is ready before any drawing
- * operation is performed.
+ * This module handles the configuration and initialization of the drawing system.
+ * It manages canvas properties, ensures the system is ready for rendering, and
+ * provides utilities for saving and restoring states.
  */
 
-export const Canvases = {};
-export let cID, Cwidth, Cheight, Density;
+export const Canvases = {}; // Stores canvas instances by ID
+export let cID, Cwidth, Cheight, Density; // Global canvas properties
 
 /**
  * Flag to indicate if the system is ready for rendering.
@@ -17,28 +16,43 @@ export let cID, Cwidth, Cheight, Density;
  */
 let _isReady = false;
 
+/**
+ * Loads and initializes a canvas for the drawing system.
+ * @param {string} canvasID - Unique identifier for the canvas.
+ * @param {HTMLCanvasElement} canvas - The canvas element to initialize.
+ */
 export function load(canvasID, canvas) {
   cID = canvasID;
+
+  // Initialize the canvas if it hasn't been registered yet
   if (!Canvases[cID]) {
-    // If library has still not been loaded into the canvas, we do so.
-    Canvases[cID] = {};
-    Canvases[cID].canvas = canvas;
+    Canvases[cID] = { canvas };
   }
+
+  // Set canvas dimensions
   Cwidth = Canvases[cID].canvas.width;
   Cheight = Canvases[cID].canvas.height;
+
+  // Mark the system as ready
   if (!_isReady) _isReady = true;
 }
 
 /**
- * Ensures that the drawing system is ready before any drawing operation.
- * Loads the system if it hasn't been loaded already.
+ * Ensures the drawing system is ready before any operation.
+ * Automatically loads the system if it hasn't been initialized.
  */
 export function isCanvasReady() {
-  if (!_isReady) load();
+  if (!_isReady) {
+    throw new Error("Canvas system is not ready. Call `load()` first.");
+  }
 }
 
 // =============================================================================
 // SAVE / RESTORE
 // =============================================================================
 
+/**
+ * Stores the current state of the drawing system.
+ * Can be used to save and restore configurations or canvas states.
+ */
 export const State = {};
