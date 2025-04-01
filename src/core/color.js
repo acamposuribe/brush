@@ -120,6 +120,7 @@ export const Mix = {
   loaded: false,
   isBlending: false,
   currentColor: new Color("white").gl,
+  isBrush: false,
 
   /**
    * Loads necessary resources and prepares the mask buffer and shader for colour blending.
@@ -130,7 +131,9 @@ export const Mix = {
 
       // Create 2d offscreen mask
       ca.mask = new OffscreenCanvas(Cwidth, Cheight);
+      ca.glMask = new OffscreenCanvas(Cwidth, Cheight);
       ca.ctx = ca.mask.getContext("2d");
+      ca.gl = ca.glMask.getContext("webgl2", { antialias: true });
       ca.ctx.lineWidth = 0;
 
       // Create an offscreen WebGL canvas and link it to the main canvas
@@ -146,7 +149,9 @@ export const Mix = {
 
     // Store references to the mask, context, and worker
     this.mask = Canvases[cID].mask;
+    this.glMask = Canvases[cID].glMask;
     this.ctx = Canvases[cID].ctx;
+    this.gl = Canvases[cID].gl;
     this.worker = Canvases[cID].worker;
   },
 
@@ -175,7 +180,11 @@ export const Mix = {
 
     if (shouldBlend) {
       // Use existing image data or transfer mask to ImageBitmap
-      const imageData = _isImg || this.mask.transferToImageBitmap();
+      const imageData =
+        _isImg ||
+        (this.isBrush
+          ? this.glMask.transferToImageBitmap()
+          : this.mask.transferToImageBitmap());
 
       // Send blending data to the worker
       this.worker.postMessage(

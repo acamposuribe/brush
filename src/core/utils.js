@@ -71,13 +71,25 @@ export function pseudoGaussian(mean = 0, stdev = 1) {
  * @param {Object} weights - An object containing values as keys and their probabilities as values.
  * @returns {string} A key randomly chosen based on its weight.
  */
-export function weightedRand(e) {
-  let r,
-    a,
-    n = [];
-  for (r in e) for (a = 0; a < 10 * e[r]; a++) n.push(r);
-  let v = n[Math.floor(rng() * n.length)];
-  return isNaN(v) ? v : parseInt(v);
+export function weightedRand(weights) {
+  let totalWeight = 0;
+  const entries = [];
+
+  // Build cumulative weights array
+  for (const key in weights) {
+    totalWeight += weights[key];
+    entries.push({ key, cumulative: totalWeight });
+  }
+
+  // Get a random number between 0 and totalWeight
+  const rnd = rng() * totalWeight;
+
+  // Pick the first entry where rnd is less than the cumulative weight
+  for (const entry of entries) {
+    if (rnd < entry.cumulative) {
+      return isNaN(entry.key) ? entry.key : parseInt(entry.key);
+    }
+  }
 }
 
 /**

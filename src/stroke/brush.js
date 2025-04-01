@@ -1,6 +1,5 @@
 import { Cwidth, Cheight, State } from "../core/config.js";
 import { Color, Mix } from "../core/color.js";
-import { rect, circle } from "../core/mask.js";
 import {
   rr,
   map,
@@ -14,6 +13,7 @@ import {
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
+import { isReady, drawCircles, circle } from "./gl_draw.js";
 
 // =============================================================================
 // Section: Brushes
@@ -248,24 +248,29 @@ function saveState() {
   current.cp = pressure.type !== "custom" ? rr(3, 3.5) : rr(-0.2, 0.2);
   [current.min, current.max] = pressure.min_max;
 
+  // GL Ready?
+  isReady();
+
   // Blend stuff
   Mix.blend(State.stroke.color);
+  Mix.isBrush = true;
 
   // Set state
-  Mix.ctx.save();
+  //Mix.ctx.save();
   markerTip();
   _alpha = calculateAlpha(); // Calcula Alpha
   applyColor(_alpha); // Apply Color
-  Mix.ctx.beginPath(); // Begin Path
+  //Mix.ctx.beginPath(); // Begin Path
 }
 
 /**
  * Restores the drawing state after a brush stroke is completed.
  */
 function restoreState() {
-  Mix.ctx.fill();
+  //Mix.ctx.fill();
+  drawCircles();
   markerTip();
-  Mix.ctx.restore();
+  //Mix.ctx.restore();
 }
 
 /**
@@ -375,7 +380,8 @@ function calculateAlpha() {
  * @param {number} alpha - The alpha (opacity) level to apply.
  */
 function applyColor(alpha) {
-  Mix.ctx.fillStyle = "rgb(255 0 0 / " + alpha + "%)";
+  current.alpha = alpha;
+  //Mix.ctx.fillStyle = "rgb(255 0 0 / " + alpha + "%)";
 }
 
 /**
@@ -415,7 +421,12 @@ function drawSpray(pressure) {
     const rX = r * vibration * rr(-1, 1);
     const yRandomFactor = rr(-1, 1);
     const sqrtPart = Math.sqrt((r * vibration) ** 2 - rX ** 2);
-    rect(_position.x + rX, _position.y + yRandomFactor * sqrtPart, sw);
+    circle(
+      _position.x + rX,
+      _position.y + yRandomFactor * sqrtPart,
+      sw,
+      current.alpha
+    );
   }
 }
 
@@ -431,7 +442,8 @@ function drawMarker(pressure, vibrate = true) {
   circle(
     _position.x + rx,
     _position.y + ry,
-    State.stroke.weight * current.p.weight * pressure
+    State.stroke.weight * current.p.weight * pressure,
+    current.alpha
   );
 }
 
@@ -467,10 +479,11 @@ function drawDefault(pressure) {
       ((1 - current.p.definition) * gaussian() * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
         pressure);
   if (rr(0, current.p.quality * pressure) > 0.4) {
-    rect(
+    circle(
       _position.x + 0.7 * vibration * rr(-1, 1),
       _position.y + vibration * rr(-1, 1),
-      pressure * current.p.weight * rr(0.85, 1.15)
+      pressure * current.p.weight * rr(0.85, 1.15),
+      current.alpha
     );
   }
 }

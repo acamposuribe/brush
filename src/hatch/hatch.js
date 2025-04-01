@@ -1,4 +1,5 @@
 import { State } from "../core/config.js";
+import { Mix } from "../core/color.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
@@ -152,6 +153,7 @@ export function createHatch(polygons) {
   // If the 'rand' option is enabled, add randomness to the start and end points of the lines
   // If the 'continuous' option is set, connect the end of one line to the start of the next
   let r = options.rand ? options.rand : 0;
+
   for (let j = 0; j < gdots.length; j++) {
     let dd = gdots[j];
     let shouldDrawContinuousLine = j > 0 && options.continuous;
