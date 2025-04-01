@@ -133,7 +133,7 @@ export const Mix = {
       ca.mask = new OffscreenCanvas(Cwidth, Cheight);
       ca.glMask = new OffscreenCanvas(Cwidth, Cheight);
       ca.ctx = ca.mask.getContext("2d");
-      ca.gl = ca.glMask.getContext("webgl2", { antialias: true });
+      ca.gl = ca.glMask.getContext("webgl2");
       ca.ctx.lineWidth = 0;
 
       // Create an offscreen WebGL canvas and link it to the main canvas
@@ -199,8 +199,9 @@ export const Mix = {
         [imageData]
       );
 
-      // Reset erase flag
+      // Reset flags
       this.isErase = false;
+      this.isBrush = false;
 
       // Cache the new color if not the last operation
       if (!_isLast) this.currentColor = _color.gl;

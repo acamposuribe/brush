@@ -13,7 +13,7 @@ import {
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
-import { isReady, drawCircles, circle } from "./gl_draw.js";
+import { isReady, glDraw, circle, square } from "./gl_draw.js";
 
 // =============================================================================
 // Section: Brushes
@@ -256,21 +256,16 @@ function saveState() {
   Mix.isBrush = true;
 
   // Set state
-  //Mix.ctx.save();
+  current.alpha = calculateAlpha(); // Calculate Alpha
   markerTip();
-  _alpha = calculateAlpha(); // Calcula Alpha
-  applyColor(_alpha); // Apply Color
-  //Mix.ctx.beginPath(); // Begin Path
 }
 
 /**
  * Restores the drawing state after a brush stroke is completed.
  */
 function restoreState() {
-  //Mix.ctx.fill();
-  drawCircles();
+  glDraw(true);
   markerTip();
-  //Mix.ctx.restore();
 }
 
 /**
@@ -381,7 +376,6 @@ function calculateAlpha() {
  */
 function applyColor(alpha) {
   current.alpha = alpha;
-  //Mix.ctx.fillStyle = "rgb(255 0 0 / " + alpha + "%)";
 }
 
 /**
@@ -421,7 +415,7 @@ function drawSpray(pressure) {
     const rX = r * vibration * rr(-1, 1);
     const yRandomFactor = rr(-1, 1);
     const sqrtPart = Math.sqrt((r * vibration) ** 2 - rX ** 2);
-    circle(
+    square(
       _position.x + rX,
       _position.y + yRandomFactor * sqrtPart,
       sw,
@@ -435,7 +429,7 @@ function drawSpray(pressure) {
  * @param {number} pressure - The current pressure value.
  * @param {boolean} [vibrate=true] - Whether to apply vibration effect.
  */
-function drawMarker(pressure, vibrate = true) {
+function drawMarker(pressure, vibrate = true, alpha = current.alpha) {
   const vibration = vibrate ? State.stroke.weight * current.p.vibration : 0;
   const rx = vibrate ? vibration * rr(-1, 1) : 0;
   const ry = vibrate ? vibration * rr(-1, 1) : 0;
@@ -443,7 +437,7 @@ function drawMarker(pressure, vibrate = true) {
     _position.x + rx,
     _position.y + ry,
     State.stroke.weight * current.p.weight * pressure,
-    current.alpha
+    alpha
   );
 }
 
@@ -479,7 +473,7 @@ function drawDefault(pressure) {
       ((1 - current.p.definition) * gaussian() * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
         pressure);
   if (rr(0, current.p.quality * pressure) > 0.4) {
-    circle(
+    square(
       _position.x + 0.7 * vibration * rr(-1, 1),
       _position.y + vibration * rr(-1, 1),
       pressure * current.p.weight * rr(0.85, 1.15),
@@ -515,11 +509,10 @@ function markerTip() {
     let alpha = calculateAlpha(pressure);
     Mix.ctx.fillStyle = "rgb(255 0 0 / " + alpha / 3 + "%)";
     if (current.p.type === "marker") {
-      for (let s = 1; s < 5; s++) {
-        Mix.ctx.beginPath();
-        drawMarker((pressure * s) / 5, false);
-        Mix.ctx.fill();
+      for (let s = 1; s < 10; s++) {
+        drawMarker((pressure * s) / 10, false, alpha * 5);
       }
+      glDraw();
     } else if (current.p.type === "custom" || current.p.type === "image") {
       for (let s = 1; s < 5; s++) {
         Mix.ctx.beginPath();
@@ -661,8 +654,8 @@ const _standard_brushes = [
       0.12,
       null,
       null,
-      25,
-      0.4,
+      1,
+      0.05,
       { curve: [0.35, 0.25], min_max: [1.5, 1] },
       "marker",
     ],

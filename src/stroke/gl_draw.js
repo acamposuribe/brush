@@ -24,18 +24,28 @@ out float v_alpha;
 void main() {
   gl_Position = u_matrix * vec4(a_position, 0, 1);
   v_alpha = a_alpha;
-  gl_PointSize = a_radius;
+  gl_PointSize = a_radius * 2.0;
 }
 `;
 
 const fragmentShaderSource = `#version 300 es
 precision highp float;
 uniform vec3 u_color; // RGB color uniform; per-vertex alpha comes from v_alpha.
+uniform bool u_drawSquare; // If true, draw squares; if false, draw circles.
 in float v_alpha;
 out vec4 outColor;
 void main() {
-  vec2 coord = gl_PointCoord - vec2(0.5);
-  outColor = vec4(u_color, v_alpha);
+  if(u_drawSquare) {
+    outColor = vec4(u_color, v_alpha);
+  } else {
+    vec2 coord = gl_PointCoord - vec2(0.5);
+    float d = length(coord);
+    if (d > 0.5) {
+      discard;
+    }
+    float edgeFactor = smoothstep(0.45, 0.5, d);
+    outColor = vec4(u_color, v_alpha * (1.0 - edgeFactor));
+  }
 }
 `;
 
@@ -46,11 +56,6 @@ function createShader(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error("Shader compile error: " + gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-    return null;
-  }
   return shader;
 }
 
@@ -71,15 +76,29 @@ function createProgram(gl, vertexSource, fragmentSource) {
   return program;
 }
 
-let program, positionLoc, radiusLoc, alphaLoc, matrixLoc, colorLoc, gl, matrix;
+let program,
+  positionLoc,
+  radiusLoc,
+  alphaLoc,
+  matrixLoc,
+  colorLoc,
+  drawSquareLoc,
+  gl,
+  matrix;
 
 function prepareGL() {
   program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   gl.useProgram(program);
 
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+
   // Enable blending for translucency.
+  gl.disable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+
+  // Use additive blending so that new fragments add to the alpha.
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Look up attribute/uniform locations.
   positionLoc = gl.getAttribLocation(program, "a_position");
@@ -87,6 +106,7 @@ function prepareGL() {
   alphaLoc = gl.getAttribLocation(program, "a_alpha");
   matrixLoc = gl.getUniformLocation(program, "u_matrix");
   colorLoc = gl.getUniformLocation(program, "u_color");
+  drawSquareLoc = gl.getUniformLocation(program, "u_drawSquare");
 }
 
 // Create an orthographic projection matrix mapping canvas coordinates to clip space.
@@ -114,9 +134,9 @@ function createOrthographicMatrix(width, height) {
 /**
  * Draws circles using WebGL2. Each circle has its own alpha.
  */
-export function drawCircles() {
+export function glDraw() {
   // Create and bind VAO.
-  const vao = gl.createVertexArray();
+  const vao = gl.createVertexArray(isSquare);
   gl.bindVertexArray(vao);
 
   // Convert the circle objects into a transferable Float32Array.
@@ -164,6 +184,8 @@ export function drawCircles() {
   // Set uniforms: transformation matrix and base RGB color.
   gl.uniformMatrix4fv(matrixLoc, false, matrix);
   gl.uniform3fv(colorLoc, new Float32Array([1.0, 0.0, 0.0]));
+  // Set the boolean uniform for shape type.
+  gl.uniform1i(drawSquareLoc, isSquare ? 1 : 0);
 
   // Draw the circles in one call.
   const circleCount = circleData.length / 4;
@@ -173,13 +195,26 @@ export function drawCircles() {
 }
 
 let circles = [];
+let isSquare = false;
 
 export function circle(x, y, diameter, alpha) {
-  const radius = diameter / 1.2;
+  const radius = diameter / 2;
   circles.push({
     x: x + Matrix.x,
     y: y + Matrix.y,
     radius,
     alpha: alpha / 100,
   });
+  isSquare = false;
+}
+
+export function square(x, y, size, alpha) {
+  const radius = size / 2 / 1.2;
+  circles.push({
+    x: x + Matrix.x,
+    y: y + Matrix.y,
+    radius,
+    alpha: alpha / 100,
+  });
+  isSquare = true;
 }

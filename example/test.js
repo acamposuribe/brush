@@ -66,11 +66,12 @@ const draw = () => {
 
   brush.set("charcoal", brush.random(palette), 1);
   brush.beginPath(1);
-  brush.moveTo(300, 30);
+  brush.moveTo(300, 30, 1);
   for (let i = 0; i < 10; i++) {
     brush.lineTo(
       brush.random(400, canvas.width - 400),
-      brush.random(400, canvas.height - 400)
+      brush.random(400, canvas.height - 400),
+      1
     );
   }
   brush.closePath();
@@ -79,7 +80,7 @@ const draw = () => {
   brush.field("seabed");
 
   for (let i = 0; i < 4; i++) {
-    brush.set("charcoal", brush.random(palette), 1);
+    brush.set("marker", brush.random(palette), 1);
     brush.rect(
       brush.random(400, canvas.width - 400),
       brush.random(400, canvas.height - 400),
