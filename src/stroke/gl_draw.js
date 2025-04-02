@@ -36,7 +36,7 @@ in float v_alpha;
 out vec4 outColor;
 void main() {
   if(u_drawSquare) {
-    outColor = vec4(u_color, v_alpha);
+    outColor = vec4(u_color * v_alpha, v_alpha);
   } else {
     vec2 coord = gl_PointCoord - vec2(0.5);
     float d = length(coord);
@@ -44,7 +44,7 @@ void main() {
       discard;
     }
     float edgeFactor = smoothstep(0.45, 0.5, d);
-    outColor = vec4(u_color, v_alpha * (1.0 - edgeFactor));
+    outColor = vec4(u_color * v_alpha, v_alpha * (1.0 - edgeFactor));
   }
 }
 `;
@@ -90,15 +90,12 @@ function prepareGL() {
   program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   gl.useProgram(program);
 
-  gl.clearColor(0.0, 0.0, 0.0, 0.0);
-
   // Enable blending for translucency.
-  gl.disable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 
   // Use additive blending so that new fragments add to the alpha.
-  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
+  gl.blendEquation(gl.FUNC_ADD);
 
   // Look up attribute/uniform locations.
   positionLoc = gl.getAttribLocation(program, "a_position");

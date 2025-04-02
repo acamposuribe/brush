@@ -55,7 +55,7 @@ function hatchRect(x, y, w, l, angle, color) {
   brush.restore();
 }
 
-//brush.seed("hola");
+brush.seed("hola");
 brush.noiseSeed("hhhaa");
 
 // Draw Loop
