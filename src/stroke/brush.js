@@ -507,7 +507,6 @@ function markerTip() {
   if (isInsideClippingArea()) {
     let pressure = calculatePressure();
     let alpha = calculateAlpha(pressure);
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + alpha / 3 + "%)";
     if (current.p.type === "marker") {
       for (let s = 1; s < 10; s++) {
         drawMarker((pressure * s) / 10, false, alpha * 5);

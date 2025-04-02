@@ -28,8 +28,6 @@ export function rect(x, y, d) {
   Mix.ctx.rect(x - size / 2, y - size / 2, size, size);
 }
 
-const PI2 = Math.PI * 2;
-
 /**
  * Draws a circle to the mask.
  * @param {number} x - X-coordinate of the circle's center.
@@ -37,6 +35,7 @@ const PI2 = Math.PI * 2;
  * @param {number} d - Diameter of the circle.
  */
 export function circle(x, y, d) {
+  const PI2 = Math.PI * 2;
   const radius = d / 2;
   Mix.ctx.moveTo(x + radius, y);
   Mix.ctx.arc(x, y, radius, 0, PI2);

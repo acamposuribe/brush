@@ -55,7 +55,7 @@ function hatchRect(x, y, w, l, angle, color) {
   brush.restore();
 }
 
-brush.seed("hola");
+//brush.seed("hola");
 brush.noiseSeed("hhhaa");
 
 // Draw Loop
@@ -63,6 +63,22 @@ const draw = () => {
   brush.background(255);
 
   brush.save();
+  brush.fillBleed(0.3);
+  brush.noStroke();
+  brush.fillTexture(1, 0.5);
+
+  for (let i = 0; i < 10; i++) {
+    brush.fillStyle(brush.random(palette), 70);
+    brush.rect(
+      brush.random(400, canvas.width - 400),
+      brush.random(400, canvas.height - 400),
+      brush.random(400, 600),
+      brush.random(400, 800),
+      "center"
+    );
+  }
+
+  /*
 
   brush.set("charcoal", brush.random(palette), 1);
   brush.beginPath(1);
@@ -80,7 +96,7 @@ const draw = () => {
   brush.field("seabed");
 
   for (let i = 0; i < 4; i++) {
-    brush.set("marker", brush.random(palette), 1);
+    brush.set("charcoal", brush.random(palette), 1);
     brush.rect(
       brush.random(400, canvas.width - 400),
       brush.random(400, canvas.height - 400),
@@ -136,6 +152,8 @@ const draw = () => {
       "center"
     );
   }
+
+  */
 
   brush.restore();
 

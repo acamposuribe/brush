@@ -29,6 +29,7 @@
     "rollup-plugin-cleanup": "^3.2.1"
   },
   "dependencies": {
+    "earcut": "^3.0.1",
     "esm-seedrandom": "^3.0.5",
     "simplex-noise": "^4.0.1"
   }

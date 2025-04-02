@@ -1,6 +1,5 @@
 import { State } from "../core/config.js";
 import { Color, Mix } from "../core/color.js";
-import { drawPolygon, circle } from "../core/mask.js";
 import {
   constrain,
   weightedRand,
@@ -14,6 +13,7 @@ import {
 import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
+import { polygon, glDrawPolygons, glDraw, circle } from "../stroke/gl_draw.js";
 
 // =============================================================================
 // Section: Fill Management
@@ -37,8 +37,8 @@ State.fill = {
   color: new Color("#002185"),
   opacity: 60,
   bleed_strength: 0.07,
-  texture_strength: 0.4,
-  border_strength: 0.4,
+  texture_strength: 0.8,
+  border_strength: 0.5,
   direction: "out",
   isActive: false,
 };
@@ -63,7 +63,7 @@ function FillSetState(state) {
  * @param {number} [d] - The opacity of the color.
  */
 export function fillStyle(a, b, c, d) {
-  State.fill.opacity = arguments.length < 4 ? b : d;
+  State.fill.opacity = (arguments.length < 4 ? b : d) || 60;
   State.fill.color = arguments.length < 3 ? new Color(a) : new Color(a, b, c);
   State.fill.isActive = true;
 }
@@ -304,14 +304,17 @@ class FillPolygon {
     // Precalculate stuff
     const numLayers = 24;
     const texture = tex * 3;
-    const int = intensity * 1.5;
+    const int = intensity * 2;
 
     // Perform initial setup only once
     Mix.blend(color);
-    Mix.ctx.save();
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
-    Mix.ctx.strokeStyle =
-      "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
+    Mix.isBrush = true;
+    //Mix.ctx.save();
+
+    //Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
+    //Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
+    //Mix.ctx.strokeStyle =
+    //"rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
@@ -329,16 +332,17 @@ class FillPolygon {
       ];
 
       // Draw layers
-      for (let p of pols) p.grow(997).grow().layer(i);
-      pol.grow(0.1).grow(999).layer(i);
-      if (texture !== 0 && i % 2 === 0) pol.erase(texture * 5, intensity);
+      for (let p of pols) p.grow(997).grow().layer(i, int);
+      pol.grow(0.1).grow(999).layer(i, int);
+      if (texture !== 0) pol.erase(texture * 5, intensity);
 
       if (i % 6 === 0) {
         Mix.blend(color, true, false, true);
+        glDrawPolygons();
       }
     }
+    glDrawPolygons();
     BleedField.update();
-    Mix.ctx.restore();
   }
 
   /**
@@ -347,14 +351,10 @@ class FillPolygon {
    * @param {number} _nr - The layer number, affecting the stroke and opacity mapping.
    * @param {boolean} [bool=true] - If true, adds a stroke to the layer.
    */
-  layer(i) {
+  layer(i, int) {
     const size = Math.max(this.sizeX, this.sizeY);
-    Mix.ctx.lineWidth = map(i, 0, 24, size / 30, size / 45, true);
-
-    // Set fill and stroke properties once
-    drawPolygon(this.v);
-    Mix.ctx.stroke();
-    Mix.ctx.fill();
+    //Mix.ctx.lineWidth = map(i, 0, 24, size / 30, size / 45, true);
+    polygon(this.v, int);
   }
 
   /**
@@ -362,32 +362,24 @@ class FillPolygon {
    * Uses random placement and sizing of circles to simulate texture.
    */
   erase(texture, intensity) {
-    Mix.ctx.save();
     // Cache local values to avoid repeated property lookups
-    const numCircles = rr(40, 60) * map(texture, 0, 1, 2, 3);
+    let numCircles = rr(50, 70) * map(texture, 0, 1, 2, 3);
     const halfSizeX = this.sizeX / 2;
     const halfSizeY = this.sizeY / 2;
-
     const minSize =
       Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
-    const minSizeFactor = 0.03 * minSize;
-    const maxSizeFactor = 0.25 * minSize;
+    const minSizeFactor = 0.015 * minSize;
+    const maxSizeFactor = 0.2 * minSize;
     const midX = this.midP.x;
     const midY = this.midP.y;
-    Mix.ctx.globalCompositeOperation = "destination-out";
     let i = (5 - map(intensity, 80, 120, 0.3, 2, true)) * texture;
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + i / 255 + ")";
-    Mix.ctx.lineWidth = 0;
     for (let i = 0; i < numCircles; i++) {
       const x = midX + gaussian(0, halfSizeX);
       const y = midY + gaussian(0, halfSizeY);
       const size = rr(minSizeFactor, maxSizeFactor);
-      Mix.ctx.beginPath();
-      circle(x, y, size);
-      if (i % 4 !== 0) Mix.ctx.fill();
+      circle(x, y, size, i / 50);
     }
-    Mix.ctx.globalCompositeOperation = "source-over";
-    Mix.ctx.restore();
+    glDraw(true);
   }
 }
 
