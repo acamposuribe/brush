@@ -308,13 +308,6 @@ class FillPolygon {
 
     // Perform initial setup only once
     Mix.blend(color);
-    Mix.isBrush = true;
-    //Mix.ctx.save();
-
-    //Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
-    //Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
-    //Mix.ctx.strokeStyle =
-    //"rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
