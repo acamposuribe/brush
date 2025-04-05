@@ -1,3 +1,16 @@
+// =============================================================================
+// Module: Brush
+// =============================================================================
+/**
+ * The Brush module provides a comprehensive set of functions and classes for
+ * simulating various drawing tools ranging from pens, markers, pencils, to
+ * custom image-based brushes. This module controls brush properties such as
+ * weight, color, vibration, and spacing, and manages the drawing process through
+ * stateful methods that enable features like pressure sensitivity, clipping, and
+ * blending. By supporting multiple brush types and dynamic parameter adjustments,
+ * the Brush module facilitates the creation of realistic and expressive stroke effects.
+ */
+
 import { Color, Mix, Cwidth, Cheight, State } from "../core/color.js";
 import {
   rr,
@@ -14,37 +27,15 @@ import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 import { isReady, glDraw, circle, square } from "./gl_draw.js";
 
-// =============================================================================
-// Section: Brushes
-// =============================================================================
-/**
- * The Brushes section provides tools for drawing with various brush types. Each brush
- * can simulate different materials and techniques, such as spray, marker, or custom
- * image stamps. The 'B' object is central to this section, storing brush properties
- * and methods for applying brush strokes to the canvas.
- *
- * The 'B' object contains methods to control the brush, including setting the brush
- * type, color, weight, and blending mode. It also handles the application of the brush
- * to draw lines, flow lines, and shapes with specific behaviors defined by the brush type.
- * Additionally, it provides a mechanism to clip the drawing area, ensuring brush strokes
- * only appear within the defined region.
- *
- * Brush tips can vary from basic circles to complex patterns, with support for custom
- * pressure curves, opacity control, and dynamic size adjustments to simulate natural
- * drawing tools. The brush engine can create effects like variable line weight, texture,
- * and color blending, emulating real-world drawing experiences.
- *
- * The brush system is highly customizable, allowing users to define their own brushes
- * with specific behaviors and appearances. By extending the brush types and parameters,
- * one can achieve a wide range of artistic styles and techniques.
- */
-
 const PI2 = Math.PI * 2;
 
-// =============================================================================
-// Global Brush State, getter and setter
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Brush State and Helpers
+// ---------------------------------------------------------------------------
 
+/**
+ * Global stroke state settings.
+ */
 State.stroke = {
   color: new Color("black"),
   weight: 1,
@@ -55,10 +46,18 @@ State.stroke = {
 
 let list = new Map();
 
+/**
+ * Retrieves a shallow copy of the current stroke state.
+ * @returns {object} The stroke state.
+ */
 export function BrushState() {
   return { ...State.stroke };
 }
 
+/**
+ * Updates the stroke state.
+ * @param {object} state - The new stroke state.
+ */
 export function BrushSetState(state) {
   State.stroke = { ...state };
 }
@@ -70,7 +69,7 @@ export function BrushSetState(state) {
 /**
  * Adds a new brush with the specified parameters to the brush list.
  * @param {string} name - The unique name for the new brush.
- * @param {BrushParameters} params - The parameters defining the brush behavior and appearance.
+ * @param {object} params - The parameters defining the brush behavior and appearance.
  */
 export function add(name, params) {
   const validTypes = ["marker", "custom", "image", "spray"];
@@ -79,18 +78,16 @@ export function add(name, params) {
 }
 
 /**
- * Retrieves a list of all available brush names from the brush manager.
- * @returns {Array<string>} An array containing the names of all brushes.
+ * Retrieves the list of available brush names.
+ * @returns {Array<string>} Array of brush names.
  */
 export function box() {
   return [...list.keys()];
 }
 
 /**
- * Adjusts the global scale of standard brushes based on the provided scale factor.
- * This affects the weight, vibration, and spacing of each standard brush.
- *
- * @param {number} _scale - The scaling factor to apply to the brush parameters.
+ * Scales standard brush parameters by the provided factor.
+ * @param {number} scaleFactor - The scaling factor to apply.
  */
 export function scaleBrushes(scaleFactor) {
   for (const { param } of list.values()) {
@@ -103,18 +100,18 @@ export function scaleBrushes(scaleFactor) {
 }
 
 /**
- * Sets only the current brush type based on the given name.
- * @param {string} brushName - The name of the brush to set as current.
+ * Sets the current brush type by name.
+ * @param {string} brushName - The name of the brush.
  */
 export function pick(brushName) {
   if (list.has(brushName)) State.stroke.type = brushName;
 }
 
 /**
- * Sets the color of the current brush.
- * @param {number|string|Color} r - The red component of the color, a CSS color string, or a Color object.
- * @param {number} [g] - The green component of the color.
- * @param {number} [b] - The blue component of the color.
+ * Sets the stroke style (color) for the current brush.
+ * @param {number|string|Color} r - Red component, CSS color string, or Color object.
+ * @param {number} [g] - Green component.
+ * @param {number} [b] - Blue component.
  */
 export function strokeStyle(r, g, b) {
   State.stroke.color = new Color(...arguments);
@@ -122,18 +119,18 @@ export function strokeStyle(r, g, b) {
 }
 
 /**
- * Sets the weight (size) of the current brush.
- * @param {number} weight - The weight to set for the brush.
+ * Sets the brush weight (thickness).
+ * @param {number} weight - The weight value.
  */
 export function lineWidth(weight) {
   State.stroke.weight = weight;
 }
 
 /**
- * Sets the current brush with the specified name, color, and weight.
- * @param {string} brushName - The name of the brush to set as current.
- * @param {string|Color} color - The color to set for the brush.
- * @param {number} weight - The weight (size) to set for the brush.
+ * Sets the current brush with name, color, and weight.
+ * @param {string} brushName - The brush name.
+ * @param {string|Color} color - The brush color.
+ * @param {number} [weight=1] - The brush weight.
  */
 export function set(brushName, color, weight = 1) {
   pick(brushName);
@@ -142,56 +139,48 @@ export function set(brushName, color, weight = 1) {
 }
 
 /**
- * Disables the stroke for subsequent drawing operations.
- * This function sets the brush's `isActive` property to false, indicating that no stroke
- * should be applied to the shapes drawn after this method is called.
+ * Disables the stroke effect.
  */
 export function noStroke() {
   State.stroke.isActive = false;
 }
 
 /**
- * Defines a clipping region for the brush strokes.
- * @param {number[]} clippingRegion - An array defining the clipping region as [x1, y1, x2, y2].
+ * Defines a clipping region for strokes.
+ * @param {number[]} region - Array as [x1, y1, x2, y2] defining the clipping region.
  */
 export function clip(region) {
   State.stroke.clipWindow = region;
 }
 
 /**
- * Disables clipping region.
+ * Disables the clipping region.
  */
 export function noClip() {
   State.stroke.clipWindow = null;
 }
 
 /**
- * Calculates the tip spacing based on the current brush parameters.
- * @returns {number} The calculated spacing value.
+ * Sets the brush density by scaling standard brushes.
+ * @param {number} d - Density factor.
  */
-function spacing() {
-  const { param } = list.get(State.stroke.type) ?? {};
-  if (!param) return 1;
-  return param.type === "default" || param.type === "spray"
-    ? param.spacing / State.stroke.weight
-    : param.spacing;
+export function setDensity(d) {
+  scaleBrushes(d);
 }
 
-// Variables for drawing state
-let _position;
-let _length;
-let _flow;
-let _plot;
-let _dir;
-let _alpha;
+// ---------------------------------------------------------------------------
+// Drawing Variables and Functions
+// ---------------------------------------------------------------------------
+let _position, _length, _flow, _plot, _dir, _alpha;
+const current = {};
 
 /**
- * Initializes the drawing state with the given parameters.
- * @param {number} x - The x-coordinate of the starting point.
- * @param {number} y - The y-coordinate of the starting point.
- * @param {number} length - The length of the line to draw.
- * @param {boolean} flow - Flag indicating if the line should follow the vector-field.
- * @param {Object|boolean} plot - The shape object to be used for plotting, or false if not plotting a shape.
+ * Initializes the drawing state.
+ * @param {number} x - Starting x-coordinate.
+ * @param {number} y - Starting y-coordinate.
+ * @param {number} length - Length of stroke.
+ * @param {boolean} flow - Flag for vector-field following.
+ * @param {Object|boolean} plot - Plot object or false.
  */
 function initializeDrawingState(x, y, length, flow, plot) {
   _position = new Position(x, y);
@@ -202,9 +191,9 @@ function initializeDrawingState(x, y, length, flow, plot) {
 }
 
 /**
- * Executes the drawing operation for lines or shapes.
- * @param {number} angle_scale - The angle or scale to apply during drawing.
- * @param {boolean} isPlot - Flag indicating if the operation is plotting a shape.
+ * Executes the drawing operation.
+ * @param {number} angleScale - Angle (in degrees) or scaling factor.
+ * @param {boolean} isPlot - True if plotting a shape.
  */
 function draw(angleScale, isPlot) {
   if (!isPlot) _dir = angleScale;
@@ -229,10 +218,8 @@ function draw(angleScale, isPlot) {
   restoreState();
 }
 
-const current = {};
-
 /**
- * Sets up the environment for a brush stroke.
+ * Prepares the environment for a brush stroke.
  */
 function saveState() {
   current.seed = rr() * 99999;
@@ -240,27 +227,25 @@ function saveState() {
   if (!param) return;
   current.p = param;
 
-  // Pressure values for the stroke
+  // Set pressure values for the stroke
   const { pressure } = param;
   current.a = pressure.type !== "custom" ? rr(-1, 1) : 0;
   current.b = pressure.type !== "custom" ? rr(1, 1.5) : 0;
   current.cp = pressure.type !== "custom" ? rr(3, 3.5) : rr(-0.2, 0.2);
   [current.min, current.max] = pressure.min_max;
 
-  // GL Ready?
+  // Ensure GL is ready and blend state
   isReady();
-
-  // Blend stuff
   Mix.blend(State.stroke.color);
   Mix.isBrush = true;
 
-  // Set state
+  // Set additional state values
   current.alpha = calculateAlpha(); // Calculate Alpha
   markerTip();
 }
 
 /**
- * Restores the drawing state after a brush stroke is completed.
+ * Restores drawing state after completing a stroke.
  */
 function restoreState() {
   glDraw(State.stroke.color);
@@ -268,12 +253,12 @@ function restoreState() {
 }
 
 /**
- * Draws the tip of the brush based on the current pressure and position.
- * @param {number} pressure - The desired pressure value.
+ * Renders the brush tip based on current pressure and position.
+ * @param {number} [customPressure=false] - Optional custom pressure.
  */
 function tip(customPressure = false) {
-  if (!isInsideClippingArea()) return; // Check if it's inside clipping area
-  let pressure = customPressure || calculatePressure(); // Calculate Pressure
+  if (!isInsideClippingArea()) return;
+  let pressure = customPressure || calculatePressure();
   pressure *=
     1 -
     0.3 *
@@ -283,7 +268,6 @@ function tip(customPressure = false) {
       ) -
     0.1 * noise(_position.x * 0.002, _position.y * 0.002);
 
-  // Draw different tip types
   switch (current.p.type) {
     case "spray":
       drawSpray(pressure);
@@ -302,8 +286,8 @@ function tip(customPressure = false) {
 }
 
 /**
- * Calculates the pressure for the current position in the stroke.
- * @returns {number} The calculated pressure value.
+ * Calculates the effective brush pressure.
+ * @returns {number} The calculated pressure.
  */
 function calculatePressure() {
   return _plot
@@ -312,8 +296,8 @@ function calculatePressure() {
 }
 
 /**
- * Simulates brush pressure based on the current position and brush parameters.
- * @returns {number} The simulated pressure value.
+ * Simulates brush pressure based on stroke parameters.
+ * @returns {number} Simulated pressure value.
  */
 function simPressure() {
   return current.p.pressure.type === "custom"
@@ -329,13 +313,13 @@ function simPressure() {
 }
 
 /**
- * Generates a Gaussian distribution value for the pressure calculation.
- * @param {number} a - Center of the Gaussian bell curve.
- * @param {number} b - Width of the Gaussian bell curve.
- * @param {number} c - Shape of the Gaussian bell curve.
- * @param {number} min - Minimum pressure value.
- * @param {number} max - Maximum pressure value.
- * @returns {number} The calculated Gaussian value.
+ * Generates a Gaussian-based pressure value.
+ * @param {number} [a] - Center parameter.
+ * @param {number} [b] - Width parameter.
+ * @param {number} [c] - Shape parameter.
+ * @param {number} [min] - Minimum pressure.
+ * @param {number} [max] - Maximum pressure.
+ * @returns {number} Gaussian pressure value.
  */
 function gauss(
   a = 0.5 + current.p.pressure.curve[0] * current.a,
@@ -359,9 +343,8 @@ function gauss(
 }
 
 /**
- * Calculates the alpha (opacity) level for the brush stroke based on pressure.
- * @param {number} pressure - The current pressure value.
- * @returns {number} The calculated alpha value.
+ * Calculates the alpha (opacity) level for a brush stroke.
+ * @returns {number} The calculated opacity.
  */
 function calculateAlpha() {
   return ["default", "spray"].includes(current.p.type)
@@ -370,16 +353,8 @@ function calculateAlpha() {
 }
 
 /**
- * Applies the current color and alpha to the renderer.
- * @param {number} alpha - The alpha (opacity) level to apply.
- */
-function applyColor(alpha) {
-  current.alpha = alpha;
-}
-
-/**
- * Checks if the current brush position is inside the defined clipping area.
- * @returns {boolean} True if the position is inside the clipping area, false otherwise.
+ * Checks if the current drawing position is within the clipping region.
+ * @returns {boolean} True if inside clipping area; false otherwise.
  */
 function isInsideClippingArea() {
   if (State.stroke.clipWindow)
@@ -400,8 +375,24 @@ function isInsideClippingArea() {
 }
 
 /**
- * Draws the spray tip of the brush.
- * @param {number} pressure - The current pressure value.
+ * Calculates the step spacing based on the current brush parameters.
+ * @returns {number} The spacing value.
+ */
+function spacing() {
+  const { param } = list.get(State.stroke.type) ?? {};
+  if (!param) return 1;
+  return param.type === "default" || param.type === "spray"
+    ? param.spacing / State.stroke.weight
+    : param.spacing;
+}
+
+// ---------------------------------------------------------------------------
+// Brush Tip Rendering Methods
+// ---------------------------------------------------------------------------
+
+/**
+ * Draws the spray tip effect.
+ * @param {number} pressure - Current pressure.
  */
 function drawSpray(pressure) {
   const vibration =
@@ -424,9 +415,9 @@ function drawSpray(pressure) {
 }
 
 /**
- * Draws the marker tip of the brush.
- * @param {number} pressure - The current pressure value.
- * @param {boolean} [vibrate=true] - Whether to apply vibration effect.
+ * Draws the marker tip effect.
+ * @param {number} pressure - Current pressure.
+ * @param {boolean} [vibrate=true] - Whether to apply vibration.
  */
 function drawMarker(pressure, vibrate = true, alpha = current.alpha) {
   const vibration = vibrate ? State.stroke.weight * current.p.vibration : 0;
@@ -441,28 +432,25 @@ function drawMarker(pressure, vibrate = true, alpha = current.alpha) {
 }
 
 /**
- * Draws the custom or image tip of the brush.
- * @param {number} pressure - The current pressure value.
- * @param {number} alpha - The alpha (opacity) level to apply.
- * @param {boolean} [vibrate=true] - Whether to apply vibration effect.
+ * Draws a custom or image-based brush tip.
+ * @param {number} pressure - Current pressure.
+ * @param {number} alpha - Alpha (opacity) for drawing.
+ * @param {boolean} [vibrate=true] - Whether to apply vibration.
  */
 function drawCustomOrImage(pressure, alpha, vibrate = true) {
   Mix.ctx.save();
-
   const vibration = vibrate ? State.stroke.weight * current.p.vibration : 0;
   const rx = vibrate ? vibration * rr(-1, 1) : 0;
   const ry = vibrate ? vibration * rr(-1, 1) : 0;
-
   Mix.ctx.translate(_position.x + rx, _position.y + ry);
   adjustSizeAndRotation(State.stroke.weight * pressure, alpha);
-
   current.p.tip(Mix.ctx);
   Mix.ctx.restore();
 }
 
 /**
- * Draws the default tip of the brush.
- * @param {number} pressure - The current pressure value.
+ * Draws the default brush tip.
+ * @param {number} pressure - Current pressure.
  */
 function drawDefault(pressure) {
   const vibration =
@@ -482,9 +470,9 @@ function drawDefault(pressure) {
 }
 
 /**
- * Adjusts the size and rotation of the brush tip before drawing.
- * @param {number} pressure - The current pressure value.
- * @param {number} alpha - The alpha (opacity) level to apply.
+ * Adjusts the size and rotation of the brush tip before rendering.
+ * @param {number} pressure - Pressure-based scaling factor.
+ * @param {number} alpha - Opacity value.
  */
 function adjustSizeAndRotation(pressure, alpha) {
   Mix.ctx.scale(pressure, pressure);
@@ -521,16 +509,16 @@ function markerTip() {
   }
 }
 
-// =============================================================================
-// Section: Basic Drawing using Brush
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Basic Drawing Operations
+// ---------------------------------------------------------------------------
 
 /**
- * Draws a line using the current brush from (x1, y1) to (x2, y2).
- * @param {number} x1 - The x-coordinate of the start point.
- * @param {number} y1 - The y-coordinate of the start point.
- * @param {number} x2 - The x-coordinate of the end point.
- * @param {number} y2 - The y-coordinate of the end point.
+ * Draws a line using the current brush.
+ * @param {number} x1 - Start x-coordinate.
+ * @param {number} y1 - Start y-coordinate.
+ * @param {number} x2 - End x-coordinate.
+ * @param {number} y2 - End y-coordinate.
  */
 export function line(x1, y1, x2, y2) {
   isFieldReady();
@@ -542,11 +530,11 @@ export function line(x1, y1, x2, y2) {
 }
 
 /**
- * Draws a stroke with the current brush from a starting point in a specified direction.
- * @param {number} x - The x-coordinate of the starting point.
- * @param {number} y - The y-coordinate of the starting point.
- * @param {number} length - The length of the line to draw.
- * @param {number} dir - The direction in which to draw the line. Angles measured anticlockwise from the x-axis
+ * Draws a stroke from a starting point in a given direction.
+ * @param {number} x - Starting x-coordinate.
+ * @param {number} y - Starting y-coordinate.
+ * @param {number} length - Length of the stroke.
+ * @param {number} dir - Direction (in radians, anticlockwise from the x-axis).
  */
 export function stroke(x, y, length, dir) {
   isFieldReady();
@@ -556,10 +544,10 @@ export function stroke(x, y, length, dir) {
 
 /**
  * Draws a predefined plot.
- * @param {Object} p - An object representing the shape to draw.
- * @param {number} x - The x-coordinate of the starting position to draw the shape.
- * @param {number} y - The y-coordinate of the starting position to draw the shape.
- * @param {number} scale - The scale at which to draw the shape.
+ * @param {object} p - Shape object representing the plot.
+ * @param {number} x - Starting x-coordinate.
+ * @param {number} y - Starting y-coordinate.
+ * @param {number} scale - Scale factor.
  */
 function plot(p, x, y, scale) {
   isFieldReady();
@@ -567,13 +555,9 @@ function plot(p, x, y, scale) {
   draw(scale, true);
 }
 
-export function setDensity(d) {
-  scaleBrushes(d);
-}
-
-// =============================================================================
-// Section: Standard Brushes
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Standard Brushes Definition and Initialization
+// ---------------------------------------------------------------------------
 
 /**
  * Defines a set of standard brushes with specific characteristics. Each brush is defined
@@ -659,21 +643,22 @@ const _standard_brushes = [
     ],
   ],
 ];
-/**
- * Iterates through the list of standard brushes and adds each one to the brush manager.
- * The brush manager is assumed to be a global object `B` that has an `add` method.
- */
+
 for (let s of _standard_brushes) {
   let obj = {};
   for (let i = 0; i < s[1].length; i++) obj[_vals[i]] = s[1][i];
   add(s[0], obj);
 }
 
-// =============================================================================
-// Add method to Polygon Class and Plot Class
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Extensions to Polygon and Plot Prototypes
+// ---------------------------------------------------------------------------
+
 /**
- * Draws the polygon by iterating over its sides and drawing lines between the vertices.
+ * Draws the polygon using the current brush.
+ * @param {boolean} [_brush=false] - Optional brush name override.
+ * @param {string|Color} [_color] - Optional color override.
+ * @param {number} [_weight] - Optional weight override.
  */
 Polygon.prototype.draw = function (_brush = false, _color, _weight) {
   let state = BrushState();
@@ -687,10 +672,10 @@ Polygon.prototype.draw = function (_brush = false, _color, _weight) {
 };
 
 /**
- * Draws the plot on the canvas.
- * @param {number} x - The x-coordinate to draw at.
- * @param {number} y - The y-coordinate to draw at.
- * @param {number} scale - The scale to draw with.
+ * Draws the plot using the current brush.
+ * @param {number} x - Starting x-coordinate.
+ * @param {number} y - Starting y-coordinate.
+ * @param {number} scale - Scale factor.
  */
 Plot.prototype.draw = function (x, y, scale) {
   if (BrushState().isActive) {

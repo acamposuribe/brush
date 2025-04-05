@@ -1,6 +1,21 @@
+// =============================================================================
+// Module: GL Draw
+// =============================================================================
+/**
+ * The GL Draw module provides functions for rendering shapes (circles and squares)
+ * using WebGL2. It initializes the WebGL context and shader programs, prepares buffers,
+ * and implements drawing routines based on queued drawing primitives. The module uses
+ * an orthographic projection to map canvas coordinates to clip space and supports adjustable
+ * blending for translucent effects.
+ */
+
 import { Mix, Cwidth, Cheight } from "../core/color.js";
 import { isMixReady } from "../core/color.js";
 import { Matrix } from "../core/flowfield.js";
+
+// =============================================================================
+// Section: Initialization and Setup
+// =============================================================================
 
 let isLoaded = false;
 let gl, matrix;
@@ -19,63 +34,10 @@ export function isReady() {
 }
 
 /**
- * Vertex shader: Expects a_position (vec2), a_radius (float), and a_alpha (float).
- * Computes gl_Position from u_matrix and sets gl_PointSize.
- */
-const vsSource = `#version 300 es
-in vec2 a_position;in float a_radius,a_alpha;uniform mat4 u_matrix;out float v_alpha;void main(){gl_Position=u_matrix*vec4(a_position,0,1);v_alpha=a_alpha;gl_PointSize=a_radius*2.;}`;
-
-/**
- * Fragment shader: When u_drawSquare is true, outputs a square.
- * Otherwise, uses gl_PointCoord to create a circular mask.
- */
-const fsSource = `#version 300 es
-precision highp float;uniform bool u_drawSquare;in float v_alpha;out vec4 outColor;void main(){if(u_drawSquare)outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha);else{vec2 v=gl_PointCoord-vec2(.5);float e=length(v);if(e>.5)discard;outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha*(1.-smoothstep(.45,.5,e)));}}`;
-
-// Attrib & uniform caches.
-const Attr = {},
-  Frag = {};
-
-/**
- * Creates and compiles a shader program.
- */
-function createProgram(gl, vert, frag) {
-  const p = gl.createProgram();
-  for (const [t, src] of [
-    [gl.VERTEX_SHADER, vert],
-    [gl.FRAGMENT_SHADER, frag],
-  ]) {
-    const s = gl.createShader(t);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    gl.attachShader(p, s);
-  }
-  gl.linkProgram(p);
-  return p;
-}
-
-/**
- * Sets up the shader program and caches attribute and uniform locations.
- */
-function prepareGL() {
-  // Create and use shader
-  const program = createProgram(gl, vsSource, fsSource);
-  gl.useProgram(program);
-  // Enable blending for translucency.
-  gl.enable(gl.BLEND);
-  // Use additive blending so that new fragments add to the alpha.
-  gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
-  // Define attributes and uniform locations
-  ["a_position", "a_radius", "a_alpha"].forEach(
-    (n) => (Attr[n] = gl.getAttribLocation(program, n))
-  );
-  ["u_matrix", "u_drawSquare"].forEach(
-    (n) => (Frag[n] = gl.getUniformLocation(program, n))
-  );
-}
-
-/**
  * Creates an orthographic projection matrix that maps canvas coordinates to clip space.
+ * @param {number} w - Canvas width.
+ * @param {number} h - Canvas height.
+ * @returns {Float32Array} The projection matrix.
  */
 function createOrthographicMatrix(w, h) {
   return new Float32Array([
@@ -99,11 +61,79 @@ function createOrthographicMatrix(w, h) {
 }
 
 /**
- * Helper: Creates a VAO, uploads vertex data, and sets attrib pointers as defined.
- * @param {Float32Array} data Vertex data.
- * @param {Array} attribs Array of objects {name, size, offset}.
- * @param {number} stride Stride (in bytes).
- * @returns {object} {vao, buf}.
+ * Sets up the shader program and caches attribute and uniform locations.
+ */
+function prepareGL() {
+  // Create and use shader
+  const program = createProgram(gl, vsSource, fsSource);
+  gl.useProgram(program);
+  // Enable blending for translucency.
+  gl.enable(gl.BLEND);
+  // Use additive blending so that new fragments add to the alpha.
+  gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
+  // Define attributes and uniform locations
+  ["a_position", "a_radius", "a_alpha"].forEach(
+    (n) => (Attr[n] = gl.getAttribLocation(program, n))
+  );
+  ["u_matrix", "u_drawSquare"].forEach(
+    (n) => (Frag[n] = gl.getUniformLocation(program, n))
+  );
+}
+
+// =============================================================================
+// Section: Shader Programs
+// =============================================================================
+
+/**
+ * Vertex shader: Expects a_position (vec2), a_radius (float), and a_alpha (float).
+ * Computes gl_Position from u_matrix and sets gl_PointSize.
+ */
+const vsSource = `#version 300 es
+in vec2 a_position;in float a_radius,a_alpha;uniform mat4 u_matrix;out float v_alpha;void main(){gl_Position=u_matrix*vec4(a_position,0,1);v_alpha=a_alpha;gl_PointSize=a_radius*2.;}`;
+
+/**
+ * Fragment shader: When u_drawSquare is true, outputs a square.
+ * Otherwise, uses gl_PointCoord to create a circular mask.
+ */
+const fsSource = `#version 300 es
+precision highp float;uniform bool u_drawSquare;in float v_alpha;out vec4 outColor;void main(){if(u_drawSquare)outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha);else{vec2 v=gl_PointCoord-vec2(.5);float e=length(v);if(e>.5)discard;outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha*(1.-smoothstep(.45,.5,e)));}}`;
+
+/**
+ * Creates and compiles a shader program.
+ * @param {WebGL2RenderingContext} gl - The WebGL context.
+ * @param {string} vert - Vertex shader source.
+ * @param {string} frag - Fragment shader source.
+ * @returns {WebGLProgram} The compiled and linked program.
+ */
+function createProgram(gl, vert, frag) {
+  const p = gl.createProgram();
+  for (const [t, src] of [
+    [gl.VERTEX_SHADER, vert],
+    [gl.FRAGMENT_SHADER, frag],
+  ]) {
+    const s = gl.createShader(t);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  return p;
+}
+
+// Attrib & uniform caches.
+const Attr = {},
+  Frag = {};
+
+// =============================================================================
+// Section: Buffer Creation & Drawing Primitives
+// =============================================================================
+
+/**
+ * Helper: Creates a VAO, uploads vertex data, and sets attribute pointers.
+ * @param {Float32Array} data - Vertex data.
+ * @param {Array} attribs - Array of objects {name, size, offset}.
+ * @param {number} stride - Stride in bytes.
+ * @returns {object} Contains {vao, buf}.
  */
 function createAndBindBuffer(data, attribs, stride) {
   const vao = gl.createVertexArray();
@@ -180,12 +210,16 @@ export function glDraw() {
 let circles = [];
 let isSquare = false;
 
+// =============================================================================
+// Section: Public Drawing Methods
+// =============================================================================
+
 /**
  * Queues a circle to be drawn.
- * @param {number} x x-coordinate.
- * @param {number} y y-coordinate.
- * @param {number} diameter Diameter of the circle.
- * @param {number} alpha Opacity (0-100).
+ * @param {number} x - x-coordinate.
+ * @param {number} y - y-coordinate.
+ * @param {number} diameter - Diameter of the circle.
+ * @param {number} alpha - Opacity (0-100).
  */
 export function circle(x, y, diameter, alpha) {
   isReady();
@@ -201,10 +235,10 @@ export function circle(x, y, diameter, alpha) {
 
 /**
  * Queues a square (via point sprite) to be drawn.
- * @param {number} x x-coordinate.
- * @param {number} y y-coordinate.
- * @param {number} size Side length of the square.
- * @param {number} alpha Opacity (0-100).
+ * @param {number} x - x-coordinate.
+ * @param {number} y - y-coordinate.
+ * @param {number} size - Side length of the square.
+ * @param {number} alpha - Opacity (0-100).
  */
 export function square(x, y, size, alpha) {
   isReady();

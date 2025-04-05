@@ -1,17 +1,32 @@
+// =============================================================================
+// Module: Hatch
+// =============================================================================
+/**
+ * The Hatch module contains functions and classes dedicated to applying
+ * hatch patterns over shapes and polygons. It enables the simulation of
+ * cross-hatching and shading effects by drawing parallel lines or strokes
+ * across a geometry. The module supports adjustable spacing, angle, and
+ * optional style parameters (such as randomness, continuity, and gradient),
+ * giving an artistic representation similar to hand-drawn hatching techniques.
+ *
+ * The implementation allows for hatching to be applied either to a Polygon
+ * directly or via a Plot, extending the drawing capabilities with layered,
+ * stylized textures.
+ */
+
 import { State } from "../core/color.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 import { BrushState, BrushSetState, set, line } from "../stroke/brush.js";
 
-// =============================================================================
-// Section: Hatching
-// =============================================================================
-/**
- * The Hatching section of the code is responsible for creating and drawing hatching patterns.
- * Hatching involves drawing closely spaced parallel lines.
- */
+// ---------------------------------------------------------------------------
+// Hatch State and Helpers
+// ---------------------------------------------------------------------------
 
+/**
+ * Global hatch state settings.
+ */
 State.hatch = {
   isActive: false,
   dist: 5,
@@ -21,26 +36,34 @@ State.hatch = {
 };
 
 /**
- * Object to hold the current hatch state and to perform hatch calculation
+ * Returns a shallow copy of the current hatch state.
+ * @returns {object} The current hatch state.
  */
-
 function HatchState() {
   return { ...State.hatch };
 }
 
+/**
+ * Updates the global hatch state.
+ * @param {object} state - The new hatch state.
+ */
 function HatchSetState(state) {
   State.hatch = { ...state };
 }
 
+// ---------------------------------------------------------------------------
+// Hatch Style Functions
+// ---------------------------------------------------------------------------
+
 /**
- * Activates hatching for subsequent geometries, with the given params.
+ * Activates hatching for subsequent geometries.
+ *
  * @param {number} dist - The distance between hatching lines.
- * @param {number} angle - The angle at which hatching lines are drawn.
- * @param {Object} options - An object containing optional parameters to affect the hatching style:
- *                           - rand: Introduces randomness to the line placement.
- *                           - continuous: Connects the end of a line with the start of the next.
- *                           - gradient: Changes the distance between lines to create a gradient effect.
- *                           Defaults to {rand: false, continuous: false, gradient: false}.
+ * @param {number} angle - The angle (in degrees) at which hatching lines are drawn.
+ * @param {object} options - Optional parameters to affect the hatching style:
+ *                           - rand: Number value to introduce randomness.
+ *                           - continuous: Boolean to connect adjacent lines.
+ *                           - gradient: Number to gradually change spacing.
  */
 export function hatch(
   dist = 5,
@@ -55,47 +78,48 @@ export function hatch(
 }
 
 /**
- * Sets the brush type, color, and weight for subsequent hatches.
- * If this function is not called, hatches will use the parameters from stroke operations.
- * @param {string} brushName - The name of the brush to set as current.
- * @param {string|Color} color - The color to set for the brush.
- * @param {number} weight - The weight (size) to set for the brush.
+ * Sets the hatch brush style for subsequent hatching.
+ *
+ * @param {string} brush - The brush name.
+ * @param {string|Color} color - The brush color.
+ * @param {number} weight - The brush weight (size).
  */
 export function hatchStyle(brush, color = "black", weight = 1) {
   State.hatch.hBrush = { brush, color, weight };
 }
 
 /**
- * Disables hatching for subsequent shapes
+ * Disables hatching.
  */
 export function noHatch() {
   State.hatch.isActive = false;
   State.hatch.hBrush = false;
 }
 
+// ---------------------------------------------------------------------------
+// Fill Manager Functions
+// ---------------------------------------------------------------------------
+
 /**
- * Creates a hatching pattern across the given polygons.
+ * Creates a hatching pattern over the given polygon(s).
  *
- * @param {Array|Object} polygons - A single polygon or an array of polygons to apply the hatching.
+ * @param {Polygon|Polygon[]} polygons - A polygon or an array of polygons.
  */
 export function createHatch(polygons) {
   let dist = State.hatch.dist;
-  let angle = State.hatch.angle;
+  let angle = toDegrees(State.hatch.angle) % 180; // normalize to [0, 180)
   let options = State.hatch.options;
 
   // Save current stroke state
   let save = BrushState();
-
-  // Change state if hatch has been set to different params than stroke
+  // If a hatch brush is set, override with those parameters.
   if (State.hatch.hBrush) set(...Object.values(State.hatch.hBrush));
 
-  // Transform to degrees and between 0-180
-  angle = toDegrees(angle) % 180;
-
-  // Find Bounding Box ---
+  // Compute overall bounding box for all polygons.
   if (!Array.isArray(polygons)) polygons = [polygons];
   const overallBB = computeOverallBoundingBox(polygons);
-  // Create a bounding polygon from the overall bounding box.
+
+  // Build a bounding polygon based on the overall bounding box.
   let ventana = new Polygon([
     [overallBB.minX, overallBB.minY],
     [overallBB.maxX, overallBB.minY],
@@ -103,7 +127,7 @@ export function createHatch(polygons) {
     [overallBB.minX, overallBB.maxY],
   ]);
 
-  // Set initial values for line generation
+  // Determine starting y coordinate based on angle.
   let startY = angle <= 90 && angle >= 0 ? overallBB.minY : overallBB.maxY;
   let gradient = options.gradient
     ? map(options.gradient, 0, 1, 1, 1.1, true)
@@ -111,6 +135,8 @@ export function createHatch(polygons) {
   let dots = [];
   let i = 0;
   let dist1 = dist;
+
+  // Function to generate a hatched line for index i.
   let linea = (i) => {
     return {
       point1: {
@@ -140,22 +166,16 @@ export function createHatch(polygons) {
     i++;
   }
 
-  // Filter out empty arrays to avoid drawing unnecessary lines
-  let gdots = [];
-  for (let dd of dots) {
-    if (typeof dd[0] !== "undefined") {
-      gdots.push(dd);
-    }
-  }
+  // Filter out empty intersection sets.
+  let gdots = dots.filter((dd) => typeof dd[0] !== "undefined");
 
   // Draw the hatching lines using the calculated intersections
   // If the 'rand' option is enabled, add randomness to the start and end points of the lines
   // If the 'continuous' option is set, connect the end of one line to the start of the next
-  let r = options.rand ? options.rand : 0;
-
+  let r = options.rand || 0;
   for (let j = 0; j < gdots.length; j++) {
     let dd = gdots[j];
-    let shouldDrawContinuousLine = j > 0 && options.continuous;
+    let continuousLine = j > 0 && options.continuous;
     for (let i = 0; i < dd.length - 1; i += 2) {
       if (r !== 0) {
         dd[i].x += r * dist * rr(-10, 10);
@@ -164,19 +184,22 @@ export function createHatch(polygons) {
         dd[i + 1].y += r * dist * rr(-10, 10);
       }
       line(dd[i].x, dd[i].y, dd[i + 1].x, dd[i + 1].y);
-      if (shouldDrawContinuousLine) {
+      if (continuousLine) {
         line(gdots[j - 1][1].x, gdots[j - 1][1].y, dd[i].x, dd[i].y);
       }
     }
   }
 
-  // Change state back to previous
+  // Restore previous brush state.
   BrushSetState(save);
 }
 
-// Helper functions for bounding box calculation
+/**
+ * Computes the bounding box for a single polygon.
+ * @param {Polygon} polygon - The polygon to evaluate.
+ * @returns {object} The bounding box as {minX, minY, maxX, maxY}.
+ */
 function computeBoundingBoxForPolygon(polygon) {
-  // If already computed, return the cached bounding box.
   if (polygon._boundingBox) return polygon._boundingBox;
   let minX = Infinity,
     minY = Infinity,
@@ -193,6 +216,11 @@ function computeBoundingBoxForPolygon(polygon) {
   return polygon._boundingBox;
 }
 
+/**
+ * Computes an overall bounding box for an array of polygons.
+ * @param {Array} polygons - Array of Polygon objects.
+ * @returns {object} The overall bounding box {minX, minY, maxX, maxY}.
+ */
 function computeOverallBoundingBox(polygons) {
   let overall = {
     minX: Infinity,
@@ -210,11 +238,19 @@ function computeOverallBoundingBox(polygons) {
   return overall;
 }
 
-// =============================================================================
-// Add method to Polygon Class
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Extend Polygon and Plot Prototypes
+// ---------------------------------------------------------------------------
+
 /**
- * Creates hatch lines across the polygon based on a given distance and angle.
+ * Adds a hatch effect to the polygon.
+ *
+ * If a distance is provided, activates hatching with the given parameters.
+ * Then, if hatch is active, applies the hatching pattern.
+ *
+ * @param {number} [_dist] - The distance between hatch lines.
+ * @param {number} _angle - The angle (in degrees) for hatching.
+ * @param {object} _options - Optional hatch options.
  */
 Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
   let state = HatchState();
@@ -226,9 +262,13 @@ Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
 };
 
 /**
- * Hatch the plot on the canvas.
+ * Applies hatching to a plot.
+ *
+ * If hatching is active, generates a polygon from the plot and applies hatch.
+ *
  * @param {number} x - The x-coordinate to draw at.
  * @param {number} y - The y-coordinate to draw at.
+ * @param {number} scale - Scaling factor.
  */
 Plot.prototype.hatch = function (x, y, scale) {
   if (HatchState().isActive) {

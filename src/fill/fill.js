@@ -1,3 +1,17 @@
+// =============================================================================
+// Module: Fill
+// =============================================================================
+/**
+ * The Fill module contains functions and classes dedicated to handling
+ * the fill properties of shapes within the drawing context. It supports complex fill
+ * operations with effects such as bleeding to simulate watercolor-like textures. The
+ * methods provided allow for setting the fill color with opacity, controlling the
+ * intensity of the bleed effect, and enabling or disabling the fill operation.
+ *
+ * The watercolor effect implementation is inspired by Tyler Hobbs'
+ * techniques for simulating watercolor paints.
+ */
+
 import { Color, Mix, State } from "../core/color.js";
 import { drawPolygon, circle } from "../core/mask.js";
 import {
@@ -15,23 +29,12 @@ import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 
 // =============================================================================
-// Section: Fill Management
+// Fill State and helpers
 // =============================================================================
+
 /**
- * The Fill Management section contains functions and classes dedicated to handling
- * the fill properties of shapes within the drawing context. It supports complex fill
- * operations with effects such as bleeding to simulate watercolor-like textures. The
- * methods provided allow for setting the fill color with opacity, controlling the
- * intensity of the bleed effect, and enabling or disabling the fill operation.
- *
- * The watercolor effect implementation is inspired by Tyler Hobbs' generative art
- * techniques for simulating watercolor paints.
+ * Global fill state settings.
  */
-
-// =============================================================================
-// Global Brush State, getter and setter
-// =============================================================================
-
 State.fill = {
   color: new Color("#002185"),
   opacity: 60,
@@ -42,24 +45,32 @@ State.fill = {
   isActive: false,
 };
 
+/**
+ * Returns a shallow copy of the current fill state.
+ * @returns {Object} The current fill state.
+ */
 function FillState() {
   return { ...State.fill };
 }
 
+/**
+ * Updates the global fill state.
+ * @param {Object} state - The new fill state.
+ */
 function FillSetState(state) {
   State.fill = { ...state };
 }
 
-// =============================================================================
-// Section: Fill Manager
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Fill Style Functions
+// ---------------------------------------------------------------------------
 
 /**
  * Sets the fill color and opacity for subsequent drawing operations.
- * @param {number|Color} a - The red component of the color or grayscale value, a CSS color string, or a Color object.
- * @param {number} [b] - The green component of the color or the grayscale opacity if two arguments.
- * @param {number} [c] - The blue component of the color.
- * @param {number} [d] - The opacity of the color.
+ * @param {number|string|Color} a - Either the red component, a CSS color string, or a Color object.
+ * @param {number} [b] - The green component or the opacity if using grayscale.
+ * @param {number} [c] - The blue component.
+ * @param {number} [d] - The opacity.
  */
 export function fillStyle(a, b, c, d) {
   State.fill.opacity = (arguments.length < 4 ? b : d) || 60;
@@ -68,32 +79,41 @@ export function fillStyle(a, b, c, d) {
 }
 
 /**
- * Sets the bleed and texture levels for the fill operation, simulating a watercolor effect.
- * @param {number} _i - The intensity of the bleed effect, capped at 0.5.
- * @param {number} _texture - The texture of the watercolor effect, from 0 to 1.
+ * Sets the bleed (watercolor) intensity and direction.
+ * @param {number} _i - The bleed intensity (clamped to [0,1]).
+ * @param {string} [_direction="out"] - The bleeding direction.
  */
 export function fillBleed(_i, _direction = "out") {
   State.fill.bleed_strength = constrain(_i, 0, 1);
   State.fill.direction = _direction;
 }
 
+/**
+ * Sets the texture and border strengths for the fill.
+ * @param {number} [_texture=0.4] - The texture strength (clamped to [0,1]).
+ * @param {number} [_border=0.4] - The border strength (clamped to [0,1]).
+ */
 export function fillTexture(_texture = 0.4, _border = 0.4) {
   State.fill.texture_strength = constrain(_texture, 0, 1);
   State.fill.border_strength = constrain(_border, 0, 1);
 }
 
 /**
- * Disables the fill for subsequent drawing operations.
+ * Disables fill for subsequent drawing operations.
  */
 export function noFill() {
   State.fill.isActive = false;
 }
 
+// ---------------------------------------------------------------------------
+// Fill Manager Functions
+// ---------------------------------------------------------------------------
+
 let fillPolygon;
 
 /**
- * Fills the given polygon with a watercolor effect.
- * @param {Object} polygon - The polygon to fill.
+ * Fills a given polygon with a watercolor effect.
+ * @param {Polygon} polygon - The polygon to fill.
  */
 export function createFill(polygon) {
   // Store polygon
@@ -109,49 +129,49 @@ export function createFill(polygon) {
     let multiplier = rr(0.85, 1.2) * strength;
     return i > fluid ? multiplier : multiplier * 0.2;
   });
-
-  // Shift vertices randomly to create a more natural watercolor edge
-  let shift = randInt(0, vLength);
+  // Shift vertices randomly for natural edges.
+  const shift = randInt(0, vLength);
   v = [...v.slice(shift), ...v.slice(0, shift)];
+  const center = calcCenter(v);
   // Create and fill the polygon with the calculated bleed effect
-  let pol = new FillPolygon(v, modifiers, calcCenter(v), [], true);
+  let pol = new FillPolygon(v, modifiers, center, [], true);
   pol.fill(
     State.fill.color,
     map(State.fill.opacity, 0, 100, 0, 1, true),
-    State.fill.texture_strength,
-    true
+    State.fill.texture_strength
   );
 }
 
 /**
- * Calculates the center point of the polygon based on the vertices.
- * @returns {Object} Object representing the centroid of the polygon.
+ * Calculates the centroid of a polygon from its vertices.
+ * @param {Object[]} pts - Array of points with {x, y}.
+ * @returns {Object} The center point {x, y}.
  */
 function calcCenter(pts) {
   pts = [...pts];
-  var first = pts[0],
+  const first = pts[0],
     last = pts[pts.length - 1];
-  if (first.x != last.x || first.y != last.y) pts.push(first);
-  var twicearea = 0,
+  if (first.x !== last.x || first.y !== last.y) pts.push(first);
+  let twicearea = 0,
     x = 0,
     y = 0,
-    nPts = pts.length,
-    p1,
-    p2,
-    f;
-  for (var i = 0, j = nPts - 1; i < nPts; j = i++) {
-    p1 = pts[i];
-    p2 = pts[j];
-    f =
+    nPts = pts.length;
+  for (let i = 0, j = nPts - 1; i < nPts; j = i++) {
+    const p1 = pts[i],
+      p2 = pts[j];
+    const f =
       (p1.y - first.y) * (p2.x - first.x) - (p2.y - first.y) * (p1.x - first.x);
     twicearea += f;
     x += (p1.x + p2.x - 2 * first.x) * f;
     y += (p1.y + p2.y - 2 * first.y) * f;
   }
-  f = twicearea * 3;
+  const f = twicearea * 3;
   return { x: x / f + first.x, y: y / f + first.y };
 }
 
+// ---------------------------------------------------------------------------
+// FillPolygon Class
+// ---------------------------------------------------------------------------
 /**
  * The FillPolygon class is used to create and manage the properties of the polygons that produces
  * the watercolor effect. It includes methods to grow (expand) the polygon and apply layers
@@ -161,12 +181,12 @@ function calcCenter(pts) {
  */
 class FillPolygon {
   /**
-   * The constructor initializes the polygon with a set of vertices, multipliers for the bleed effect, and a center point.
-   * @param {Vector[]} _v - An array of Vector objects representing the vertices of the polygon.
-   * @param {number[]} _m - An array of numbers representing the multipliers for the bleed effect at each vertex.
-   * @param {Vector} _center - A Vector representing the calculated center point of the polygon.
-   * @param {boolean[]} dir - An array of booleans representing the bleed direction.
-   * @param {boolean} isFirst - Boolean = true for initial fill polygon
+   * Constructs a FillPolygon.
+   * @param {Object[]} _v - Vertices of the polygon.
+   * @param {number[]} _m - Multipliers for the bleed effect at each vertex.
+   * @param {Object} _center - The polygon's center {x, y}.
+   * @param {boolean[]} dir - Array indicating bleed direction per vertex.
+   * @param {boolean} isFirst - True for initial polygon.
    */
   constructor(_v, _m, _center, dir, isFirst) {
     this.v = _v;
@@ -179,7 +199,7 @@ class FillPolygon {
       this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
       this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
     }
-    // This calculates the bleed direction for the initial shape, for each of the vertices.
+    // Calculate bleed direction for the initial shape.
     if (isFirst) {
       for (let i = 0; i < this.v.length; i++) {
         const v1 = this.v[i];
@@ -202,29 +222,29 @@ class FillPolygon {
     }
   }
 
+  /**
+   * Trims vertices from the polygon based on a factor.
+   * @param {number} [factor=1] - Factor determining amount of trimming.
+   * @returns {Object} An object containing trimmed vertices, multipliers, and direction.
+   */
   trim(factor = 1) {
     let v = [...this.v],
       m = [...this.m],
       dir = [...this.dir];
-
     if (this.v.length > 8 && factor >= 0 && factor !== 1) {
-      let numTrim = ~~((1 - factor) * this.v.length);
-
-      let sp = ~~this.v.length / 2 - ~~numTrim / 2;
+      const numTrim = ~~((1 - factor) * this.v.length);
+      const sp = ~~(this.v.length / 2 - numTrim / 2);
       v.splice(sp, numTrim);
       m.splice(sp, numTrim);
       dir.splice(sp, numTrim);
     }
-
-    return { v: v, m: m, dir: dir };
+    return { v, m, dir };
   }
 
   /**
-   * Grows the polygon's vertices outwards to simulate the spread of watercolor.
-   * Optionally, can also shrink (degrow) the polygon's vertices inward.
-   * @param {number} _a - The growth factor.
-   * @param {boolean} [degrow=false] - If true, vertices will move inwards.
-   * @returns {FillPolygon} A new `FillPolygon` object with adjusted vertices.
+   * Grows (or shrinks) the polygon vertices to simulate watercolor spread.
+   * @param {number} [growthFactor=1] - Factor controlling growth.
+   * @returns {FillPolygon} A new FillPolygon with adjusted vertices.
    */
   grow(growthFactor = 1) {
     const newVerts = [];
@@ -234,19 +254,14 @@ class FillPolygon {
     // Determine the length of vertices to process based on growth factor
     // Cache trimmed arrays and their length
     const trimmed = this.trim(growthFactor);
-    const tr_v = trimmed.v;
-    const tr_m = trimmed.m;
-    const tr_dir = trimmed.dir;
+    const tr_v = trimmed.v,
+      tr_m = trimmed.m,
+      tr_dir = trimmed.dir;
     const len = tr_v.length;
     const bleedDirection = State.fill.direction === "out" ? -90 : 90;
     let cond = false;
-    switch (growthFactor) {
-      case 999:
-        cond = rr(0.2, 0.6);
-        break;
-      case 997:
-        cond = State.fill.bleed_strength / 1.7;
-    }
+    if (growthFactor === 999) cond = rr(0.2, 0.6);
+    else if (growthFactor === 997) cond = State.fill.bleed_strength / 1.7;
     // Loop through each vertex to calculate the new position based on growth
     for (let i = 0; i < len; i++) {
       const currentVertex = tr_v[i];
@@ -285,10 +300,10 @@ class FillPolygon {
   }
 
   /**
-   * Fills the polygon with the specified color and intensity.
-   * It uses layered growth to simulate watercolor paper absorption and drying patterns.
+   * Fills the polygon with multiple layers to simulate a watercolor effect.
    * @param {Color|string} color - The fill color.
-   * @param {number} intensity - The opacity of the color layers.
+   * @param {number} intensity - Opacity intensity (mapped from 0 to 1).
+   * @param {number} tex - Texture factor.
    */
   fill(color, intensity, tex) {
     // Precalculate stuff
@@ -304,9 +319,8 @@ class FillPolygon {
       "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
-    let pol = this.grow();
-    let pols;
-
+    let pol = this.grow(),
+      pols;
     for (let i = 0; i < numLayers; i++) {
       if (i % 4 === 0) {
         pol = pol.grow();
@@ -318,8 +332,8 @@ class FillPolygon {
       ];
 
       // Draw layers
-      for (let p of pols) p.grow(997).grow().layer(i, int);
-      pol.grow(0.1).grow(999).layer(i, int);
+      for (let p of pols) p.grow(997).grow().layer(i);
+      pol.grow(0.1).grow(999).layer(i);
       if (i % 4 === 0 || i === numLayers - 1) {
         if (texture !== 0) pol.erase(texture * 5, intensity);
         Mix.blend(color, true, false, true);
@@ -330,10 +344,8 @@ class FillPolygon {
   }
 
   /**
-   * Adds a layer of color to the polygon with specified opacity.
-   * It also sets a stroke to outline the layer edges.
-   * @param {number} _nr - The layer number, affecting the stroke and opacity mapping.
-   * @param {boolean} [bool=true] - If true, adds a stroke to the layer.
+   * Draws a layer of the fill polygon with stroke and fill.
+   * @param {number} i - The layer index.
    */
   layer(i) {
     const size = Math.max(this.sizeX, this.sizeY);
@@ -345,8 +357,9 @@ class FillPolygon {
   }
 
   /**
-   * Erases parts of the polygon to create a more natural, uneven watercolor texture.
-   * Uses random placement and sizing of circles to simulate texture.
+   * Erases parts of the polygon to create a natural watercolor texture.
+   * @param {number} texture - Texture strength factor.
+   * @param {number} intensity - Intensity value for size scaling.
    */
   erase(texture, intensity) {
     Mix.ctx.save();
@@ -377,10 +390,19 @@ class FillPolygon {
   }
 }
 
-// =============================================================================
-// Add method to Polygon Class
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Extend Polygon and Plot Prototypes for Fill
+// ---------------------------------------------------------------------------
 
+/**
+ * Applies a fill effect to the polygon using the current fill state.
+ * @param {Color|string} [_color] - The color for the fill.
+ * @param {number} [_opacity] - The opacity value.
+ * @param {number} [_bleed] - The bleed intensity.
+ * @param {number} [_texture] - The texture strength.
+ * @param {number} [_border] - The border strength.
+ * @param {string} [_direction] - The bleed direction.
+ */
 Polygon.prototype.fill = function (
   _color = false,
   _opacity,
@@ -403,9 +425,10 @@ Polygon.prototype.fill = function (
 };
 
 /**
- * Fill the plot on the canvas.
- * @param {number} x - The x-coordinate to draw at.
- * @param {number} y - The y-coordinate to draw at.
+ * Fills a plot on the canvas by generating a polygon based on the provided coordinates.
+ * @param {number} x - The x-coordinate.
+ * @param {number} y - The y-coordinate.
+ * @param {number} scale - Scaling factor.
  */
 Plot.prototype.fill = function (x, y, scale) {
   if (FillState().isActive) {

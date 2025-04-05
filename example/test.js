@@ -119,7 +119,7 @@ const draw = () => {
       brush.random(400, canvas.width - 400),
       brush.random(400, canvas.height - 400),
     ]);
-    angles.push(brush.random(Math.PI / 6, Math.PI / 3));
+    angles.push(brush.random(0, Math.PI));
   }
   for (let i = 0; i < colors.length; i++) {
     let c = colors[i];

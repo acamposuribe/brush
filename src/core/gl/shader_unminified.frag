@@ -5,7 +5,6 @@ precision highp float;
 uniform vec4 u_addColor;
 uniform bool u_isErase;
 uniform bool u_isImage;
-uniform float u_flip;
 uniform sampler2D u_source;
 uniform sampler2D u_mask; 
 
@@ -182,10 +181,6 @@ vec3 spectral_mix(vec3 color1, vec3 color2, float t) {
     }
 
     return spectral_xyz_to_srgb(spectral_reflectance_to_xyz(R));
-}
-
-vec4 spectral_mix(vec4 color1, vec4 color2, float t) {
-    return vec4(spectral_mix(color1.rgb, color2.rgb, t), mix(color1.a, color2.a, t));
 }
 
 void main(void) {
