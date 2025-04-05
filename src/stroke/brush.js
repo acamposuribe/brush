@@ -264,7 +264,7 @@ function saveState() {
  * Restores the drawing state after a brush stroke is completed.
  */
 function restoreState() {
-  glDraw(true);
+  glDraw(State.stroke.color);
   markerTip();
 }
 
@@ -511,7 +511,7 @@ function markerTip() {
       for (let s = 1; s < 10; s++) {
         drawMarker((pressure * s) / 10, false, alpha * 5);
       }
-      glDraw();
+      glDraw(State.stroke.color);
     } else if (current.p.type === "custom" || current.p.type === "image") {
       for (let s = 1; s < 5; s++) {
         Mix.ctx.beginPath();

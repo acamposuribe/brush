@@ -410,10 +410,8 @@ export const BleedField = {
   get(x, y, value = false) {
     const col = Position.getColIndex(x);
     const row = Position.getRowIndex(y);
-
     // Retrieve the current value at the position
     const current = this.field?.[col]?.[row] ?? 0;
-
     if (value) {
       // Update the temporary field with the maximum of the current and new values
       const biggest = Math.max(current, value);

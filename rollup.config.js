@@ -22,15 +22,7 @@ const config = {
     resolve({
       browser: true,
     }),
-    terser({
-      module: true,
-      compress: {
-        keep_infinity: true,
-        module: true,
-        passes: 3,
-        toplevel: true,
-      },
-    }),
+    
     cleanup({
       comments: "none",
     }),

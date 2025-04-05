@@ -1,5 +1,6 @@
 import { State } from "../core/config.js";
 import { Color, Mix } from "../core/color.js";
+import { drawPolygon, circle } from "../core/mask.js";
 import {
   constrain,
   weightedRand,
@@ -13,7 +14,7 @@ import {
 import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
-import { polygon, glDrawPolygons, glDraw, circle } from "../stroke/gl_draw.js";
+import { glDrawPolygons } from "../stroke/gl_draw.js";
 
 // =============================================================================
 // Section: Fill Management
@@ -120,7 +121,7 @@ export function createFill(polygon) {
     State.fill.color,
     map(State.fill.opacity, 0, 100, 0, 1, true),
     State.fill.texture_strength,
-    true
+    true,
   );
 }
 
@@ -169,7 +170,7 @@ class FillPolygon {
    * @param {boolean[]} dir - An array of booleans representing the bleed direction.
    * @param {boolean} isFirst - Boolean = true for initial fill polygon
    */
-  constructor(_v, _m, _center, dir, isFirst = false) {
+  constructor(_v, _m, _center, dir, isFirst) {
     this.v = _v;
     this.dir = dir;
     this.m = _m;
@@ -227,7 +228,7 @@ class FillPolygon {
    * @param {boolean} [degrow=false] - If true, vertices will move inwards.
    * @returns {FillPolygon} A new `FillPolygon` object with adjusted vertices.
    */
-  grow(growthFactor = 1, degrow) {
+  grow(growthFactor = 1) {
     const newVerts = [];
     const newMods = [];
     const newDirs = [];
@@ -239,18 +240,11 @@ class FillPolygon {
     const tr_m = trimmed.m;
     const tr_dir = trimmed.dir;
     const len = tr_v.length;
-
-    // Pre-compute values that do not change within the loop
-    const modAdjustment = degrow ? -0.5 : 1;
     const bleedDirection = State.fill.direction === "out" ? -90 : 90;
-    // Inline changeModifier to reduce function calls
-    const changeModifier = (modifier) => {
-      return modifier + pseudoGaussian(0, 0.02);
-    };
     let cond = false;
     switch (growthFactor) {
       case 999:
-        cond = rr(0.2, 0.4);
+        cond = rr(0.2, 0.6);
         break;
       case 997:
         cond = State.fill.bleed_strength / 1.7;
@@ -263,8 +257,6 @@ class FillPolygon {
       let mod =
         cond || BleedField.get(currentVertex.x, currentVertex.y, tr_m[i]);
 
-      mod *= modAdjustment;
-
       // Calculate side
       let side = {
         x: nextVertex.x - currentVertex.x,
@@ -273,7 +265,7 @@ class FillPolygon {
 
       // Make sure that we always bleed in the selected direction
       let rotationDegrees =
-        (tr_dir[i] ? bleedDirection : -bleedDirection) + rr(-0.4, 0.4) * 45;
+        (tr_dir[i] ? bleedDirection : -bleedDirection) + rr(-1,1) * 5;
       let direction = rotate(0, 0, side.x, side.y, rotationDegrees);
 
       // Calculate the middle vertex position
@@ -288,7 +280,7 @@ class FillPolygon {
 
       // Add the new vertex and its modifier
       newVerts.push(currentVertex, newVertex);
-      newMods.push(tr_m[i], changeModifier(tr_m[i]));
+      newMods.push(tr_m[i], tr_m[i] + pseudoGaussian(0, 0.02));
       newDirs.push(tr_dir[i], tr_dir[i]);
     }
     return new FillPolygon(newVerts, newMods, this.midP, newDirs);
@@ -304,14 +296,17 @@ class FillPolygon {
     // Precalculate stuff
     const numLayers = 24;
     const texture = tex * 3;
-    const int = intensity * 2;
+    const int = intensity * (1 + tex/2);
 
     // Perform initial setup only once
     Mix.blend(color);
+    Mix.ctx.save();
+    Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
+    Mix.ctx.strokeStyle =
+      "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
 
     // Set the different polygons for texture
     let pol = this.grow();
-
     let pols;
 
     for (let i = 0; i < numLayers; i++) {
@@ -327,15 +322,13 @@ class FillPolygon {
       // Draw layers
       for (let p of pols) p.grow(997).grow().layer(i, int);
       pol.grow(0.1).grow(999).layer(i, int);
-      if (texture !== 0) pol.erase(texture * 5, intensity);
-
-      if (i % 6 === 0) {
+      if (i % 4 === 0 || i === numLayers - 1) {
+        if (texture !== 0) pol.erase(texture * 5, intensity);
         Mix.blend(color, true, false, true);
-        glDrawPolygons();
       }
     }
-    glDrawPolygons();
     BleedField.update();
+    Mix.ctx.restore();
   }
 
   /**
@@ -344,10 +337,13 @@ class FillPolygon {
    * @param {number} _nr - The layer number, affecting the stroke and opacity mapping.
    * @param {boolean} [bool=true] - If true, adds a stroke to the layer.
    */
-  layer(i, int) {
+  layer(i) {
     const size = Math.max(this.sizeX, this.sizeY);
-    //Mix.ctx.lineWidth = map(i, 0, 24, size / 30, size / 45, true);
-    polygon(this.v, int);
+    Mix.ctx.lineWidth = map(i, 0, 24, size / 30, size / 45, true);
+    // Set fill and stroke properties once
+    drawPolygon(this.v);
+    Mix.ctx.stroke();
+    Mix.ctx.fill();
   }
 
   /**
@@ -355,24 +351,31 @@ class FillPolygon {
    * Uses random placement and sizing of circles to simulate texture.
    */
   erase(texture, intensity) {
+    Mix.ctx.save();
     // Cache local values to avoid repeated property lookups
-    let numCircles = rr(50, 70) * map(texture, 0, 1, 2, 3);
-    const halfSizeX = this.sizeX / 2;
-    const halfSizeY = this.sizeY / 2;
+    let numCircles = rr(60, 100) * map(texture, 0, 1, 2, 3);
+    const halfSizeX = this.sizeX / 1.8;
+    const halfSizeY = this.sizeY / 1.8;
     const minSize =
       Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
-    const minSizeFactor = 0.015 * minSize;
-    const maxSizeFactor = 0.2 * minSize;
+    const minSizeFactor = 0.03 * minSize;
+    const maxSizeFactor = 0.3 * minSize;
     const midX = this.midP.x;
     const midY = this.midP.y;
+    Mix.ctx.globalCompositeOperation = "destination-out";
     let i = (5 - map(intensity, 80, 120, 0.3, 2, true)) * texture;
+    Mix.ctx.fillStyle = "rgb(255 0 0 / " + i / 255 + ")";
+    Mix.ctx.lineWidth = 0;
     for (let i = 0; i < numCircles; i++) {
       const x = midX + gaussian(0, halfSizeX);
       const y = midY + gaussian(0, halfSizeY);
       const size = rr(minSizeFactor, maxSizeFactor);
-      circle(x, y, size, i / 50);
+      Mix.ctx.beginPath();
+      circle(x, y, size);
+      if (i % 4 !== 0) Mix.ctx.fill();
     }
-    glDraw(true);
+    Mix.ctx.globalCompositeOperation = "source-over";
+    Mix.ctx.restore();
   }
 }
 

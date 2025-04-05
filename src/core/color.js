@@ -179,7 +179,7 @@ export const Mix = {
 
     if (shouldBlend) {
       // Use existing image data or transfer mask to ImageBitmap
-      const imageData = _isImg || this.glMask.transferToImageBitmap();
+      const imageData = _isImg || this.isBrush ? this.glMask.transferToImageBitmap() : this.mask.transferToImageBitmap();
 
       // Send blending data to the worker
       this.worker.postMessage(
@@ -196,6 +196,7 @@ export const Mix = {
 
       // Reset flags
       this.isErase = false;
+      this.isBrush = false;
 
       // Cache the new color if not the last operation
       if (!_isLast) this.currentColor = _color.gl;

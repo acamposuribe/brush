@@ -63,12 +63,14 @@ const draw = () => {
   brush.background(255);
 
   brush.save();
-  brush.fillBleed(0.3);
+  brush.fillBleed(0.5);
   brush.noStroke();
-  brush.fillTexture(1, 0.5);
+  brush.fillTexture(0.6, 0.5);
 
-  for (let i = 0; i < 10; i++) {
-    brush.fillStyle(brush.random(palette), 70);
+
+  
+  for (let i = 0; i < 5; i++) {
+    brush.fillStyle(brush.random(palette), 100);
     brush.rect(
       brush.random(400, canvas.width - 400),
       brush.random(400, canvas.height - 400),
@@ -77,8 +79,10 @@ const draw = () => {
       "center"
     );
   }
+    
+  brush.noFill();
 
-  /*
+  
 
   brush.set("charcoal", brush.random(palette), 1);
   brush.beginPath(1);
@@ -152,8 +156,6 @@ const draw = () => {
       "center"
     );
   }
-
-  */
 
   brush.restore();
 
