@@ -1,5 +1,4 @@
-import { State } from "../core/config.js";
-import { Color, Mix } from "../core/color.js";
+import { Color, Mix, State } from "../core/color.js";
 import { drawPolygon, circle } from "../core/mask.js";
 import {
   constrain,
@@ -14,7 +13,6 @@ import {
 import { BleedField, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
-import { glDrawPolygons } from "../stroke/gl_draw.js";
 
 // =============================================================================
 // Section: Fill Management
@@ -121,7 +119,7 @@ export function createFill(polygon) {
     State.fill.color,
     map(State.fill.opacity, 0, 100, 0, 1, true),
     State.fill.texture_strength,
-    true,
+    true
   );
 }
 
@@ -265,7 +263,7 @@ class FillPolygon {
 
       // Make sure that we always bleed in the selected direction
       let rotationDegrees =
-        (tr_dir[i] ? bleedDirection : -bleedDirection) + rr(-1,1) * 5;
+        (tr_dir[i] ? bleedDirection : -bleedDirection) + rr(-1, 1) * 5;
       let direction = rotate(0, 0, side.x, side.y, rotationDegrees);
 
       // Calculate the middle vertex position
@@ -296,7 +294,7 @@ class FillPolygon {
     // Precalculate stuff
     const numLayers = 24;
     const texture = tex * 3;
-    const int = intensity * (1 + tex/2);
+    const int = intensity * (1 + tex / 2);
 
     // Perform initial setup only once
     Mix.blend(color);

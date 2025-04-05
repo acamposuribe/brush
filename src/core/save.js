@@ -1,5 +1,4 @@
-import { State } from "./config.js";
-import { Mix } from "./color.js";
+import { Mix, State } from "./color.js";
 import { Matrix, BleedField, isFieldReady } from "./flowfield.js";
 
 // =============================================================================

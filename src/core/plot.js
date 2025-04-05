@@ -1,4 +1,4 @@
-import { State } from "./config.js";
+import { State } from "./color.js";
 import { toDegrees, map, rr } from "./utils.js";
 import { Position, isFieldReady } from "./flowfield.js";
 import { E, drawErase } from "./erase.js";

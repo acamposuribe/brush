@@ -27,6 +27,7 @@ body.appendChild(canvas);
 
 // Load brush library
 brush.load("main", canvas);
+
 // Scale brushes to canvas
 brush.scaleBrushes(9);
 
@@ -61,14 +62,11 @@ brush.noiseSeed("hhhaa");
 // Draw Loop
 const draw = () => {
   brush.background(255);
-
   brush.save();
   brush.fillBleed(0.5);
   brush.noStroke();
   brush.fillTexture(0.6, 0.5);
 
-
-  
   for (let i = 0; i < 5; i++) {
     brush.fillStyle(brush.random(palette), 100);
     brush.rect(
@@ -79,10 +77,8 @@ const draw = () => {
       "center"
     );
   }
-    
-  brush.noFill();
 
-  
+  brush.noFill();
 
   brush.set("charcoal", brush.random(palette), 1);
   brush.beginPath(1);
@@ -163,4 +159,5 @@ const draw = () => {
 };
 
 brush.frameRate(10);
+
 brush.loop(draw);

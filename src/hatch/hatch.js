@@ -1,5 +1,4 @@
-import { State } from "../core/config.js";
-import { Mix } from "../core/color.js";
+import { State } from "../core/color.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";

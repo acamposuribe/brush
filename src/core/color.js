@@ -1,6 +1,53 @@
-import { Canvases, Cwidth, Cheight, cID, isCanvasReady } from "./config.js";
 import { gl_worker } from "./workers.js";
 import { constrain } from "./utils.js";
+
+// =============================================================================
+// Section: Configure and Initiate
+// =============================================================================
+/**
+ * This module handles the configuration and initialization of the drawing system.
+ * It manages canvas properties, ensures the system is ready for rendering, and
+ * provides utilities for saving and restoring states.
+ */
+
+const Canvases = {}; // Stores canvas instances by ID
+export let cID, Cwidth, Cheight, Density; // Global canvas properties
+
+/**
+ * Loads and initializes a canvas for the drawing system.
+ * @param {string} canvasID - Unique identifier for the canvas.
+ * @param {HTMLCanvasElement} canvas - The canvas element to initialize.
+ */
+export function load(canvasID, canvas) {
+  cID = canvasID;
+  // Initialize the canvas if it hasn't been registered yet
+  if (!Canvases[cID]) {
+    Canvases[cID] = { canvas };
+  }
+  // Set canvas dimensions
+  Cwidth = Canvases[cID].canvas.width;
+  Cheight = Canvases[cID].canvas.height;
+  _isReady = true;
+  Mix.load();
+}
+
+let _isReady = false;
+
+/**
+ * Ensures the drawing system is ready before any operation.
+ * Automatically loads the system if it hasn't been initialized.
+ */
+function isCanvasReady() {
+  if (!_isReady) {
+    throw new Error("Canvas system is not ready. Call `load()` first.");
+  }
+}
+
+/**
+ * Stores the current state of the drawing system.
+ * Can be used to save and restore configurations or canvas states.
+ */
+export const State = {};
 
 // =============================================================================
 // Section: Color Manager
@@ -179,7 +226,10 @@ export const Mix = {
 
     if (shouldBlend) {
       // Use existing image data or transfer mask to ImageBitmap
-      const imageData = _isImg || this.isBrush ? this.glMask.transferToImageBitmap() : this.mask.transferToImageBitmap();
+      const imageData =
+        _isImg || this.isBrush
+          ? this.glMask.transferToImageBitmap()
+          : this.mask.transferToImageBitmap();
 
       // Send blending data to the worker
       this.worker.postMessage(
@@ -260,24 +310,4 @@ export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
 
   // Blend the image into the canvas
   Mix.blend(false, false, img);
-}
-
-/**
- * Retrieves the canvas as an ImageBitmap.
- * @returns {Promise<ImageBitmap>} A promise that resolves to the canvas as an ImageBitmap.
- */
-export async function getCanvas() {
-  isMixReady();
-
-  // Request the canvas from the worker
-  return new Promise((resolve) => {
-    Mix.worker.postMessage({ get: true });
-
-    // Listen for the worker's response
-    Mix.worker.onmessage = (event) => {
-      if (event.data !== 0) {
-        resolve(event.data.canvas);
-      }
-    };
-  });
 }

@@ -1,5 +1,4 @@
-import { Cwidth, Cheight, State } from "./config.js";
-import { Mix, isMixReady } from "./color.js";
+import { Mix, isMixReady, Cwidth, Cheight, State } from "./color.js";
 import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
 
 // =============================================================================

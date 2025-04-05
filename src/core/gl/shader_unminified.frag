@@ -6,7 +6,6 @@ uniform vec4 u_addColor;
 uniform bool u_isErase;
 uniform bool u_isImage;
 uniform float u_flip;
-uniform bool u_isFBO;
 uniform sampler2D u_source;
 uniform sampler2D u_mask; 
 
@@ -190,12 +189,10 @@ vec4 spectral_mix(vec4 color1, vec4 color2, float t) {
 }
 
 void main(void) {
-    vec2 uv = .5 * vec2(p.x, u_flip * p.y) + .5;
+    vec2 uv = .5 * vec2(p.x, p.y) + .5;
     vec4 source = texture(u_source, uv);
 
-    if (u_isFBO) {
-        outColor = source;
-    } else if (u_isImage) {
+    if (u_isImage) {
         vec4 maskColor = texture(u_mask, uv);
         outColor = maskColor;
     } else {

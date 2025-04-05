@@ -1,5 +1,4 @@
-import { Cwidth, Cheight, State } from "../core/config.js";
-import { Color, Mix } from "../core/color.js";
+import { Color, Mix, Cwidth, Cheight, State } from "../core/color.js";
 import {
   rr,
   map,

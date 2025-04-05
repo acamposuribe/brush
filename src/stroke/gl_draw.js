@@ -1,9 +1,13 @@
-import { Cwidth, Cheight } from "../core/config.js";
-import { Mix } from "../core/color.js";
+import { Mix, Cwidth, Cheight } from "../core/color.js";
 import { isMixReady } from "../core/color.js";
 import { Matrix } from "../core/flowfield.js";
 
 let isLoaded = false;
+let gl, matrix;
+
+/**
+ * Initializes WebGL objects if not done already.
+ */
 export function isReady() {
   if (!isLoaded) {
     isMixReady();
@@ -14,43 +18,30 @@ export function isReady() {
   }
 }
 
-// Vertex shader (GLSL ES 300)
+/**
+ * Vertex shader: Expects a_position (vec2), a_radius (float), and a_alpha (float).
+ * Computes gl_Position from u_matrix and sets gl_PointSize.
+ */
 const vsSource = `#version 300 es
-in vec2 a_position;
-in float a_radius;
-in float a_alpha;
-uniform mat4 u_matrix;
-out float v_alpha;
-void main() {
-  gl_Position = u_matrix * vec4(a_position, 0, 1);
-  v_alpha = a_alpha;
-  gl_PointSize = a_radius * 2.0;
-}
-`;
+in vec2 a_position;in float a_radius,a_alpha;uniform mat4 u_matrix;out float v_alpha;void main(){gl_Position=u_matrix*vec4(a_position,0,1);v_alpha=a_alpha;gl_PointSize=a_radius*2.;}`;
 
+/**
+ * Fragment shader: When u_drawSquare is true, outputs a square.
+ * Otherwise, uses gl_PointCoord to create a circular mask.
+ */
 const fsSource = `#version 300 es
-precision highp float;
-uniform bool u_drawSquare;
-in float v_alpha;
-out vec4 outColor;
-void main() {
-    if(u_drawSquare) {
-      outColor = vec4(vec3(1.,0.,0.) * v_alpha, v_alpha);
-    } else {
-      vec2 coord = gl_PointCoord - vec2(0.5);
-      float d = length(coord);
-      if (d > 0.5) {
-        discard;
-      }
-      float edgeFactor = smoothstep(0.45, 0.5, d);
-      outColor = vec4(vec3(1.,0.,0.) * v_alpha, v_alpha * (1.0 - edgeFactor));
-    }
-}
-`;
+precision highp float;uniform bool u_drawSquare;in float v_alpha;out vec4 outColor;void main(){if(u_drawSquare)outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha);else{vec2 v=gl_PointCoord-vec2(.5);float e=length(v);if(e>.5)discard;outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha*(1.-smoothstep(.45,.5,e)));}}`;
 
+// Attrib & uniform caches.
+const Attr = {},
+  Frag = {};
+
+/**
+ * Creates and compiles a shader program.
+ */
 function createProgram(gl, vert, frag) {
   const p = gl.createProgram();
-  for (let [t, src] of [
+  for (const [t, src] of [
     [gl.VERTEX_SHADER, vert],
     [gl.FRAGMENT_SHADER, frag],
   ]) {
@@ -63,45 +54,37 @@ function createProgram(gl, vert, frag) {
   return p;
 }
 
-let gl, matrix;
-const Attr = {};
-const Frag = {};
-
+/**
+ * Sets up the shader program and caches attribute and uniform locations.
+ */
 function prepareGL() {
   // Create and use shader
   const program = createProgram(gl, vsSource, fsSource);
   gl.useProgram(program);
-
-    // Enable blending for translucency.
-    gl.enable(gl.BLEND);
-
-    // Use additive blending so that new fragments add to the alpha.
-    gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
-    gl.blendEquation(gl.FUNC_ADD);
-
+  // Enable blending for translucency.
+  gl.enable(gl.BLEND);
+  // Use additive blending so that new fragments add to the alpha.
+  gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
   // Define attributes and uniform locations
-  let attr = [
-    "a_position",
-    "a_radius",
-    "a_alpha",
-  ];
-  for (let a of attr) Attr[a] = gl.getAttribLocation(program, a);
-  let uniforms = [
-    "u_matrix",
-    "u_drawSquare",
-  ]
-  for (let u of uniforms) Frag[u] = gl.getUniformLocation(program, u);
+  ["a_position", "a_radius", "a_alpha"].forEach(
+    (n) => (Attr[n] = gl.getAttribLocation(program, n))
+  );
+  ["u_matrix", "u_drawSquare"].forEach(
+    (n) => (Frag[n] = gl.getUniformLocation(program, n))
+  );
 }
 
-// Create an orthographic projection matrix mapping canvas coordinates to clip space.
-function createOrthographicMatrix(width, height) {
+/**
+ * Creates an orthographic projection matrix that maps canvas coordinates to clip space.
+ */
+function createOrthographicMatrix(w, h) {
   return new Float32Array([
-    2 / width,
+    2 / w,
     0,
     0,
     0,
     0,
-    -2 / height,
+    -2 / h,
     0,
     0,
     0,
@@ -116,71 +99,94 @@ function createOrthographicMatrix(width, height) {
 }
 
 /**
- * Draws circles using WebGL2. Each circle has its own alpha.
+ * Helper: Creates a VAO, uploads vertex data, and sets attrib pointers as defined.
+ * @param {Float32Array} data Vertex data.
+ * @param {Array} attribs Array of objects {name, size, offset}.
+ * @param {number} stride Stride (in bytes).
+ * @returns {object} {vao, buf}.
+ */
+function createAndBindBuffer(data, attribs, stride) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  attribs.forEach((a) => {
+    const loc = Attr[a.name];
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, a.size, gl.FLOAT, false, stride, a.offset);
+  });
+  return { vao, buf };
+}
+
+/**
+ * Draws all queued circles (each with its own alpha) using WebGL2.
+ *
+ * This function builds a Float32Array containing four values per circle:
+ *   [x, y, radius, alpha]
+ *
+ * The vertex shader (vsSource) expects:
+ *   - a_position: a vec2 containing the x,y position for each circle.
+ *   - a_radius: a float that is used to determine gl_PointSize (scaled by 2).
+ *   - a_alpha: a float used to control the alpha (transparency) of the circle.
+ *
+ * The function then uploads this array into a vertex buffer and instructs WebGL
+ * to draw the circles as GL_POINTS. The blending mode set in prepareGL() handles
+ * translucency so that overlapping circles properly accumulate alpha.
+ *
+ * After drawing, the circles queue is cleared.
  */
 export function glDraw() {
-
-  // Create and bind VAO.
-  const vao = gl.createVertexArray(isSquare);
-  gl.bindVertexArray(vao);
-
-  // Convert the circle objects into a transferable Float32Array.
-  const circleData = new Float32Array(circles.length * 4);
-  for (let i = 0; i < circles.length; i++) {
-    const offset = i * 4;
-    circleData[offset + 0] = circles[i].x;
-    circleData[offset + 1] = circles[i].y;
-    circleData[offset + 2] = circles[i].radius;
-    circleData[offset + 3] = circles[i].alpha;
-  }
-  circles = [];
-
-  // Create and upload the vertex buffer.
-  const buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, circleData, gl.STATIC_DRAW);
-
-  // Each circle now has 4 floats: x, y, radius, alpha.
+  // Define the stride in bytes: 4 floats per circle.
   const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
-  // a_position (vec2) from offset 0.
-  gl.enableVertexAttribArray(Attr.a_position);
-  gl.vertexAttribPointer(Attr.a_position, 2, gl.FLOAT, false, stride, 0);
-  // a_radius (float) at offset 2 * sizeof(float).
-  gl.enableVertexAttribArray(Attr.a_radius);
-  gl.vertexAttribPointer(
-    Attr.a_radius,
-    1,
-    gl.FLOAT,
-    false,
-    stride,
-    2 * Float32Array.BYTES_PER_ELEMENT
+  // Build a contiguous array of circle vertex data:
+  // Each circle contributes: x, y, radius, alpha.
+  const circleData = new Float32Array(circles.length * 4);
+  // Iterate over each circle in the queue and add its data to circleData.
+  circles.forEach((c, i) => {
+    const offset = i * 4;
+    // Set circle data: position, radius and normalized alpha.
+    circleData.set([c.x, c.y, c.radius, c.alpha], offset);
+  });
+  // Clear the circles array to avoid redrawing on subsequent calls.
+  circles = [];
+  // Create and bind a vertex array object (VAO) along with the associated buffer.
+  // The helper function 'createAndBindBuffer' sets up the attributes using the
+  // 'Attr' locations previously determined.
+  const { vao, buf } = createAndBindBuffer(
+    circleData,
+    [
+      { name: "a_position", size: 2, offset: 0 },
+      { name: "a_radius", size: 1, offset: 2 * Float32Array.BYTES_PER_ELEMENT },
+      { name: "a_alpha", size: 1, offset: 3 * Float32Array.BYTES_PER_ELEMENT },
+    ],
+    stride
   );
-  // a_alpha (float) at offset 3 * sizeof(float).
-  gl.enableVertexAttribArray(Attr.a_alpha);
-  gl.vertexAttribPointer(
-    Attr.a_alpha,
-    1,
-    gl.FLOAT,
-    false,
-    stride,
-    3 * Float32Array.BYTES_PER_ELEMENT
-  );
-
-  // Set uniforms: transformation matrix and base RGB color.
+  // Set the uniform for the projection matrix (u_matrix).
   gl.uniformMatrix4fv(Frag.u_matrix, false, matrix);
-  // Set the boolean uniform for shape type.
+  // Set the shape type flag:
+  // If drawing squares (isSquare true) the shader outputs a square, otherwise a circle.
   gl.uniform1i(Frag.u_drawSquare, isSquare ? 1 : 0);
-
-  // Draw the circles in one call.
-  const circleCount = circleData.length / 4;
+  // Bind the VAO containing our prepared buffer data.
   gl.bindVertexArray(vao);
-  gl.drawArrays(gl.POINTS, 0, circleCount);
+  // Draw the circles as points.
+  //   The number of points equals the number of circles (circleData.length / 4).
+  gl.drawArrays(gl.POINTS, 0, circleData.length / 4);
   gl.bindVertexArray(null);
+  gl.deleteBuffer(buf);
+  gl.deleteVertexArray(vao);
 }
 
 let circles = [];
 let isSquare = false;
 
+/**
+ * Queues a circle to be drawn.
+ * @param {number} x x-coordinate.
+ * @param {number} y y-coordinate.
+ * @param {number} diameter Diameter of the circle.
+ * @param {number} alpha Opacity (0-100).
+ */
 export function circle(x, y, diameter, alpha) {
   isReady();
   const radius = diameter / 2;
@@ -193,6 +199,13 @@ export function circle(x, y, diameter, alpha) {
   isSquare = false;
 }
 
+/**
+ * Queues a square (via point sprite) to be drawn.
+ * @param {number} x x-coordinate.
+ * @param {number} y y-coordinate.
+ * @param {number} size Side length of the square.
+ * @param {number} alpha Opacity (0-100).
+ */
 export function square(x, y, size, alpha) {
   isReady();
   const radius = size / 2 / 1.2;

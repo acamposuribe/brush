@@ -17,12 +17,25 @@ import { prng_alea } from "esm-seedrandom";
  * They can be seeded for determinism.
  */
 let rng = prng_alea(Math.random());
+
+/**
+ * Seed the random number generator.
+ * @param {number|string} s - The seed value.
+ */
 export function seed(s) {
   rng = prng_alea(s);
 }
 
+/**
+ * A noise function based on simplex-noise.
+ */
 let noise_rng = prng_alea(Math.random());
 export let noise = createNoise2D(noise_rng);
+
+/**
+ * Seeds the noise generator.
+ * @param {number|string} s - The seed value.
+ */
 export function noiseSeed(s) {
   noise = createNoise2D(prng_alea(s));
 }
@@ -39,6 +52,12 @@ export function random(e = 0, r = 1) {
   return rr(...arguments);
 }
 
+/**
+ * Returns a random number between min and max.
+ * @param {number} min - The lower bound.
+ * @param {number} max - The upper bound.
+ * @returns {number} The random number.
+ */
 export const rr = (e = 0, r = 1) => e + rng() * (r - e);
 
 /**
@@ -62,14 +81,20 @@ export function gaussian(mean = 0, stdev = 1) {
   return z * stdev + mean;
 }
 
+/**
+ * Generates a pseudo-Gaussian random number by averaging several random values.
+ * @param {number} [mean=0] - Mean value.
+ * @param {number} [stdev=1] - Standard deviation.
+ * @returns {number} The pseudo-Gaussian random number.
+ */
 export function pseudoGaussian(mean = 0, stdev = 1) {
   return mean - stdev * 2 + ((rng() + rng() + rng()) / 3) * stdev * 4;
 }
 
 /**
- * Generates a random value based on weighted probabilities.
- * @param {Object} weights - An object containing values as keys and their probabilities as values.
- * @returns {string} A key randomly chosen based on its weight.
+ * Selects a random key from an object based on weighted probabilities.
+ * @param {Object} weights - Keys with their associated weights.
+ * @returns {string|number} The selected key.
  */
 export function weightedRand(weights) {
   let totalWeight = 0;
@@ -94,13 +119,13 @@ export function weightedRand(weights) {
 
 /**
  * Remaps a number from one range to another.
- * @param {number} value - The number to remap.
- * @param {number} a - The lower bound of the value's current range.
- * @param {number} b- The upper bound of the value's current range.
- * @param {number} c - The lower bound of the value's target range.
- * @param {number} d - The upper bound of the value's target range.
- * @param {boolean} [withinBounds=false] - Whether to constrain the value to the target range.
- * @returns {number} The remapped number.
+ * @param {number} value - The input value.
+ * @param {number} a - Original range lower bound.
+ * @param {number} b - Original range upper bound.
+ * @param {number} c - Target range lower bound.
+ * @param {number} d - Target range upper bound.
+ * @param {boolean} [withinBounds=false] - Constrain to target range if true.
+ * @returns {number} The mapped value.
  */
 export function map(value, a, b, c, d, withinBounds = false) {
   let r = c + ((value - a) / (b - a)) * (d - c);
@@ -113,43 +138,45 @@ export function map(value, a, b, c, d, withinBounds = false) {
 }
 
 /**
- * Constrains a number to be within a range.
- * @param {number} n - The number to constrain.
- * @param {number} low - The lower bound of the range.
- * @param {number} high - The upper bound of the range.
+ * Constrains a number within the provided bounds.
+ * @param {number} n - The number.
+ * @param {number} low - Lower bound.
+ * @param {number} high - Upper bound.
  * @returns {number} The constrained number.
  */
 export function constrain(n, low, high) {
   return Math.max(Math.min(n, high), low);
 }
 
+/**
+ * Normalizes an angle (in degrees) to the range [0, 360).
+ * @param {number} angle - The angle to normalize.
+ * @returns {number} The normalized angle.
+ */
 function nAngle(angle) {
   angle = angle % 360;
   return angle < 0 ? angle + 360 : angle;
 }
 
 /**
- * Calculates the cosine for a given angle using precalculated values.
+ * Returns the cosine of the given angle using precalculated values.
  * @param {number} angle - The angle in degrees.
- * @returns {number} The cosine of the angle.
+ * @returns {number} The cosine value.
  */
 export function cos(angle) {
   return c[~~(4 * nAngle(angle))];
 }
 
 /**
- * Calculates the sine for a given angle using precalculated values.
+ * Returns the sine of the given angle using precalculated values.
  * @param {number} angle - The angle in degrees.
- * @returns {number} The sine of the angle.
+ * @returns {number} The sine value.
  */
 export function sin(angle) {
   return s[~~(4 * nAngle(angle))];
 }
 
-/**
- * Precalculates trigonometric values for improved performance.
- * This function should be called before any trigonometric calculations are performed.
- */
+// Precalculate trigonometric lookup tables for improved performance.
 const totalDegrees = 1440;
 const radiansPerIndex = (2 * Math.PI) / totalDegrees;
 const c = new Float32Array(totalDegrees);
@@ -161,7 +188,9 @@ for (let i = 0; i < totalDegrees; i++) {
 }
 
 /**
- * Changes angles to degrees and between 0-360
+ * Converts an angle from radians to degrees and normalizes it to [0, 360).
+ * @param {number} a - The angle in radians.
+ * @returns {number} The angle in degrees.
  */
 export const toDegrees = (a) => {
   let angle = ((a * 180) / Math.PI) % 360;
@@ -169,33 +198,35 @@ export const toDegrees = (a) => {
 };
 
 /**
- * Calculates distance between two 2D points
+ * Calculates the Euclidean distance between two points.
+ * @param {number} x1 - X-coordinate of the first point.
+ * @param {number} y1 - Y-coordinate of the first point.
+ * @param {number} x2 - X-coordinate of the second point.
+ * @param {number} y2 - Y-coordinate of the second point.
+ * @returns {number} The distance.
  */
 export const dist = (x1, y1, x2, y2) =>
   Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 
 /**
- * Calculates the angle in degrees between two points in 2D space.
- * The angle is measured in a clockwise direction from the positive X-axis.
- *
- * @param {number} x1 - The x-coordinate of the first point.
- * @param {number} y1 - The y-coordinate of the first point.
- * @param {number} x2 - The x-coordinate of the second point.
- * @param {number} y2 - The y-coordinate of the second point.
- * @returns {number} The angle in degrees between the two points.
+ * Calculates the angle in degrees between two points.
+ * @param {number} x1 - X-coordinate of the first point.
+ * @param {number} y1 - Y-coordinate of the first point.
+ * @param {number} x2 - X-coordinate of the second point.
+ * @param {number} y2 - Y-coordinate of the second point.
+ * @returns {number} The angle in degrees measured clockwise from the positive X-axis.
  */
 export const calcAngle = (x1, y1, x2, y2) =>
   toDegrees(Math.atan2(-(y2 - y1), x2 - x1));
 
 /**
- * Calculates the intersection point between two line segments if it exists.
- *
- * @param {Object} s1a - The start point of the first line segment.
- * @param {Object} s1b - The end point of the first line segment.
- * @param {Object} s2a - The start point of the second line segment.
- * @param {Object} s2b - The end point of the second line segment.
- * @param {boolean} [includeSegmentExtension=false] - Whether to include points of intersection not lying on the segments.
- * @returns {Object|boolean} The intersection point as an object with 'x' and 'y' properties, or 'false' if there is no intersection.
+ * Computes the intersection point between two line segments if it exists.
+ * @param {Object} s1a - Start point of the first segment { x, y }.
+ * @param {Object} s1b - End point of the first segment { x, y }.
+ * @param {Object} s2a - Start point of the second segment { x, y }.
+ * @param {Object} s2b - End point of the second segment { x, y }.
+ * @param {boolean} [includeSegmentExtension=false] - Allow intersections outside segment bounds.
+ * @returns {Object|boolean} The intersection point { x, y } or false if none exists.
  */
 export function intersectLines(
   s1a,
@@ -238,6 +269,15 @@ export function intersectLines(
   return { x: x, y: y };
 }
 
+/**
+ * Rotates a point (x, y) around a center (cx, cy) by the given angle.
+ * @param {number} cx - X-coordinate of the center.
+ * @param {number} cy - Y-coordinate of the center.
+ * @param {number} x - X-coordinate of the point.
+ * @param {number} y - Y-coordinate of the point.
+ * @param {number} angle - Rotation angle in degrees.
+ * @returns {Object} The rotated point { x, y }.
+ */
 export function rotate(cx, cy, x, y, angle) {
   let coseno = cos(angle),
     seno = sin(angle),
@@ -246,6 +286,11 @@ export function rotate(cx, cy, x, y, angle) {
   return { x: nx, y: ny };
 }
 
+/**
+ * Creates a shallow clone of an array of arrays.
+ * @param {Array} array - The array to clone.
+ * @returns {Array} A new array where each element is a shallow copy of the corresponding element in the input.
+ */
 export function cloneArray(array) {
   return array.map(function (arr) {
     return arr.slice();

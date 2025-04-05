@@ -1,4 +1,4 @@
-import { State } from "./config.js";
+import { State } from "./color.js";
 import { intersectLines } from "./utils.js";
 import { E, drawErase } from "./erase.js";
 

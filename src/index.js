@@ -36,9 +36,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-// Section: Configure and Initiate
-export { load } from "./core/config.js";
-
 // Randomness and other auxiliary functions
 export {
   random,
@@ -49,7 +46,7 @@ export {
 } from "./core/utils.js";
 
 // Color Blending
-export { background, drawImage, getCanvas, Color } from "./core/color.js";
+export { load, background, drawImage, Color } from "./core/color.js";
 
 // Matrix transformations, FlowField and Position Class
 export {
