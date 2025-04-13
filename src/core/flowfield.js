@@ -205,9 +205,9 @@ export class Position {
    * @param {number} y - The y-coordinate.
    * @returns {number} - The row index.
    */
-  static getRowIndex(y) {
+  static getRowIndex(y, d = 1) {
     const y_offset = y + Matrix.y - top_y;
-    return Math.round(y_offset / resolution);
+    return Math.round(y_offset / resolution / d);
   }
 
   /**
@@ -215,9 +215,9 @@ export class Position {
    * @param {number} x - The x-coordinate.
    * @returns {number} - The column index.
    */
-  static getColIndex(x) {
+  static getColIndex(x, d = 1) {
     const x_offset = x + Matrix.x - left_x;
-    return Math.round(x_offset / resolution);
+    return Math.round(x_offset / resolution / d);
   }
 
   /**
@@ -285,10 +285,10 @@ export function refreshField(t = 0) {
  * Reuses existing arrays to reduce memory allocation overhead.
  * @returns {Float32Array[]} Empty vector field grid.
  */
-function genField() {
-  return new Array(num_columns)
+function genField(d = 1) {
+  return new Array(num_columns / d)
     .fill(null)
-    .map(() => new Float32Array(num_rows));
+    .map(() => new Float32Array(num_rows / d));
 }
 
 /**
@@ -332,19 +332,6 @@ export function listFields() {
  * Adds standard predefined vector fields to the list with unique behaviors.
  */
 function addStandard() {
-  addField("curved", function (t, field) {
-    const angleRange = randInt(-20, -10) * (randInt(0, 100) % 2 === 0 ? -1 : 1);
-    const noiseFactor = 0.01;
-    const timeFactor = t * 0.03;
-    for (let column = 0; column < num_columns; column++) {
-      const columnNoise = column * noiseFactor + timeFactor;
-      for (let row = 0; row < num_rows; row++) {
-        const noise_val = noise(columnNoise, row * noiseFactor + timeFactor);
-        field[column][row] = map(noise_val, 0.0, 1.0, -angleRange, angleRange);
-      }
-    }
-    return field;
-  });
   addField("hand", function (t, field) {
     const baseSize = rr(0.2, 0.8);
     const baseAngle = randInt(5, 10);
@@ -388,13 +375,16 @@ function addStandard() {
  * and retrieve field values.
  */
 export const BleedField = {
+
+  d: 4, // The density of the bleed field
+
   /**
    * Generates the primary and temporary fields for the bleed effect.
    * Reuses existing arrays to reduce memory allocation overhead.
    */
   genField() {
-    this.field = genField(); // Primary field
-    this.fieldTemp = genField(); // Temporary field for intermediate calculations
+    this.field = genField(this.d); // Primary field
+    this.fieldTemp = genField(this.d); // Temporary field for intermediate calculations
   },
 
   /**
@@ -407,8 +397,8 @@ export const BleedField = {
    * @returns {number} - The current or updated value at the position.
    */
   get(x, y, value = false) {
-    const col = Position.getColIndex(x);
-    const row = Position.getRowIndex(y);
+    const col = Position.getColIndex(x, this.d);
+    const row = Position.getRowIndex(y, this.d);
     // Retrieve the current value at the position
     const current = this.field?.[col]?.[row] ?? 0;
     if (value) {
@@ -426,8 +416,8 @@ export const BleedField = {
    * This operation is performed in-place to avoid unnecessary memory allocation.
    */
   update() {
-    for (let col = 0; col < num_columns; col++) {
-      for (let row = 0; row < num_rows; row++) {
+    for (let col = 0; col < num_columns / this.d; col++) {
+      for (let row = 0; row < num_rows / this.d; row++) {
         this.field[col][row] = this.fieldTemp[col][row];
       }
     }

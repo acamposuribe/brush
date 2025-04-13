@@ -39,13 +39,11 @@ export class Polygon {
     if (this._intersectionCache[cacheKey]) {
       return this._intersectionCache[cacheKey];
     }
-
     const points = [];
     for (const [start, end] of this.sides) {
       const intersection = intersectLines(line.point1, line.point2, start, end);
       if (intersection) points.push(intersection);
     }
-
     this._intersectionCache[cacheKey] = points; // Cache the result
     return points;
   }

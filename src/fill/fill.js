@@ -314,9 +314,15 @@ class FillPolygon {
     // Perform initial setup only once
     Mix.blend(color);
     Mix.ctx.save();
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + int + "%)";
+    Mix.ctx.fillStyle = "rgb(255 0 0 / " + 2 * int + "%)";
     Mix.ctx.strokeStyle =
-      "rgb(255 0 0 / " + 0.008 * State.fill.border_strength + ")";
+      "rgb(255 0 0 / " + 0.01 * State.fill.border_strength + ")";
+
+    const size = Math.max(this.sizeX, this.sizeY);
+
+    Mix.ctx.lineCap = "round";
+
+    const darker = rr(0.15,0.7);
 
     // Set the different polygons for texture
     let pol = this.grow(),
@@ -332,10 +338,10 @@ class FillPolygon {
       ];
 
       // Draw layers
-      for (let p of pols) p.grow(997).grow().layer(i);
-      pol.grow(0.1).grow(999).layer(i);
-      if (i % 4 === 0 || i === numLayers - 1) {
-        if (texture !== 0) pol.erase(texture * 5, intensity);
+      for (let p of pols) p.grow(997).grow().layer(i, size);
+      pol.grow(darker).grow(999).layer(i, size);
+      if (i % 6 === 0 || i === numLayers - 1) {
+        if (texture !== 0) pol.erase(texture * 4, intensity);
         Mix.blend(color, true, false, true);
       }
     }
@@ -347,13 +353,14 @@ class FillPolygon {
    * Draws a layer of the fill polygon with stroke and fill.
    * @param {number} i - The layer index.
    */
-  layer(i) {
-    const size = Math.max(this.sizeX, this.sizeY);
-    Mix.ctx.lineWidth = map(i, 0, 24, size / 30, size / 45, true);
+  layer(i, size) {
+    Mix.ctx.lineWidth = map(i, 0, 24, size / 25, size / 30, true);
     // Set fill and stroke properties once
     drawPolygon(this.v);
-    Mix.ctx.stroke();
     Mix.ctx.fill();
+    
+    Mix.ctx.stroke();
+
   }
 
   /**
@@ -364,17 +371,17 @@ class FillPolygon {
   erase(texture, intensity) {
     Mix.ctx.save();
     // Cache local values to avoid repeated property lookups
-    let numCircles = rr(60, 100) * map(texture, 0, 1, 2, 3);
+    let numCircles = rr(60, 80) * map(texture, 0, 1, 2, 3);
     const halfSizeX = this.sizeX / 1.8;
     const halfSizeY = this.sizeY / 1.8;
     const minSize =
       Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
-    const minSizeFactor = 0.03 * minSize;
-    const maxSizeFactor = 0.3 * minSize;
+    const minSizeFactor = 0.05 * minSize;
+    const maxSizeFactor = 0.4 * minSize;
     const midX = this.midP.x;
     const midY = this.midP.y;
     Mix.ctx.globalCompositeOperation = "destination-out";
-    let i = (5 - map(intensity, 80, 120, 0.3, 2, true)) * texture;
+    let i = (5 - map(intensity, 80, 100, 0.3, 1, true)) * texture;
     Mix.ctx.fillStyle = "rgb(255 0 0 / " + i / 255 + ")";
     Mix.ctx.lineWidth = 0;
     for (let i = 0; i < numCircles; i++) {
@@ -433,7 +440,7 @@ Polygon.prototype.fill = function (
 Plot.prototype.fill = function (x, y, scale) {
   if (FillState().isActive) {
     if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-    this.pol = this.genPol(x, y, scale, State.fill.bleed_strength * 3);
+    this.pol = this.genPol(x, y, scale, map(State.fill.bleed_strength,0,0.6,0.2,0.45));
     this.pol.fill();
   }
 };

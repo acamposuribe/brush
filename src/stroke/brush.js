@@ -261,12 +261,9 @@ function tip(customPressure = false) {
   let pressure = customPressure || calculatePressure();
   pressure *=
     1 -
-    0.3 *
-      noise(
-        _position.x * 0.007 + current.seed,
-        _position.y * 0.007 + current.seed
-      ) -
-    0.1 * noise(_position.x * 0.002, _position.y * 0.002);
+    0.4 *
+      noise(_position.plotted * 0.01 + current.seed, 1) -
+    0.3 * noise(_position.x * 0.003, _position.y * 0.003);
 
   switch (current.p.type) {
     case "spray":

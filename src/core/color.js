@@ -175,13 +175,13 @@ export const Mix = {
     if (!Canvases[cID].worker) {
       const ca = Canvases[cID];
 
-      // Create 2d offscreen mask
+      // Create offscreen masks
       ca.mask = new OffscreenCanvas(Cwidth, Cheight);
       ca.glMask = new OffscreenCanvas(Cwidth, Cheight);
       ca.ctx = ca.mask.getContext("2d");
       ca.gl = ca.glMask.getContext("webgl2");
       ca.ctx.lineWidth = 0;
-
+      
       // Create an offscreen WebGL canvas and link it to the main canvas
       ca.offscreen = Canvases[cID].canvas.transferControlToOffscreen();
 
@@ -194,11 +194,7 @@ export const Mix = {
     }
 
     // Store references to the mask, context, and worker
-    this.mask = Canvases[cID].mask;
-    this.glMask = Canvases[cID].glMask;
-    this.ctx = Canvases[cID].ctx;
-    this.gl = Canvases[cID].gl;
-    this.worker = Canvases[cID].worker;
+    Object.assign(this, Canvases[cID]);
   },
 
   /**
@@ -240,6 +236,7 @@ export const Mix = {
           isErase: this.isErase,
           isImage: Boolean(_isImg),
           sp: _isFillLayer,
+          isBrush: this.isBrush,
         },
         [imageData]
       );

@@ -72,6 +72,7 @@ export const gl_worker = () =>
         "u_source",
         "u_mask",
         "u_isImage",
+        "u_isBrush"
       ];
       for (let u of uniforms) sh[u] = gl.getUniformLocation(pr, u);
 
@@ -167,7 +168,8 @@ export const gl_worker = () =>
       // Draw to framebuffer
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.target.fbo);
       // Uniforms
-      gl.uniform1i(sh.u_isImage, data.isImage ? true : false);
+      gl.uniform1i(sh.u_isImage, data.isImage ? 1 : 0);
+      gl.uniform1i(sh.u_isBrush, data.isBrush ? 1 : 0);
       if (!data.isImage) {
         gl.uniform1i(sh.u_isImage, false);
         gl.uniform4f(sh.u_addColor, ...data.addColor);

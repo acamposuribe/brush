@@ -5,6 +5,7 @@ precision highp float;
 uniform vec4 u_addColor;
 uniform bool u_isErase;
 uniform bool u_isImage;
+uniform bool u_isBrush;
 uniform sampler2D u_source;
 uniform sampler2D u_mask; 
 
@@ -199,7 +200,42 @@ void main(void) {
                 float blacken = 0.5 * (maskColor.a - darken_above);
                 pigment = pigment * (1. - blacken) - vec4(0.5) * blacken;
             }
-            vec3 mixedColor = spectral_mix(source.xyz, pigment.xyz, maskColor.a);
+
+            float mixIntensity = maskColor.a;
+
+            if (!u_isBrush) {
+
+                // Compute texel size (if your mask texture dimensions are known)
+                vec2 texelSize = 1.0 / vec2(textureSize(u_mask, 0));
+
+                // Backruns: detect edge at current uv
+                float scaleFactor = 15.0;
+                float scaledAlpha = maskColor.a * scaleFactor;
+                float edge = length(vec2(dFdx(scaledAlpha), dFdy(scaledAlpha)));
+                float edgeCenter = smoothstep(0.05, 0.35, edge);
+
+                // Sample neighbors to blur the edge detection
+                float blurEdge = 0.0;
+                float totalSamples = 0.0;
+                for (int i = -2; i <= 2; i++) {
+                    for (int j = -2; j <= 2; j++) {
+                        vec2 offset = vec2(float(i), float(j)) * texelSize;
+                        // Add a small distortion offset from noise
+                        vec2 sampleUV = uv + offset;
+                        float neighborAlpha = texture(u_mask, sampleUV).a * scaleFactor;
+                        float neighborEdge = length(vec2(dFdx(neighborAlpha), dFdy(neighborAlpha)));
+                        blurEdge += smoothstep(0.05, 0.35, neighborEdge);
+                        totalSamples += 1.0;
+                    }
+                }
+                blurEdge /= totalSamples;
+                
+                // Use the blurred edge value to boost mixIntensity.
+                mixIntensity = clamp(maskColor.a + blurEdge * 0.2, 0.0, 1.0);
+
+            }
+
+            vec3 mixedColor = spectral_mix(source.rgb, pigment.rgb, mixIntensity);
             outColor = vec4(mixedColor, 1);
         } else {
             outColor = source;

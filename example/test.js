@@ -56,27 +56,29 @@ function hatchRect(x, y, w, l, angle, color) {
   brush.restore();
 }
 
-//brush.seed("hola");
+//brush.seed("hola")
 brush.noiseSeed("hhhaa");
 
 // Draw Loop
 const draw = () => {
   brush.background(255);
   brush.save();
-  brush.fillBleed(0.5);
+  
   brush.noStroke();
-  brush.fillTexture(0.6, 0.5);
+  
+  let bleed = 0.5
 
   for (let i = 0; i < 5; i++) {
-    brush.fillStyle(brush.random(palette), 100);
-    brush.rect(
-      brush.random(400, canvas.width - 400),
-      brush.random(400, canvas.height - 400),
-      brush.random(400, 600),
-      brush.random(400, 800),
-      "center"
-    );
+    for (let j = 0; j < 5; j++) {
+      brush.fillBleed(bleed);
+      brush.fillTexture(brush.random(0.5,0.75), brush.random(0.6,0.7));
+      brush.fillStyle(brush.random(palette), brush.random(40,100));
+      brush.rect(300 + i * (canvas.width - 600) / 4, 400 + j * (canvas.height - 800) / 4,300,400,"center");
+      bleed += 0;
+    }
   }
+  
+  /*
 
   brush.noFill();
 
@@ -152,6 +154,8 @@ const draw = () => {
       "center"
     );
   }
+
+  */
 
   brush.restore();
 
