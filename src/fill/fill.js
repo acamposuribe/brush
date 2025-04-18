@@ -21,7 +21,7 @@ import {
   map,
   randInt,
   gaussian,
-  pseudoGaussian,
+  random,
   rotate,
 } from "../core/utils.js";
 import { BleedField, isFieldReady } from "../core/flowfield.js";
@@ -172,6 +172,10 @@ function calcCenter(pts) {
 // ---------------------------------------------------------------------------
 // FillPolygon Class
 // ---------------------------------------------------------------------------
+
+const gaussiansA = []
+const gaussiansB = []
+
 /**
  * The FillPolygon class is used to create and manage the properties of the polygons that produces
  * the watercolor effect. It includes methods to grow (expand) the polygon and apply layers
@@ -188,19 +192,21 @@ class FillPolygon {
    * @param {boolean[]} dir - Array indicating bleed direction per vertex.
    * @param {boolean} isFirst - True for initial polygon.
    */
-  constructor(_v, _m, _center, dir, isFirst) {
+  constructor(_v, _m, _center, dir, isFirst, sizeX, sizeY) {
     this.v = _v;
     this.dir = dir;
     this.m = _m;
     this.midP = _center;
-    this.sizeX = -Infinity;
-    this.sizeY = -Infinity;
-    for (let v of this.v) {
-      this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
-      this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
-    }
+    this.sizeX = sizeX;
+    this.sizeY = sizeY;
     // Calculate bleed direction for the initial shape.
     if (isFirst) {
+      this.sizeX = -Infinity;
+      this.sizeY = -Infinity;
+      for (let v of this.v) {
+        this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
+        this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
+      }
       for (let i = 0; i < this.v.length; i++) {
         const v1 = this.v[i];
         const v2 = this.v[(i + 1) % this.v.length];
@@ -247,56 +253,59 @@ class FillPolygon {
    * @returns {FillPolygon} A new FillPolygon with adjusted vertices.
    */
   grow(growthFactor = 1) {
-    const newVerts = [];
-    const newMods = [];
-    const newDirs = [];
-
-    // Determine the length of vertices to process based on growth factor
-    // Cache trimmed arrays and their length
-    const trimmed = this.trim(growthFactor);
-    const tr_v = trimmed.v,
-      tr_m = trimmed.m,
-      tr_dir = trimmed.dir;
+    const { v: tr_v, m: tr_m, dir: tr_dir } = this.trim(growthFactor);
     const len = tr_v.length;
-    const bleedDirection = State.fill.direction === "out" ? -90 : 90;
-    let cond = false;
-    if (growthFactor === 999) cond = rr(0.2, 0.6);
-    else if (growthFactor === 997) cond = State.fill.bleed_strength / 1.7;
-    // Loop through each vertex to calculate the new position based on growth
+    const outLen = len * 2;
+    const newVerts = new Array(outLen);
+    const newMods  = new Array(outLen);
+    const newDirs  = new Array(outLen);
+
+    const bleedDirDeg = State.fill.direction === "out" ? -90 : 90;
+    // handle special growth cases inline
+
+    let idx = 0;
+
+    let mod = growthFactor === 999 ? rr(0.2, 0.6) : State.fill.bleed_strength / 1.7;
+    
     for (let i = 0; i < len; i++) {
-      const currentVertex = tr_v[i];
-      const nextVertex = tr_v[(i + 1) % len];
-      // Determine the growth modifier
-      let mod =
-        cond || BleedField.get(currentVertex.x, currentVertex.y, tr_m[i]);
+      // compute two gaussians if necessary
+      if (gaussiansA.length < len * 1.5) {
+        gaussiansA.push(gaussian(0.5, 0.2));
+        gaussiansB.push(gaussian(0, 0.02));
+      }
 
-      // Calculate side
-      let side = {
-        x: nextVertex.x - currentVertex.x,
-        y: nextVertex.y - currentVertex.y,
+      const cv = tr_v[i];
+      // next vertex (wrap at end)
+      const nv = (i + 1 < len ? tr_v[i + 1] : tr_v[0]);
+
+      // compute modifier
+      if (growthFactor < 997) mod = BleedField.get(cv.x, cv.y, tr_m[i]);
+
+      // rotation in degrees, using utils.rotate
+      const rotDeg =
+        (tr_dir[i] ? bleedDirDeg : -bleedDirDeg) + rr(-1, 1) * 5;
+      const sideX = nv.x - cv.x, sideY = nv.y - cv.y;
+      const { x: dirX, y: dirY } = rotate(0, 0, sideX, sideY, rotDeg);
+      
+      // pick a random point along the edge
+      const t = rr(0.35, 0.65);
+      // compute outward distance
+      const d = random(gaussiansA) * rr(0.65, 1.35) * mod;
+
+      // first vertex: stay at cv
+      newVerts[idx] = cv;
+      newMods[idx]  = tr_m[i];
+      newDirs[idx++] = tr_dir[i];
+
+      // second vertex: offset by lerp + outward push
+      newVerts[idx] = {
+        x: cv.x + sideX * t + dirX * d,
+        y: cv.y + sideY * t + dirY * d,
       };
-
-      // Make sure that we always bleed in the selected direction
-      let rotationDegrees =
-        (tr_dir[i] ? bleedDirection : -bleedDirection) + rr(-1, 1) * 5;
-      let direction = rotate(0, 0, side.x, side.y, rotationDegrees);
-
-      // Calculate the middle vertex position
-      let lerp = rr(0.35, 0.65);
-      let mult = gaussian(0.5, 0.2) * rr(0.65, 1.35) * mod;
-
-      // Calculate the new vertex position
-      let newVertex = {
-        x: currentVertex.x + side.x * lerp + direction.x * mult,
-        y: currentVertex.y + side.y * lerp + direction.y * mult,
-      };
-
-      // Add the new vertex and its modifier
-      newVerts.push(currentVertex, newVertex);
-      newMods.push(tr_m[i], tr_m[i] + pseudoGaussian(0, 0.02));
-      newDirs.push(tr_dir[i], tr_dir[i]);
+      newMods[idx]  = tr_m[i] + random(gaussiansB);
+      newDirs[idx++] = tr_dir[i];
     }
-    return new FillPolygon(newVerts, newMods, this.midP, newDirs);
+    return new FillPolygon(newVerts, newMods, this.midP, newDirs, false, this.sizeX, this.sizeY);
   }
 
   /**
@@ -358,9 +367,7 @@ class FillPolygon {
     // Set fill and stroke properties once
     drawPolygon(this.v);
     Mix.ctx.fill();
-    
     Mix.ctx.stroke();
-
   }
 
   /**

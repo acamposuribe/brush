@@ -50,6 +50,37 @@ export const gl_worker = () =>
       return p;
     };
 
+        /**
+     * Creates a texture and allocates storage based on the canvas dimensions.
+     * @returns {WebGLTexture} The created texture.
+     */
+        function createTexture() {
+          const tex = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, canvas.width, canvas.height);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          return tex;
+        }
+
+            /**
+     * Creates a framebuffer object (FBO) with an associated texture.
+     * @returns {{texture: WebGLTexture, fbo: WebGLFramebuffer}} An object containing the texture and FBO.
+     */
+    function createFBO() {
+      let texture = createTexture();
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        texture,
+        0
+      );
+      return { texture, fbo: fb };
+    }
+
     /**
      * Prepares the WebGL context:
      * - Initializes WebGL2 with antialiasing disabled.
@@ -62,19 +93,20 @@ export const gl_worker = () =>
       gl = canvas.getContext("webgl2", { antialias: false });
 
       // Compile shader
-      const pr = createProgram(gl, vsSource, fsSource);
-      gl.useProgram(pr);
+      const mainProg = createProgram(gl, vsSource, fsSource);
+      gl.useProgram(mainProg);
 
       // Cache uniform locations used by the fragment shader.
-      let uniforms = [
+      [
         "u_addColor",
         "u_isErase",
-        "u_source",
-        "u_mask",
         "u_isImage",
-        "u_isBrush"
-      ];
-      for (let u of uniforms) sh[u] = gl.getUniformLocation(pr, u);
+        "u_isBrush",
+        "u_source",
+        "u_mask"
+      ].forEach((name) => {
+        sh[name] = gl.getUniformLocation(mainProg, name);
+      });
 
       // Create texture and framebuffer objects.
       sh.mask = createTexture();
@@ -88,35 +120,6 @@ export const gl_worker = () =>
       gl.bindTexture(gl.TEXTURE_2D, sh.mask);
       gl.uniform1i(sh.u_source, 0);
       gl.uniform1i(sh.u_mask, 1);
-    }
-
-    /**
-     * Creates a framebuffer object (FBO) with an associated texture.
-     * @returns {{texture: WebGLTexture, fbo: WebGLFramebuffer}} An object containing the texture and FBO.
-     */
-    function createFBO() {
-      let targetTexture = createTexture();
-      const fb = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        targetTexture,
-        0
-      );
-      return { texture: targetTexture, fbo: fb };
-    }
-
-    /**
-     * Creates a texture and allocates storage based on the canvas dimensions.
-     * @returns {WebGLTexture} The created texture.
-     */
-    function createTexture() {
-      const texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, canvas.width, canvas.height);
-      return texture;
     }
 
     /**

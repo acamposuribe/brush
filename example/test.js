@@ -68,6 +68,8 @@ const draw = () => {
   
   let bleed = 0.5
 
+  /*
+
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
       brush.fillBleed(bleed);
@@ -77,8 +79,10 @@ const draw = () => {
       bleed += 0;
     }
   }
+
+  */
   
-  /*
+
 
   brush.noFill();
 
@@ -155,7 +159,7 @@ const draw = () => {
     );
   }
 
-  */
+  
 
   brush.restore();
 

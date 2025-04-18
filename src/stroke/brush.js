@@ -21,6 +21,7 @@ import {
   toDegrees,
   gaussian,
   noise,
+  random
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -190,6 +191,8 @@ function initializeDrawingState(x, y, length, flow, plot) {
   if (_plot) _plot.calcIndex(0);
 }
 
+const gaussians = [];
+
 /**
  * Executes the drawing operation.
  * @param {number} angleScale - Angle (in degrees) or scaling factor.
@@ -204,6 +207,7 @@ function draw(angleScale, isPlot) {
     (_length * (isPlot ? angleScale : 1)) / stepSize
   );
   for (let i = 0; i < totalSteps; i++) {
+    if (gaussians.length < totalSteps * 2) { gaussians.push(gaussian()); }
     tip();
     isPlot
       ? _position.plotTo(
@@ -261,9 +265,9 @@ function tip(customPressure = false) {
   let pressure = customPressure || calculatePressure();
   pressure *=
     1 -
-    0.4 *
+    0.2 *
       noise(_position.plotted * 0.01 + current.seed, 1) -
-    0.3 * noise(_position.x * 0.003, _position.y * 0.003);
+    0.2 * noise(_position.x * 0.003, _position.y * 0.003);
 
   switch (current.p.type) {
     case "spray":
@@ -394,7 +398,7 @@ function spacing() {
 function drawSpray(pressure) {
   const vibration =
     State.stroke.weight * current.p.vibration * pressure +
-    (State.stroke.weight * gaussian() * current.p.vibration) / 3;
+    (State.stroke.weight * random(gaussians) * current.p.vibration) / 3;
   const sw = State.stroke.weight * rr(0.9, 1.1);
   const iterations = Math.ceil(current.p.quality / pressure);
   for (let j = 0; j < iterations; j++) {
@@ -454,7 +458,7 @@ function drawDefault(pressure) {
     State.stroke.weight *
     current.p.vibration *
     (current.p.definition +
-      ((1 - current.p.definition) * gaussian() * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
+      ((1 - current.p.definition) * random(gaussians) * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
         pressure);
   if (rr(0, current.p.quality * pressure) > 0.4) {
     square(
