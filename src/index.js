@@ -111,7 +111,7 @@ export {
   noClip,
   line,
   stroke,
-} from "./stroke/brush.js";
+} from "./stroke/stroke.js";
 
 // Section: Hatching
 export {

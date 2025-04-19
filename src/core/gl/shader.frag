@@ -205,7 +205,7 @@ void main(void) {
 
             if (!u_isBrush) {
 
-                // Compute texel size (if your mask texture dimensions are known)
+                // Compute texel size
                 vec2 texelSize = 1.0 / vec2(textureSize(u_mask, 0));
 
                 // Backruns: detect edge at current uv

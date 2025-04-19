@@ -3,6 +3,7 @@
 import terser from "@rollup/plugin-terser";
 import cleanup from "rollup-plugin-cleanup";
 import resolve from "@rollup/plugin-node-resolve";
+import glslify from 'rollup-plugin-glslify';
 
 const config = {
   input: "src/index.js",
@@ -11,16 +12,25 @@ const config = {
       file: "example/brush.js",
       format: "umd",
       name: "brush",
+      sourcemap: true,
     },
     {
       file: "dist/brush.js",
       format: "umd",
       name: "brush",
+      sourcemap: true,
+    },
+    {
+      file: "dist/brush.esm.js",
+      format: "es",
+      sourcemap: true,
     },
   ],
   plugins: [
-    resolve({
-      browser: true,
+    resolve({ browser: true }),
+    glslify({
+      include: ["src/core/gl/shader.vert", "src/core/gl/shader.frag"],
+      compress: true,
     }),
     terser({
       module: true,
@@ -31,9 +41,7 @@ const config = {
         toplevel: true,
       },
     }),
-    cleanup({
-      comments: "none",
-    }),
+    cleanup({ comments: "none" }),
   ],
 };
 

@@ -18,7 +18,7 @@ import { State } from "../core/color.js";
 import { toDegrees, map, cos, sin, rr } from "../core/utils.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
-import { BrushState, BrushSetState, set, line } from "../stroke/brush.js";
+import { BrushState, BrushSetState, set, line } from "../stroke/stroke.js";
 
 // ---------------------------------------------------------------------------
 // Hatch State and Helpers

@@ -18,7 +18,7 @@ brush.js is a javascript library dedicated to the creation and management of cus
 To set up your project, add `brush.js` to your HTML file. You can download the last version of the brush.js library in the [dist](/dist) folder.
 
 ```html
-<!-- Commented version of brush.js, with a Spectral.js dependency -->
+<!-- via <script> tag (UMD build, exposes `brush` global) -->
 <script src="path_to/brush.js"></script>
 ```
 Replace path_to with the actual path to the script in your project directory or the URL if you are using a CDN.
@@ -43,7 +43,15 @@ npm install @acamposuribe/brush --save
 After that, import brush functions to your sketch:
 
 ```
-import * as brush from '@acamposuribe/brush'
+// ES‑module import (tree‑shaking enabled)
+import brush from '@acamposuribe/brush'
+// or pick & choose named exports:
+// import { load, circle, fillStyle } from "@acamposuribe/brush";
+```
+
+```
+// CommonJS (Node.js / older bundlers)
+const brush = require("@acamposuribe/brush");
 ```
 
 ### Load the brush.js library

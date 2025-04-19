@@ -21,7 +21,7 @@ import {
   map,
   randInt,
   gaussian,
-  random,
+  rArray,
   rotate,
 } from "../core/utils.js";
 import { BleedField, isFieldReady } from "../core/flowfield.js";
@@ -290,7 +290,7 @@ class FillPolygon {
       // pick a random point along the edge
       const t = rr(0.35, 0.65);
       // compute outward distance
-      const d = random(gaussiansA) * rr(0.65, 1.35) * mod;
+      const d = rArray(gaussiansA) * rr(0.65, 1.35) * mod;
 
       // first vertex: stay at cv
       newVerts[idx] = cv;
@@ -302,7 +302,7 @@ class FillPolygon {
         x: cv.x + sideX * t + dirX * d,
         y: cv.y + sideY * t + dirY * d,
       };
-      newMods[idx]  = tr_m[i] + random(gaussiansB);
+      newMods[idx]  = tr_m[i] + rArray(gaussiansB);
       newDirs[idx++] = tr_dir[i];
     }
     return new FillPolygon(newVerts, newMods, this.midP, newDirs, false, this.sizeX, this.sizeY);

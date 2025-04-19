@@ -1,78 +1,84 @@
+// =============================================================================
+// Section: Randomness & Noise
+// =============================================================================
+
 import { createNoise2D } from "simplex-noise";
 import { prng_alea } from "esm-seedrandom";
 
-// =============================================================================
-// Section: Randomness and other auxiliary functions
-// =============================================================================
 /**
- * This section includes utility functions for randomness, mapping values,
- * constraining numbers within a range, and precalculated trigonometric values
- * to optimize performance. Additionally, it provides auxiliary functions for
- * geometric calculations such as translation extraction, line intersection,
- * and angle calculation.
+ * A uniform PRNG function. Returns a float in [0,1).
+ * @callback RNG
+ * @returns {number}
  */
-
-/**
- * The basic sources of randomness for random and noise
- * They can be seeded for determinism.
- */
+/** @type {RNG} */
 let rng = prng_alea(Math.random());
 
 /**
  * Seed the random number generator.
- * @param {number|string} s - The seed value.
+ * @param {number|string} s – The seed value.
+ * @returns {void}
  */
 export function seed(s) {
   rng = prng_alea(s);
 }
 
 /**
- * A noise function based on simplex-noise.
+ * Simplex‐noise 2D function.
+ * @type {function(number, number): number}
  */
-let noise_rng = prng_alea(Math.random());
-export let noise = createNoise2D(noise_rng);
+export let noise = createNoise2D(prng_alea(Math.random()));
 
 /**
- * Seeds the noise generator.
+ * Seed the noise generator.
  * @param {number|string} s - The seed value.
+ * @returns {void}
  */
 export function noiseSeed(s) {
   noise = createNoise2D(prng_alea(s));
 }
 
 /**
- * Generates a random number within a specified range.
- * @param {number | Array} [min=0] - The lower bound of the range or an Array.
- * @param {number} [max=1] - The upper bound of the range.
- * @returns {number} A random number within the specified range or a random element of an array.
+ * Returns a random float in [min, max).
+ * @param {number} [min=0]
+ * @param {number} [max=1]
+ * @returns {number}
+ */
+export const rr = (e = 0, r = 1) => e + rng() * (r - e);
+
+/**
+ * Selects a random element from an array.
+ * @param {T[]} array - Input array.
+ * @returns {T}
+ */
+export function rArray(array) {
+  return array[~~(rng() * array.length)]
+}
+
+/**
+ * Generates a random number or picks a random array element.
+ * @param {number|Array} [minOrArr=0]
+ * @param {number} [max=1]
+ * @returns {number}
  */
 export function random(e = 0, r = 1) {
-  if (Array.isArray(e)) return e[~~(rng() * e.length)];
+  if (Array.isArray(e)) return rArray(e);
   if (arguments.length === 1) return rng() * e;
   return rr(...arguments);
 }
 
 /**
- * Returns a random number between min and max.
- * @param {number} min - The lower bound.
- * @param {number} max - The upper bound.
- * @returns {number} The random number.
- */
-export const rr = (e = 0, r = 1) => e + rng() * (r - e);
-
-/**
- * Generates a random integer within a specified range.
- * @param {number} min - The lower bound of the range.
- * @param {number} max - The upper bound of the range.
- * @returns {number} A random integer within the specified range.
+ * Returns a random integer in [min, max).
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
  */
 export const randInt = (e, r) => ~~rr(e, r);
 
 /**
- * Generates a random gaussian.
- * @param {number} mean - Mean.
- * @param {number} stdev - Standard deviation.
- * @returns {number} A random number following a normal distribution.
+ * Gaussian (normal) random sample N(mean, stdev²).
+ * @param {number} [mean=0]
+ * @param {number} [stdev=1]
+ * @returns {number}
  */
 export function gaussian(mean = 0, stdev = 1) {
   const u = 1 - rng();
@@ -82,19 +88,9 @@ export function gaussian(mean = 0, stdev = 1) {
 }
 
 /**
- * Generates a pseudo-Gaussian random number by averaging several random values.
- * @param {number} [mean=0] - Mean value.
- * @param {number} [stdev=1] - Standard deviation.
- * @returns {number} The pseudo-Gaussian random number.
- */
-export function pseudoGaussian(mean = 0, stdev = 1) {
-  return mean - stdev * 2 + ((rng() + rng() + rng()) / 3) * stdev * 4;
-}
-
-/**
- * Selects a random key from an object based on weighted probabilities.
- * @param {Object} weights - Keys with their associated weights.
- * @returns {string|number} The selected key.
+ * Picks a key from an object according to weighted probabilities.
+ * @param {Object<string|number, number>} weights
+ * @returns {string|number}
  */
 export function weightedRand(weights) {
   let totalWeight = 0;
@@ -117,15 +113,19 @@ export function weightedRand(weights) {
   }
 }
 
+// =============================================================================
+// Section: Numeric Mapping & Constraints
+// =============================================================================
+
 /**
- * Remaps a number from one range to another.
- * @param {number} value - The input value.
- * @param {number} a - Original range lower bound.
- * @param {number} b - Original range upper bound.
- * @param {number} c - Target range lower bound.
- * @param {number} d - Target range upper bound.
- * @param {boolean} [withinBounds=false] - Constrain to target range if true.
- * @returns {number} The mapped value.
+ * Maps a value from range [a,b] to [c,d], optionally clamped.
+ * @param {number} value
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @param {number} d
+ * @param {boolean} [withinBounds=false]
+ * @returns {number}
  */
 export function map(value, a, b, c, d, withinBounds = false) {
   let r = c + ((value - a) / (b - a)) * (d - c);
@@ -148,10 +148,14 @@ export function constrain(n, low, high) {
   return Math.max(Math.min(n, high), low);
 }
 
+// =============================================================================
+// Section: Trigonometry
+// =============================================================================
+
 /**
- * Normalizes an angle (in degrees) to the range [0, 360).
- * @param {number} angle - The angle to normalize.
- * @returns {number} The normalized angle.
+ * Normalize an angle in degrees to [0,360).
+ * @param {number} angle
+ * @returns {number}
  */
 function nAngle(angle) {
   angle = angle % 360;
@@ -159,24 +163,34 @@ function nAngle(angle) {
 }
 
 /**
- * Returns the cosine of the given angle using precalculated values.
- * @param {number} angle - The angle in degrees.
- * @returns {number} The cosine value.
+ * Cosine of an angle (degrees), via lookup table.
+ * @param {number} angle
+ * @returns {number}
  */
 export function cos(angle) {
   return c[~~(4 * nAngle(angle))];
 }
 
 /**
- * Returns the sine of the given angle using precalculated values.
- * @param {number} angle - The angle in degrees.
- * @returns {number} The sine value.
+ * Sine of an angle (degrees), via lookup table.
+ * @param {number} angle
+ * @returns {number}
  */
 export function sin(angle) {
   return s[~~(4 * nAngle(angle))];
 }
 
-// Precalculate trigonometric lookup tables for improved performance.
+/**
+ * Converts radians to degrees, normalized to [0,360).
+ * @param {number} rad
+ * @returns {number}
+ */
+export const toDegrees = (a) => {
+  let angle = ((a * 180) / Math.PI) % 360;
+  return angle < 0 ? angle + 360 : angle;
+};
+
+// Precompute lookup tables for sin/cos
 const totalDegrees = 1440;
 const radiansPerIndex = (2 * Math.PI) / totalDegrees;
 const c = new Float32Array(totalDegrees);
@@ -187,46 +201,57 @@ for (let i = 0; i < totalDegrees; i++) {
   s[i] = Math.sin(radians);
 }
 
-/**
- * Converts an angle from radians to degrees and normalizes it to [0, 360).
- * @param {number} a - The angle in radians.
- * @returns {number} The angle in degrees.
- */
-export const toDegrees = (a) => {
-  let angle = ((a * 180) / Math.PI) % 360;
-  return angle < 0 ? angle + 360 : angle;
-};
+// =============================================================================
+// Section: Geometry & Transforms
+// =============================================================================
 
 /**
- * Calculates the Euclidean distance between two points.
- * @param {number} x1 - X-coordinate of the first point.
- * @param {number} y1 - Y-coordinate of the first point.
- * @param {number} x2 - X-coordinate of the second point.
- * @param {number} y2 - Y-coordinate of the second point.
- * @returns {number} The distance.
+ * Rotates point (x,y) around center (cx,cy) by angle degrees.
+ * @param {number} cx
+ * @param {number} cy
+ * @param {number} x
+ * @param {number} y
+ * @param {number} angle - Degrees
+ * @returns {{x:number,y:number}}
+ */
+export function rotate(cx, cy, x, y, angle) {
+  let coseno = cos(angle),
+    seno = sin(angle),
+    nx = coseno * (x - cx) + seno * (y - cy) + cx,
+    ny = coseno * (y - cy) - seno * (x - cx) + cy;
+  return { x: nx, y: ny };
+}
+
+/**
+ * Euclidean distance between two points.
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @returns {number}
  */
 export const dist = (x1, y1, x2, y2) =>
   Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 
 /**
- * Calculates the angle in degrees between two points.
- * @param {number} x1 - X-coordinate of the first point.
- * @param {number} y1 - Y-coordinate of the first point.
- * @param {number} x2 - X-coordinate of the second point.
- * @param {number} y2 - Y-coordinate of the second point.
- * @returns {number} The angle in degrees measured clockwise from the positive X-axis.
+ * Angle in degrees between two points, measured clockwise from +X.
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @returns {number}
  */
 export const calcAngle = (x1, y1, x2, y2) =>
   toDegrees(Math.atan2(-(y2 - y1), x2 - x1));
 
 /**
- * Computes the intersection point between two line segments if it exists.
- * @param {Object} s1a - Start point of the first segment { x, y }.
- * @param {Object} s1b - End point of the first segment { x, y }.
- * @param {Object} s2a - Start point of the second segment { x, y }.
- * @param {Object} s2b - End point of the second segment { x, y }.
- * @param {boolean} [includeSegmentExtension=false] - Allow intersections outside segment bounds.
- * @returns {Object|boolean} The intersection point { x, y } or false if none exists.
+ * Intersection of two line segments, or false if none.
+ * @param {{x:number,y:number}} s1a
+ * @param {{x:number,y:number}} s1b
+ * @param {{x:number,y:number}} s2a
+ * @param {{x:number,y:number}} s2b
+ * @param {boolean} [includeSegmentExtension=false]
+ * @returns {{x:number,y:number}|false}
  */
 export function intersectLines(
   s1a,
@@ -269,27 +294,14 @@ export function intersectLines(
   return { x: x, y: y };
 }
 
-/**
- * Rotates a point (x, y) around a center (cx, cy) by the given angle.
- * @param {number} cx - X-coordinate of the center.
- * @param {number} cy - Y-coordinate of the center.
- * @param {number} x - X-coordinate of the point.
- * @param {number} y - Y-coordinate of the point.
- * @param {number} angle - Rotation angle in degrees.
- * @returns {Object} The rotated point { x, y }.
- */
-export function rotate(cx, cy, x, y, angle) {
-  let coseno = cos(angle),
-    seno = sin(angle),
-    nx = coseno * (x - cx) + seno * (y - cy) + cx,
-    ny = coseno * (y - cy) - seno * (x - cx) + cy;
-  return { x: nx, y: ny };
-}
+// =============================================================================
+// Section: Other Utility Functions
+// =============================================================================
 
 /**
- * Creates a shallow clone of an array of arrays.
- * @param {Array} array - The array to clone.
- * @returns {Array} A new array where each element is a shallow copy of the corresponding element in the input.
+ * Shallow‐clones an array of arrays.
+ * @param {T[]} array
+ * @returns {T[]}
  */
 export function cloneArray(array) {
   return array.map(function (arr) {

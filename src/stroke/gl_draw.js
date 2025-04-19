@@ -12,6 +12,7 @@
 import { Mix, Cwidth, Cheight } from "../core/color.js";
 import { isMixReady } from "../core/color.js";
 import { Matrix } from "../core/flowfield.js";
+import { createProgram } from "../core/gl/utils.js";
 
 // =============================================================================
 // Section: Initialization and Setup
@@ -97,28 +98,6 @@ in vec2 a_position;in float a_radius,a_alpha;uniform mat4 u_matrix;out float v_a
  */
 const fsSource = `#version 300 es
 precision highp float;uniform bool u_drawSquare;in float v_alpha;out vec4 outColor;void main(){if(u_drawSquare)outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha);else{vec2 v=gl_PointCoord-vec2(.5);float e=length(v);if(e>.5)discard;outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha*(1.-smoothstep(.45,.5,e)));}}`;
-
-/**
- * Creates and compiles a shader program.
- * @param {WebGL2RenderingContext} gl - The WebGL context.
- * @param {string} vert - Vertex shader source.
- * @param {string} frag - Fragment shader source.
- * @returns {WebGLProgram} The compiled and linked program.
- */
-function createProgram(gl, vert, frag) {
-  const p = gl.createProgram();
-  for (const [t, src] of [
-    [gl.VERTEX_SHADER, vert],
-    [gl.FRAGMENT_SHADER, frag],
-  ]) {
-    const s = gl.createShader(t);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    gl.attachShader(p, s);
-  }
-  gl.linkProgram(p);
-  return p;
-}
 
 // Attrib & uniform caches.
 const Attr = {},

@@ -21,7 +21,7 @@ import {
   toDegrees,
   gaussian,
   noise,
-  random
+  rArray
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -398,7 +398,7 @@ function spacing() {
 function drawSpray(pressure) {
   const vibration =
     State.stroke.weight * current.p.vibration * pressure +
-    (State.stroke.weight * random(gaussians) * current.p.vibration) / 3;
+    (State.stroke.weight * rArray(gaussians) * current.p.vibration) / 3;
   const sw = State.stroke.weight * rr(0.9, 1.1);
   const iterations = Math.ceil(current.p.quality / pressure);
   for (let j = 0; j < iterations; j++) {
@@ -458,7 +458,7 @@ function drawDefault(pressure) {
     State.stroke.weight *
     current.p.vibration *
     (current.p.definition +
-      ((1 - current.p.definition) * random(gaussians) * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
+      ((1 - current.p.definition) * rArray(gaussians) * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
         pressure);
   if (rr(0, current.p.quality * pressure) > 0.4) {
     square(
