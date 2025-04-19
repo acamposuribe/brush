@@ -13,6 +13,8 @@ in vec2 p;
 
 out vec4 outColor;
 
+// SPECTRAL STARTS HERE
+
 const int SPECTRAL_SIZE = 38;
 const float SPECTRAL_GAMMA = 2.4;
 const float SPECTRAL_EPSILON = 0.0001;
@@ -183,6 +185,8 @@ vec3 spectral_mix(vec3 color1, vec3 color2, float t) {
 
     return spectral_xyz_to_srgb(spectral_reflectance_to_xyz(R));
 }
+
+// SPECTRAL ENDS HERE
 
 void main(void) {
     vec2 uv = .5 * vec2(p.x, p.y) + .5;

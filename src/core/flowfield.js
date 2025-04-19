@@ -1,5 +1,5 @@
 import { Mix, isMixReady, Cwidth, Cheight, State } from "./color.js";
-import { randInt, noise, map, rr, sin, cos, cloneArray } from "./utils.js";
+import { randInt, noise, rr, sin, cos, cloneArray } from "./utils.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -404,7 +404,7 @@ export const BleedField = {
     if (value) {
       // Update the temporary field with the maximum of the current and new values
       const biggest = Math.max(current, value);
-      const tempValue = (this.fieldTemp[col]?.[row] ?? 0) * 0.75;
+      const tempValue = (current === 0 ? 0 : this.fieldTemp[col][row]) * 0.75;
       this.fieldTemp[col][row] = Math.max(biggest, tempValue);
       return biggest;
     }

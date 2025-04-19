@@ -196,9 +196,9 @@ class FillPolygon {
     this.v = _v;
     this.dir = dir;
     this.m = _m;
-    this.midP = _center;
     this.sizeX = sizeX;
     this.sizeY = sizeY;
+    this.midP = _center; 
     // Calculate bleed direction for the initial shape.
     if (isFirst) {
       this.sizeX = -Infinity;
@@ -225,6 +225,7 @@ class FillPolygon {
         }
         this.dir[i] = d1 % 2 === 0 ? true : false;
       }
+      this.midP = {x:_center.x + this.sizeX * rr(-0.3,0.3), y:_center.y + this.sizeY * rr(-0.3,0.3)};
     }
   }
 
@@ -378,9 +379,9 @@ class FillPolygon {
   erase(texture, intensity) {
     Mix.ctx.save();
     // Cache local values to avoid repeated property lookups
-    let numCircles = rr(60, 80) * map(texture, 0, 1, 2, 3);
-    const halfSizeX = this.sizeX / 1.8;
-    const halfSizeY = this.sizeY / 1.8;
+    let numCircles = rr(60, 80) * map(texture, 0, 1, 2, 3.5);
+    const halfSizeX = this.sizeX / 1.7;
+    const halfSizeY = this.sizeY / 1.7;
     const minSize =
       Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
     const minSizeFactor = 0.05 * minSize;
@@ -447,7 +448,7 @@ Polygon.prototype.fill = function (
 Plot.prototype.fill = function (x, y, scale) {
   if (FillState().isActive) {
     if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-    this.pol = this.genPol(x, y, scale, map(State.fill.bleed_strength,0,0.6,0.2,0.45));
+    this.pol = this.genPol(x, y, scale, map(State.fill.bleed_strength,0,0.6,0.3,0.45,true));
     this.pol.fill();
   }
 };

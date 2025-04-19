@@ -162,22 +162,42 @@ function nAngle(angle) {
   return angle < 0 ? angle + 360 : angle;
 }
 
+// number of discrete steps (360° × 4 samples per degree)
+const totalDegrees     = 1440;
+const radiansPerIndex = (2 * Math.PI) / totalDegrees;
+
+// lazy‐initialized lookup tables
+const c = new Float32Array(totalDegrees).fill(NaN);
+const s = new Float32Array(totalDegrees).fill(NaN);
+
 /**
- * Cosine of an angle (degrees), via lookup table.
+ * Cosine of an angle (degrees), via a lazy lookup table.
  * @param {number} angle
  * @returns {number}
  */
 export function cos(angle) {
-  return c[~~(4 * nAngle(angle))];
+  const idx = ~~(4 * nAngle(angle));
+  let v = c[idx];
+  if (isNaN(v)) {
+    v = Math.cos(idx * radiansPerIndex);
+    c[idx] = v;
+  }
+  return v;
 }
 
 /**
- * Sine of an angle (degrees), via lookup table.
+ * Sine of an angle (degrees), via a lazy lookup table.
  * @param {number} angle
  * @returns {number}
  */
 export function sin(angle) {
-  return s[~~(4 * nAngle(angle))];
+  const idx = ~~(4 * nAngle(angle));
+  let v = s[idx];
+  if (isNaN(v)) {
+    v = Math.sin(idx * radiansPerIndex);
+    s[idx] = v;
+  }
+  return v;
 }
 
 /**
@@ -185,21 +205,10 @@ export function sin(angle) {
  * @param {number} rad
  * @returns {number}
  */
-export const toDegrees = (a) => {
-  let angle = ((a * 180) / Math.PI) % 360;
+export const toDegrees = (rad) => {
+  let angle = ((rad * 180) / Math.PI) % 360;
   return angle < 0 ? angle + 360 : angle;
 };
-
-// Precompute lookup tables for sin/cos
-const totalDegrees = 1440;
-const radiansPerIndex = (2 * Math.PI) / totalDegrees;
-const c = new Float32Array(totalDegrees);
-const s = new Float32Array(totalDegrees);
-for (let i = 0; i < totalDegrees; i++) {
-  const radians = i * radiansPerIndex;
-  c[i] = Math.cos(radians);
-  s[i] = Math.sin(radians);
-}
 
 // =============================================================================
 // Section: Geometry & Transforms

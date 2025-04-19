@@ -2,7 +2,7 @@ import vertSrc from "./shader.vert";
 import fragSrc from "./shader.frag";
 
 /**
- * This code will be compiled in a separate worker thread
+ * This code will be compiled into a separate worker thread
  */
 export const GL = () => {
     let canvas, gl;

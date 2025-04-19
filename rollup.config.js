@@ -9,12 +9,6 @@ const config = {
   input: "src/index.js",
   output: [
     {
-      file: "example/brush.js",
-      format: "umd",
-      name: "brush",
-      sourcemap: true,
-    },
-    {
       file: "dist/brush.js",
       format: "umd",
       name: "brush",
@@ -29,8 +23,9 @@ const config = {
   plugins: [
     resolve({ browser: true }),
     glslify({
-      include: ["src/core/gl/shader.vert", "src/core/gl/shader.frag"],
+      include: ["**/*.frag","**/*.vert"],
       compress: true,
+      sourceMap: false,
     }),
     terser({
       module: true,

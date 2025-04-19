@@ -68,7 +68,7 @@ const draw = () => {
   
   let bleed = 0.5
 
-  /*
+  
 
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
@@ -80,7 +80,7 @@ const draw = () => {
     }
   }
 
-  */
+  /*
   
 
 
@@ -160,7 +160,7 @@ const draw = () => {
   }
 
   
-
+  */
   brush.restore();
 
   brush.noLoop();
