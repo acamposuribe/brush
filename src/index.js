@@ -1,6 +1,6 @@
 /**
  * @fileoverview brush.js - A comprehensive toolset for brush management in vanilla js.
- * @version 0.0.3-alpha
+ * @version 0.0.4-alpha
  * @license MIT
  * @author Alejandro Campos Uribe
  *
