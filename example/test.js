@@ -66,23 +66,22 @@ const draw = () => {
   
   brush.noStroke();
   
-  let bleed = 0.5
+  let bleed = 0.2
 
   
-
+  /*
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
       brush.fillBleed(bleed);
       brush.fillTexture(brush.random(0.5,0.75), brush.random(0.6,0.7));
       brush.fillStyle(brush.random(palette), brush.random(40,100));
-      brush.rect(300 + i * (canvas.width - 600) / 4, 400 + j * (canvas.height - 800) / 4,300,400,"center");
+      brush.circle(300 + i * (canvas.width - 600) / 4, 400 + j * (canvas.height - 800) / 4,200);
       bleed += 0;
     }
   }
+    */
 
-  /*
   
-
 
   brush.noFill();
 
@@ -160,7 +159,7 @@ const draw = () => {
   }
 
   
-  */
+  
   brush.restore();
 
   brush.noLoop();
