@@ -184,5 +184,6 @@ export class Plot {
     if (State.hatch) this.hatch(x, y, scale);
     if (State.fill) this.fill(x, y, scale);
     this.erase(x, y, scale);
+    this.handFill(x, y, scale);
   }
 }

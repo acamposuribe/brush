@@ -122,5 +122,9 @@ export {
   createHatch as hatchArray,
 } from "./hatch/hatch.js";
 
+export {
+  handFill,
+} from "./hatch/handFill.js";
+
 // Fill
 export { fillStyle, noFill, fillTexture, fillBleed } from "./fill/fill.js";

@@ -243,6 +243,7 @@ export class Position {
 State.field = {
   isActive: false,
   current: null,
+  wiggle: 1,
 };
 
 // Internal variables for field configuration
@@ -333,10 +334,6 @@ export function listFields() {
 }
 
 export function wiggle(a = 1) {
-  if (a === 0) {
-    noField();
-    return;
-  }
   field("hand");
   State.field.wiggle = a;
 }
@@ -348,14 +345,13 @@ function addStandard() {
   addField("hand", function (t, field) {
     const baseSize = rr(0.2, 0.8);
     const baseAngle = randInt(5, 10);
-    const timeFactor = t * 0.1;
     for (let column = 0; column < num_columns; column++) {
-      const columnNoise = column * 0.1 + timeFactor;
+      const columnNoise = column;
       for (let row = 0; row < num_rows; row++) {
         const addition = randInt(15, 25);
-        const angle = baseAngle * sin(baseSize * row * column + addition);
-        const noise_val = noise(columnNoise, row * 0.1 + timeFactor);
-        field[column][row] = 0.5 * angle * cos(t) + noise_val * baseAngle * 0.65;
+        const angle = 0.5 * baseAngle * sin(baseSize * row * column + addition);
+        const noise_val = noise(columnNoise, row);
+        field[column][row] = 0.2 * angle * cos(t) + noise_val * baseAngle * 0.7;
       }
     }
     return field;

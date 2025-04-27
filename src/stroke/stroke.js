@@ -26,7 +26,7 @@ import {
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
-import { isReady, glDraw, circle, square } from "./gl_draw.js";
+import { isReady, glDraw, circle } from "./gl_draw.js";
 
 const PI2 = Math.PI * 2;
 
@@ -43,6 +43,7 @@ State.stroke = {
   clipWindow: null,
   type: "HB",
   isActive: false,
+  opacity: 1,
 };
 
 let list = new Map();
@@ -281,7 +282,7 @@ function tip(customPressure = false) {
       drawCustomOrImage(pressure1, _alpha);
       break;
     default:
-      drawDefault(pressure1);
+      drawDefault(pressure1, wiggle);
       break;
   }
 }
@@ -349,8 +350,8 @@ function gauss(
  */
 function calculateAlpha() {
   return ["default", "spray"].includes(current.p.type)
-    ? current.p.opacity
-    : current.p.opacity / State.stroke.weight;
+    ? current.p.opacity * State.stroke.opacity
+    : current.p.opacity / State.stroke.weight * State.stroke.opacity;
 }
 
 /**
@@ -382,9 +383,7 @@ function isInsideClippingArea() {
 function spacing() {
   const { param } = list.get(State.stroke.type) ?? {};
   if (!param) return 1;
-  return param.type === "default" || param.type === "spray"
-    ? param.spacing / State.stroke.weight
-    : param.spacing;
+  return param.spacing;
 }
 
 // ---------------------------------------------------------------------------
@@ -453,9 +452,10 @@ function drawCustomOrImage(pressure, alpha, vibrate = true) {
  * Draws the default brush tip.
  * @param {number} pressure - Current pressure.
  */
-function drawDefault(pressure) {
+function drawDefault(pressure, wiggle = 1) {
+  wiggle = map(wiggle, 0, 1, 0.9, 1.05)
   const vibration =
-    State.stroke.weight *
+    wiggle * State.stroke.weight *
     current.p.vibration *
     (current.p.definition +
       ((1 - current.p.definition) * rArray(gaussians) * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
@@ -464,7 +464,7 @@ function drawDefault(pressure) {
     circle(
       _position.x + 0.7 * vibration * rr(-1, 1),
       _position.y + vibration * rr(-1, 1),
-      pressure * current.p.weight * rr(0.85, 1.15),
+      pressure * current.p.weight * rr(0.85, 1.15) * State.stroke.weight,
       current.alpha
     );
   }
@@ -608,7 +608,7 @@ const _standard_brushes = [
   ],
   [
     "cpencil",
-    [0.4, 0.55, 0.8, 7, 70, 0.15, { curve: [0.15, 0.2], min_max: [0.95, 1.2] }],
+    [0.3, 0.55, 0.8, 7, 40, 0.1, { curve: [0.15, 0.2], min_max: [0.95, 1.2] }],
   ],
   [
     "charcoal",

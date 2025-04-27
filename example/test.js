@@ -65,27 +65,14 @@ const draw = () => {
   brush.save();
   
   
-
-  
-  /*
   let bleed = 0.2
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
-      brush.fillBleed(bleed);
-      brush.fillTexture(brush.random(0.5,0.75), brush.random(0.6,0.7));
-      brush.fillStyle(brush.random(palette), brush.random(40,100));
-      brush.circle(300 + i * (canvas.width - 600) / 4, 400 + j * (canvas.height - 800) / 4,200);
+      brush.hatchStyle("cpencil", brush.random(palette), 0.65)
+      brush.handFill(15, brush.random(0.9,1.1) * Math.PI / 4, 0.8);
+      brush.circle(150 + i * (canvas.width - 300) / 4, 300 + j * (canvas.height - 600) / 4, brush.random(100,300));
       bleed += 0;
     }
-  }
-    */
-
-  brush.wiggle(0);
-  let o = 0;
-  for (let style of brush.box()) {
-    brush.set(style, "red", 1)
-    brush.line(100, 100 + o, 1100, 100 + o);
-    o += 100
   }
 
   /*

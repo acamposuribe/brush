@@ -63,5 +63,7 @@ export class Polygon {
     if (State.hatch) this.hatch();
     if (State.fill) this.fill();
     this.erase();
+    this.handFill();
+    console.log("show")
   }
 }

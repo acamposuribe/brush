@@ -39,7 +39,7 @@ State.hatch = {
  * Returns a shallow copy of the current hatch state.
  * @returns {object} The current hatch state.
  */
-function HatchState() {
+export function HatchState() {
   return { ...State.hatch };
 }
 
@@ -47,7 +47,7 @@ function HatchState() {
  * Updates the global hatch state.
  * @param {object} state - The new hatch state.
  */
-function HatchSetState(state) {
+export function HatchSetState(state) {
   State.hatch = { ...state };
 }
 
@@ -136,7 +136,7 @@ export function createHatch(polygons) {
   let i = 0;
   let dist1 = dist;
 
-  // Function to generate a hatched line for index i.
+  // Function to generate a line for index i.
   let linea = (i) => {
     return {
       point1: {
