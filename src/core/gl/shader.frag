@@ -190,13 +190,14 @@ vec3 spectral_mix(vec3 color1, vec3 color2, float t) {
 
 void main(void) {
     vec2 uv = .5 * vec2(p.x, p.y) + .5;
+    vec2 uv1 = vec2(0.5 * p.x + 0.5, 1.0 - (0.5 * p.y + 0.5));
     vec4 source = texture(u_source, uv);
 
     if (u_isImage) {
-        vec4 maskColor = texture(u_mask, uv);
+        vec4 maskColor = texture(u_mask, uv1);
         outColor = maskColor;
     } else {
-        vec4 maskColor = texture(u_mask, uv);
+        vec4 maskColor = texture(u_mask, uv1);
         if (maskColor.r > 0.) {
             vec4 pigment = vec4(u_addColor.xyz,1.0);
             float darken_above = 0.7;

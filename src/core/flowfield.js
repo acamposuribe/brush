@@ -140,7 +140,7 @@ export class Position {
    */
   angle() {
     return this.isIn() && State.field.isActive
-      ? flow_field()[this.column_index][this.row_index]
+      ? flow_field()[this.column_index][this.row_index] * State.field.wiggle
       : 0;
   }
 
@@ -252,7 +252,7 @@ let resolution, left_x, top_y, num_columns, num_rows;
 /**
  * Initializes the field grid and sets up the vector field's structure based on the renderer's dimensions.
  */
-export function createField() {
+function createField() {
   resolution = Cwidth * 0.01; // Determine the resolution of the field grid
   left_x = -0.5 * Cwidth; // Left boundary of the field
   top_y = -0.5 * Cheight; // Top boundary of the field
@@ -296,6 +296,8 @@ function genField(d = 1) {
  * @param {string} a - The name of the vector field to activate.
  */
 export function field(a) {
+  if (!State.field.wiggle) { State.field.wiggle = 1; } // Set default wiggle value
+  isFieldReady();
   if (!list.has(a)) {
     throw new Error(`Field "${name}" does not exist.`);
   }
@@ -307,6 +309,7 @@ export function field(a) {
  * Deactivates the current vector field.
  */
 export function noField() {
+  isFieldReady();
   State.field.isActive = false;
 }
 
@@ -325,7 +328,17 @@ export function addField(name, funct) {
  * @returns {string[]} An array of all the field names.
  */
 export function listFields() {
+  isFieldReady();
   return Array.from(list.keys());
+}
+
+export function wiggle(a = 1) {
+  if (a === 0) {
+    noField();
+    return;
+  }
+  field("hand");
+  State.field.wiggle = a;
 }
 
 /**
@@ -336,29 +349,13 @@ function addStandard() {
     const baseSize = rr(0.2, 0.8);
     const baseAngle = randInt(5, 10);
     const timeFactor = t * 0.1;
-
     for (let column = 0; column < num_columns; column++) {
       const columnNoise = column * 0.1 + timeFactor;
       for (let row = 0; row < num_rows; row++) {
         const addition = randInt(15, 25);
         const angle = baseAngle * sin(baseSize * row * column + addition);
         const noise_val = noise(columnNoise, row * 0.1 + timeFactor);
-        field[column][row] = 0.5 * angle * cos(t) + noise_val * baseAngle * 0.5;
-      }
-    }
-    return field;
-  });
-  addField("seabed", function (t, field) {
-    const baseSize = rr(0.4, 0.8);
-    const baseAngle = randInt(18, 26);
-    const timeFactor = t * 0.1;
-
-    for (let column = 0; column < num_columns; column++) {
-      const columnNoise = column * 0.1 + timeFactor;
-      for (let row = 0; row < num_rows; row++) {
-        const addition = randInt(15, 20);
-        const angle = baseAngle * sin(baseSize * row * column + addition);
-        field[column][row] = 1.1 * angle * cos(t);
+        field[column][row] = 0.5 * angle * cos(t) + noise_val * baseAngle * 0.65;
       }
     }
     return field;

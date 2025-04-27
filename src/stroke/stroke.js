@@ -263,25 +263,25 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return;
   let pressure = customPressure || calculatePressure();
-  pressure *=
-    1 -
+  let wiggle = noise(_position.plotted * 0.01 + current.seed, 1)
+  let pressure1 = pressure * (1 -
     0.2 *
-      noise(_position.plotted * 0.01 + current.seed, 1) -
-    0.2 * noise(_position.x * 0.003, _position.y * 0.003);
+      wiggle -
+    0.2 * noise(_position.x * 0.003, _position.y * 0.003));
 
   switch (current.p.type) {
     case "spray":
-      drawSpray(pressure);
+      drawSpray(pressure1);
       break;
     case "marker":
       drawMarker(pressure);
       break;
     case "custom":
     case "image":
-      drawCustomOrImage(pressure, _alpha);
+      drawCustomOrImage(pressure1, _alpha);
       break;
     default:
-      drawDefault(pressure);
+      drawDefault(pressure1);
       break;
   }
 }
@@ -399,14 +399,14 @@ function drawSpray(pressure) {
   const vibration =
     State.stroke.weight * current.p.vibration * pressure +
     (State.stroke.weight * rArray(gaussians) * current.p.vibration) / 3;
-  const sw = State.stroke.weight * rr(0.9, 1.1);
+  const sw = current.p.weight * rr(0.9, 1.1);
   const iterations = Math.ceil(current.p.quality / pressure);
   for (let j = 0; j < iterations; j++) {
     const r = rr(0.9, 1.1);
     const rX = r * vibration * rr(-1, 1);
     const yRandomFactor = rr(-1, 1);
     const sqrtPart = Math.sqrt((r * vibration) ** 2 - rX ** 2);
-    square(
+    circle(
       _position.x + rX,
       _position.y + yRandomFactor * sqrtPart,
       sw,
@@ -461,7 +461,7 @@ function drawDefault(pressure) {
       ((1 - current.p.definition) * rArray(gaussians) * gauss(0.5, 0.9, 5, 0.2, 1.2)) /
         pressure);
   if (rr(0, current.p.quality * pressure) > 0.4) {
-    square(
+    circle(
       _position.x + 0.7 * vibration * rr(-1, 1),
       _position.y + vibration * rr(-1, 1),
       pressure * current.p.weight * rr(0.85, 1.15),
@@ -596,11 +596,11 @@ const _standard_brushes = [
   ],
   [
     "2B",
-    [0.35, 0.6, 0.1, 8, 140, 0.2, { curve: [0.15, 0.2], min_max: [1.5, 1] }],
+    [0.25, 0.7, 0.45, 28, 140, 0.1, { curve: [0.15, 0.2], min_max: [1.3, 1] }],
   ],
   [
     "HB",
-    [0.3, 0.5, 0.4, 4, 130, 0.25, { curve: [0.15, 0.2], min_max: [1.2, 0.9] }],
+    [0.3, 0.5, 0.4, 4, 130, 0.2, { curve: [0.15, 0.2], min_max: [1.2, 0.9] }],
   ],
   [
     "2H",
@@ -613,22 +613,18 @@ const _standard_brushes = [
   [
     "charcoal",
     [
-      0.35,
-      1.5,
-      0.65,
-      300,
-      60,
-      0.06,
-      { curve: [0.15, 0.2], min_max: [1.3, 0.9] },
+      0.3,
+      1.3,
+      0.80,
+      500,
+      80,
+      0.03,
+      { curve: [0.15, 0.2], min_max: [1.5, 0.9] },
     ],
   ],
   [
-    "crayon",
-    [0.25, 2, 0.8, 300, 60, 0.06, { curve: [0.35, 0.2], min_max: [0.9, 1.1] }],
-  ],
-  [
     "spray",
-    [0.2, 12, 15, 40, 35, 0.65, { curve: [0, 0.1], min_max: [1, 1] }, "spray"],
+    [0.15, 6, 15, 40, 85, 0.65, { curve: [0, 0.1], min_max: [0.5, 1] }, "spray"],
   ],
   [
     "marker",

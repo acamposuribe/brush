@@ -58,7 +58,8 @@ export {
   translate,
   rotate,
   scale,
-  Position,
+  Position, 
+  wiggle,
 } from "./core/flowfield.js";
 
 // Save / Restore

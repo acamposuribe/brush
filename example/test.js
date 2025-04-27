@@ -20,8 +20,8 @@ let y_values = [];
 const canvas = document.createElement("canvas");
 canvas.classList.add("canvas");
 canvas.setAttribute("id", "main");
-canvas.width = 2000;
-canvas.height = 2600;
+canvas.width = 1200;
+canvas.height = 1600;
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
 
@@ -29,15 +29,16 @@ body.appendChild(canvas);
 brush.load("main", canvas);
 
 // Scale brushes to canvas
-brush.scaleBrushes(9);
+brush.scaleBrushes(10);
 
-// Pick a flowfield
+// SEED
+
 
 function hatchRect(x, y, w, l, angle, color) {
   brush.save();
   brush.translate(x, y);
   let add = brush.random(-0.1, 0.1) * Math.PI;
-  brush.hatchStyle("crayon", color, 0.7);
+  brush.hatchStyle("charcoal", color, 0.7);
   brush.hatch(brush.random(4, 9), angle + add, {
     continuous: true,
     rand: brush.random(0.2, 0.35),
@@ -46,7 +47,7 @@ function hatchRect(x, y, w, l, angle, color) {
 
   brush.circle(0, 0, w / 2);
   brush.rotate((Math.PI / 2) * ~~brush.random(0, 4));
-  brush.hatchStyle("crayon", color, 0.5);
+  brush.hatchStyle("charcoal", color, 0.5);
   brush.hatch(brush.random(2, 6), angle - add, {
     continuous: true,
     rand: brush.random(0.2, 0.35),
@@ -56,20 +57,18 @@ function hatchRect(x, y, w, l, angle, color) {
   brush.restore();
 }
 
-//brush.seed("hola")
-brush.noiseSeed("hhhaa");
+
 
 // Draw Loop
 const draw = () => {
   brush.background(255);
   brush.save();
   
-  brush.noStroke();
   
-  let bleed = 0.2
 
   
   /*
+  let bleed = 0.2
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
       brush.fillBleed(bleed);
@@ -81,7 +80,15 @@ const draw = () => {
   }
     */
 
-  
+  brush.wiggle(0);
+  let o = 0;
+  for (let style of brush.box()) {
+    brush.set(style, "red", 1)
+    brush.line(100, 100 + o, 1100, 100 + o);
+    o += 100
+  }
+
+  /*
 
   brush.noFill();
 
@@ -158,7 +165,7 @@ const draw = () => {
     );
   }
 
-  
+  */
   
   brush.restore();
 

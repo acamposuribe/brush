@@ -76,7 +76,7 @@ function prepareGL() {
   ["a_position", "a_radius", "a_alpha"].forEach(
     (n) => (Attr[n] = gl.getAttribLocation(program, n))
   );
-  ["u_matrix", "u_drawSquare"].forEach(
+  ["u_matrix"].forEach(
     (n) => (Frag[n] = gl.getUniformLocation(program, n))
   );
 }
@@ -97,7 +97,21 @@ in vec2 a_position;in float a_radius,a_alpha;uniform mat4 u_matrix;out float v_a
  * Otherwise, uses gl_PointCoord to create a circular mask.
  */
 const fsSource = `#version 300 es
-precision highp float;uniform bool u_drawSquare;in float v_alpha;out vec4 outColor;void main(){if(u_drawSquare)outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha);else{vec2 v=gl_PointCoord-vec2(.5);float e=length(v);if(e>.5)discard;outColor=vec4(vec3(1,0,0)*v_alpha,v_alpha*(1.-smoothstep(.45,.5,e)));}}`;
+precision highp float;
+in float v_alpha;
+out vec4 outColor;
+void main(){
+    vec2 v = gl_PointCoord - vec2(0.5);
+    float e = length(v);
+    // Compute the derivative of the distance to get a dynamic edge width.
+    float afwidth = fwidth(e);
+    // Use smoothstep based on the adaptive width.
+    float alphaFactor = 1.0 - smoothstep(0.5 - afwidth, 0.5 + afwidth, e);
+    if(alphaFactor < 0.01)
+      discard;
+    outColor = vec4(vec3(1,0,0) * v_alpha, v_alpha * alphaFactor);
+}
+`;
 
 // Attrib & uniform caches.
 const Attr = {},
@@ -173,9 +187,6 @@ export function glDraw() {
   );
   // Set the uniform for the projection matrix (u_matrix).
   gl.uniformMatrix4fv(Frag.u_matrix, false, matrix);
-  // Set the shape type flag:
-  // If drawing squares (isSquare true) the shader outputs a square, otherwise a circle.
-  gl.uniform1i(Frag.u_drawSquare, isSquare ? 1 : 0);
   // Bind the VAO containing our prepared buffer data.
   gl.bindVertexArray(vao);
   // Draw the circles as points.
@@ -187,7 +198,6 @@ export function glDraw() {
 }
 
 let circles = [];
-let isSquare = false;
 
 // =============================================================================
 // Section: Public Drawing Methods
@@ -209,24 +219,4 @@ export function circle(x, y, diameter, alpha) {
     radius,
     alpha: alpha / 100,
   });
-  isSquare = false;
-}
-
-/**
- * Queues a square (via point sprite) to be drawn.
- * @param {number} x - x-coordinate.
- * @param {number} y - y-coordinate.
- * @param {number} size - Side length of the square.
- * @param {number} alpha - Opacity (0-100).
- */
-export function square(x, y, size, alpha) {
-  isReady();
-  const radius = size / 2 / 1.2;
-  circles.push({
-    x: x + Matrix.x,
-    y: y + Matrix.y,
-    radius,
-    alpha: alpha / 100,
-  });
-  isSquare = true;
 }
