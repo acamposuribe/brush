@@ -1,4 +1,4 @@
-import { Color } from "./color.js";
+import { Color, Mix } from "./color.js";
 import { drawPolygon } from "./mask.js";
 
 // =============================================================================

@@ -1,6 +1,6 @@
 /**
  * @fileoverview brush.js - A comprehensive toolset for brush management in vanilla js.
- * @version 0.0.4-alpha
+ * @version 0.0.5-alpha
  * @license MIT
  * @author Alejandro Campos Uribe
  *
@@ -121,10 +121,6 @@ export {
   noHatch,
   createHatch as hatchArray,
 } from "./hatch/hatch.js";
-
-export {
-  handFill,
-} from "./hatch/handFill.js";
 
 // Fill
 export { fillStyle, noFill, fillTexture, fillBleed } from "./fill/fill.js";

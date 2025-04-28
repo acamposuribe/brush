@@ -1,4 +1,4 @@
-let palette = [
+let palette1 = [
   "#002185",
   "#fcd300",
   "#6b9404",
@@ -13,6 +13,13 @@ let palette = [
   "#e2e7dc",
 ];
 
+let palette = [
+  "#f9da49",
+  "#bfbfbf",
+  "black",
+  "#bd8346"
+];
+
 let x_values = [];
 let y_values = [];
 
@@ -20,8 +27,8 @@ let y_values = [];
 const canvas = document.createElement("canvas");
 canvas.classList.add("canvas");
 canvas.setAttribute("id", "main");
-canvas.width = 1200;
-canvas.height = 1600;
+canvas.width = 2000;
+canvas.height = 2000;
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
 
@@ -31,50 +38,51 @@ brush.load("main", canvas);
 // Scale brushes to canvas
 brush.scaleBrushes(10);
 
-// SEED
-
-
-function hatchRect(x, y, w, l, angle, color) {
-  brush.save();
-  brush.translate(x, y);
-  let add = brush.random(-0.1, 0.1) * Math.PI;
-  brush.hatchStyle("charcoal", color, 0.7);
-  brush.hatch(brush.random(4, 9), angle + add, {
-    continuous: true,
-    rand: brush.random(0.2, 0.35),
-    gradient: brush.random(0.2, 0.6),
-  });
-
-  brush.circle(0, 0, w / 2);
-  brush.rotate((Math.PI / 2) * ~~brush.random(0, 4));
-  brush.hatchStyle("charcoal", color, 0.5);
-  brush.hatch(brush.random(2, 6), angle - add, {
-    continuous: true,
-    rand: brush.random(0.2, 0.35),
-    gradient: 0.2,
-  });
-  brush.circle(0, 0, w / 2);
-  brush.restore();
-}
-
-
+brush.background(245);
 
 // Draw Loop
 const draw = () => {
-  brush.background(255);
+  
   brush.save();
-  
-  
-  let bleed = 0.2
-  for (let i = 0; i < 5; i++) {
-    for (let j = 0; j < 5; j++) {
-      brush.hatchStyle("cpencil", brush.random(palette), 0.65)
-      brush.handFill(15, brush.random(0.9,1.1) * Math.PI / 4, 0.8);
-      brush.circle(150 + i * (canvas.width - 300) / 4, 300 + j * (canvas.height - 600) / 4, brush.random(100,300));
-      bleed += 0;
-    }
+
+  brush.wiggle(1)
+  brush.noStroke();
+
+  brush.wiggle(1.3);
+  brush.hatchStyle("charcoal", "#000000", 1)
+  let angle = brush.random(0, Math.PI);
+  let dist = 50;
+  let radius = brush.frameCount * 5 < 759 ? brush.frameCount * 5 : 750;
+  for (let i = 0; i < 4; i++) {
+    brush.hatch(dist * brush.random(0.8, 2), angle + Math.PI / 180 * brush.random(-5,5), { continuous: true, rand: 0.1 + brush.random(-0.05,0.05), gradient: 0.1 + brush.random(-0.1,0.15) })
+    brush.circle(1000,1000,radius);
   }
 
+  brush.wiggle(5)
+  for (let i = 0; i < 2; i++) {
+    
+    brush.set(brush.random(brush.box()), brush.random(palette), 1);
+    brush.stroke(brush.random(0, 2000), brush.random(0, 2000), brush.random(300,2000), brush.random(0,2*Math.PI))    
+  }
+
+  brush.wiggle(3)
+  if (brush.random() < 0.2) {
+
+    let color = brush.random(palette);
+  
+    while (color === "black") {
+      color = brush.random(palette);
+    }
+    brush.strokeStyle(color)
+    brush.hatchStyle("charcoal", color, 1);
+    brush.hatch(7, brush.random(0, Math.PI))
+  } else {
+    brush.noHatch();
+  }
+
+  brush.circle(brush.random(0, canvas.width), brush.random(0, canvas.height), brush.random(90, 140), true);
+  brush.noHatch();
+    
   /*
 
   brush.noFill();
@@ -156,9 +164,37 @@ const draw = () => {
   
   brush.restore();
 
-  brush.noLoop();
+  //brush.noLoop();
 };
 
-brush.frameRate(10);
+brush.frameRate(30);
 
-brush.loop(draw);
+setTimeout(() => {
+  brush.loop(draw);
+}, "200");
+
+
+// utility functions
+
+function hatchRect(x, y, w, l, angle, color) {
+  brush.save();
+  brush.translate(x, y);
+  let add = brush.random(-0.1, 0.1) * Math.PI;
+  brush.hatchStyle("charcoal", color, 0.7);
+  brush.hatch(brush.random(4, 9), angle + add, {
+    continuous: true,
+    rand: brush.random(0.2, 0.35),
+    gradient: brush.random(0.2, 0.6),
+  });
+
+  brush.circle(0, 0, w / 2);
+  brush.rotate((Math.PI / 2) * ~~brush.random(0, 4));
+  brush.hatchStyle("charcoal", color, 0.5);
+  brush.hatch(brush.random(2, 6), angle - add, {
+    continuous: true,
+    rand: brush.random(0.2, 0.35),
+    gradient: 0.2,
+  });
+  brush.circle(0, 0, w / 2);
+  brush.restore();
+}

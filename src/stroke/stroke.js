@@ -264,25 +264,20 @@ function restoreState() {
 function tip(customPressure = false) {
   if (!isInsideClippingArea()) return;
   let pressure = customPressure || calculatePressure();
-  let wiggle = noise(_position.plotted * 0.01 + current.seed, 1)
-  let pressure1 = pressure * (1 -
-    0.2 *
-      wiggle -
-    0.2 * noise(_position.x * 0.003, _position.y * 0.003));
 
   switch (current.p.type) {
     case "spray":
-      drawSpray(pressure1);
+      drawSpray(pressure);
       break;
     case "marker":
       drawMarker(pressure);
       break;
     case "custom":
     case "image":
-      drawCustomOrImage(pressure1, _alpha);
+      drawCustomOrImage(pressure, _alpha);
       break;
     default:
-      drawDefault(pressure1, wiggle);
+      drawDefault(pressure);
       break;
   }
 }
