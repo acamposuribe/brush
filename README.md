@@ -44,7 +44,7 @@ After that, import brush functions to your sketch:
 
 ```
 // ES‑module import (tree‑shaking enabled)
-import brush from '@acamposuribe/brush'
+import * as brush from '@acamposuribe/brush'
 // or pick & choose named exports:
 // import { load, circle, fillStyle } from "@acamposuribe/brush";
 ```
