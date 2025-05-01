@@ -83,6 +83,7 @@ export class Position {
    * @param {number} y - The initial y-coordinate.
    */
   constructor(x, y) {
+    isFieldReady();
     this.update(x, y);
     this.plotted = 0; // Tracks the total distance plotted
   }
@@ -151,7 +152,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    * @param {boolean} isFlow - Whether to use the flow field for movement.
    */
-  moveTo(_length, _dir, _step_length, isFlow = true) {
+  moveTo(_length, _dir, _step_length = 1, isFlow = true) {
     if (!this.isIn()) {
       this.plotted += _step_length;
       return;
@@ -170,6 +171,7 @@ export class Position {
       const x_step = _step_length * a;
       const y_step = _step_length * b;
       this.plotted += _step_length;
+
       this.update(this.x + x_step, this.y + y_step);
     }
   }
@@ -260,7 +262,6 @@ function createField() {
   num_columns = Math.round((2 * Cwidth) / resolution); // Number of columns in the grid
   num_rows = Math.round((2 * Cheight) / resolution); // Number of columns in the grid
   addStandard(); // Add default vector field
-  BleedField.genField(); // Generate the bleed field for watercolor fills
 }
 
 /**
@@ -357,79 +358,3 @@ function addStandard() {
     return field;
   });
 }
-
-// =============================================================================
-// Section: BleedField
-// =============================================================================
-
-/**
- * The `BleedField` object manages a secondary field used for blending effects,
- * such as watercolor-like bleeding. It provides methods to generate, update,
- * and retrieve field values.
- */
-export const BleedField = {
-
-  d: 4, // The density of the bleed field
-
-  /**
-   * Generates the primary and temporary fields for the bleed effect.
-   * Reuses existing arrays to reduce memory allocation overhead.
-   */
-  genField() {
-    this.field = genField(this.d); // Primary field
-    this.fieldTemp = genField(this.d); // Temporary field for intermediate calculations
-  },
-
-  /**
-   * Retrieves the value of the bleed field at a specific position.
-   * Optionally updates the field with a new value.
-   *
-   * @param {number} x - The x-coordinate.
-   * @param {number} y - The y-coordinate.
-   * @param {number} [value=false] - The value to set at the position (optional).
-   * @returns {number} - The current or updated value at the position.
-   */
-  get(x, y, value = false) {
-    const col = Position.getColIndex(x, this.d);
-    const row = Position.getRowIndex(y, this.d);
-    // Retrieve the current value at the position
-    const current = this.field?.[col]?.[row] ?? 0;
-    if (value) {
-      // Update the temporary field with the maximum of the current and new values
-      const biggest = Math.max(current, value);
-      const tempValue = (current === 0 ? 0 : this.fieldTemp[col][row]) * 0.75;
-      this.fieldTemp[col][row] = Math.max(biggest, tempValue);
-      return biggest;
-    }
-    return current;
-  },
-
-  /**
-   * Updates the primary field with the values from the temporary field.
-   * This operation is performed in-place to avoid unnecessary memory allocation.
-   */
-  update() {
-    for (let col = 0; col < num_columns / this.d; col++) {
-      for (let row = 0; row < num_rows / this.d; row++) {
-        this.field[col][row] = this.fieldTemp[col][row];
-      }
-    }
-  },
-
-  /**
-   * Saves the current state of the primary and temporary fields.
-   * This allows the fields to be restored later.
-   */
-  save() {
-    this.A = cloneArray(this.field);
-    this.B = cloneArray(this.fieldTemp);
-  },
-
-  /**
-   * Restores the previously saved state of the primary and temporary fields.
-   */
-  restore() {
-    this.field = this.A;
-    this.fieldTemp = this.B;
-  },
-};

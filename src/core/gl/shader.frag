@@ -219,7 +219,7 @@ void main(void) {
                 for (int i = -2; i <= 2; i++) {
                     for (int j = -2; j <= 2; j++) {
                         vec2 offset = vec2(float(i), float(j)) * texelSize;
-                        vec2 sampleUV = uv + offset;
+                        vec2 sampleUV = uv1 + offset;
                         float neighborAlpha = texture(u_mask, sampleUV).a * scaleFactor;
                         float neighborEdge = length(vec2(dFdx(neighborAlpha), dFdy(neighborAlpha)));
                         blurEdge += smoothstep(0.05, 0.35, neighborEdge);
@@ -227,7 +227,7 @@ void main(void) {
                     }
                 }
                 blurEdge /= totalSamples;
-                mixIntensity = clamp(maskColor.a + blurEdge * 0.2, 0.0, 1.0);
+                mixIntensity = clamp(maskColor.a + blurEdge * 0.1, 0.0, 1.0);
             }
             vec3 mixedColor = spectral_mix(source.rgb, pigment.rgb, mixIntensity);
             outColor = vec4(mixedColor, 1);

@@ -1,5 +1,5 @@
 import { Mix, State } from "./color.js";
-import { Matrix, BleedField, isFieldReady } from "./flowfield.js";
+import { Matrix, isFieldReady } from "./flowfield.js";
 
 // =============================================================================
 // SAVE / RESTORE
@@ -27,9 +27,6 @@ export function save() {
   _saveState.stroke = { ...State.stroke };
   _saveState.hatch = { ...State.hatch };
   _saveState.field = { ...State.field };
-
-  // Save additional field state
-  BleedField.save();
 }
 
 /**
@@ -50,7 +47,4 @@ export function restore() {
   State.field = { ..._saveState.field };
   State.hatch = { ..._saveState.hatch };
   State.fill = { ..._saveState.fill };
-
-  // Restore additional field state
-  BleedField.restore();
 }

@@ -24,7 +24,7 @@ import {
   rArray,
   rotate,
 } from "../core/utils.js";
-import { BleedField, isFieldReady } from "../core/flowfield.js";
+import { isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
 import { Plot } from "../core/plot.js";
 
@@ -280,7 +280,7 @@ class FillPolygon {
       const nv = (i + 1 < len ? tr_v[i + 1] : tr_v[0]);
 
       // compute modifier
-      if (growthFactor < 997) mod = BleedField.get(cv.x, cv.y, tr_m[i]);
+      if (growthFactor < 997) mod = tr_m[i];
 
       // rotation in degrees, using utils.rotate
       const rotDeg =
@@ -355,7 +355,6 @@ class FillPolygon {
         Mix.blend(color, true, false, true);
       }
     }
-    BleedField.update();
     Mix.ctx.restore();
   }
 

@@ -166,11 +166,9 @@ export class Plot {
    * @param {number} scale - The scale factor.
    */
   erase(x, y, scale) {
-    if (E.isActive) {
       if (this.origin) [x, y, scale] = [...this.origin, 1];
       this.pol = this.genPol(x, y, scale, 0.15);
       drawErase(this.pol.vertices);
-    }
   }
 
   /**
@@ -180,9 +178,12 @@ export class Plot {
    * @param {number} scale - The scale factor.
    */
   show(x, y, scale = 1) {
+    if (E.isActive) {
+      this.erase();
+      return;
+    }
     if (State.stroke) this.draw(x, y, scale);
     if (State.hatch) this.hatch(x, y, scale);
     if (State.fill) this.fill(x, y, scale);
-    this.erase(x, y, scale);
   }
 }

@@ -241,7 +241,7 @@ function saveState() {
 
   // Ensure GL is ready and blend state
   isReady();
-  Mix.blend(State.stroke.color);
+  if (isInsideClippingArea()) Mix.blend(State.stroke.color);
   Mix.isBrush = true;
 
   // Set additional state values

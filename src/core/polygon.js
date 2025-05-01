@@ -52,16 +52,19 @@ export class Polygon {
    * Erases the polygon using the erase tool.
    */
   erase() {
-    if (E.isActive) drawErase(this.vertices);
+    drawErase(this.vertices);
   }
 
   /**
    * Displays the polygon with optional stroke, hatch, and fill effects.
    */
   show() {
+    if (E.isActive) {
+      this.erase();
+      return;
+    }
     if (State.draw) this.draw();
     if (State.hatch) this.hatch();
     if (State.fill) this.fill();
-    this.erase();
   }
 }

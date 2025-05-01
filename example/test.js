@@ -27,8 +27,8 @@ let y_values = [];
 const canvas = document.createElement("canvas");
 canvas.classList.add("canvas");
 canvas.setAttribute("id", "main");
-canvas.width = 2000;
-canvas.height = 2000;
+canvas.width = 1000;
+canvas.height = 1000;
 var body = document.getElementsByTagName("body")[0];
 body.appendChild(canvas);
 
@@ -36,14 +36,46 @@ body.appendChild(canvas);
 brush.load("main", canvas);
 
 // Scale brushes to canvas
-brush.scaleBrushes(10);
+brush.scaleBrushes(6);
 
 brush.background(245);
+
+color = [], size = [], dir = [], position = [];
+
+let number = 20;
+
+for (let i = 0; i < number; i++) {
+  position.push(new brush.Position(brush.random(0, canvas.width), brush.random(0, canvas.height)));
+  dir.push(brush.random(0, 360));
+  color.push(brush.random(palette1));
+  size.push(brush.random(6, 10));
+}
 
 // Draw Loop
 const draw = () => {
   
   brush.save();
+
+  brush.wiggle(10)
+
+
+  for (let i = 0; i < number; i++) {
+    brush.set("HB", color[i], 1);
+    position[i].moveTo(8, dir[i])
+    brush.circle(
+      position[i].x,
+      position[i].y,
+      size[i]
+    );
+  }
+
+  brush.noField();
+
+  brush.erase(255, 10)
+  brush.rect(0,0,canvas.width, canvas.height)
+  brush.noErase();
+
+  /*
 
   brush.noFill();
 
@@ -121,10 +153,11 @@ const draw = () => {
   }
 
   
+  */
   
   brush.restore();
 
-  brush.noLoop();
+  //brush.noLoop();
 };
 
 brush.frameRate(30);
