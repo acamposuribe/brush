@@ -1,5 +1,5 @@
 import { Mix, isMixReady, Cwidth, Cheight, State } from "./color.js";
-import { randInt, noise, rr, sin, cos, cloneArray } from "./utils.js";
+import { randInt, noise, rr, sin, cos } from "./utils.js";
 
 // =============================================================================
 // Section: Matrix transformations
@@ -26,27 +26,6 @@ export function translate(x, y) {
   let m = Mix.ctx.getTransform();
   Matrix.x = m.e; // Horizontal offset
   Matrix.y = m.f; // Vertical offset
-}
-
-/**
- * Rotates the canvas by the specified angle.
- *
- * @param {number} [a=0] - The angle of rotation in radians (default: 0).
- */
-export function rotate(a = 0) {
-  isFieldReady();
-  Mix.ctx.rotate(a); // Apply the rotation to the canvas context
-}
-
-/**
- * Scales the canvas by the specified factor.
- *
- * @param {number} a - The scaling factor. Values greater than 1 enlarge the canvas,
- *                     while values between 0 and 1 shrink it.
- */
-export function scale(a) {
-  isFieldReady();
-  Mix.ctx.scale(a, a); // Apply the scaling transformation to the canvas context
 }
 
 // =============================================================================
@@ -96,8 +75,8 @@ export class Position {
   update(x, y) {
     this.x = x;
     this.y = y;
-    this.column_index = Position.getColIndex(x);
-    this.row_index = Position.getRowIndex(y);
+    this.colIdx = Position.getColIndex(x);
+    this.rowIdx = Position.getRowIndex(y);
   }
 
   /**
@@ -113,7 +92,7 @@ export class Position {
    */
   isIn() {
     return State.field.isActive
-      ? Position.isIn(this.column_index, this.row_index)
+      ? Position.isIn(this.colIdx, this.rowIdx)
       : this.isInCanvas(this.x, this.y);
   }
 
@@ -141,7 +120,7 @@ export class Position {
    */
   angle() {
     return this.isIn() && State.field.isActive
-      ? flow_field()[this.column_index][this.row_index] * State.field.wiggle
+      ? flow_field()[this.colIdx][this.rowIdx] * State.field.wiggle
       : 0;
   }
 
@@ -150,30 +129,9 @@ export class Position {
    * @param {number} _length - The length to move along the field.
    * @param {number} _dir - The direction of movement.
    * @param {number} _step_length - The length of each step.
-   * @param {boolean} isFlow - Whether to use the flow field for movement.
    */
-  moveTo(_length, _dir, _step_length = 1, isFlow = true) {
-    if (!this.isIn()) {
-      this.plotted += _step_length;
-      return;
-    }
-
-    let a, b;
-    for (let i = 0; i < _length / _step_length; i++) {
-      if (isFlow) {
-        const angle = this.angle();
-        a = cos(angle - _dir);
-        b = sin(angle - _dir);
-      } else {
-        a = cos(-_dir);
-        b = sin(-_dir);
-      }
-      const x_step = _step_length * a;
-      const y_step = _step_length * b;
-      this.plotted += _step_length;
-
-      this.update(this.x + x_step, this.y + y_step);
-    }
+  moveTo(_dir, _length, _step_length = 1) {
+    this.movePos(_dir, _length, _step_length = 1)
   }
 
   /**
@@ -183,20 +141,24 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    * @param {number} _scale - The scaling factor for the plotting path.
    */
-  plotTo(_plot, _length, _step_length, _scale) {
+  plotTo(_plot, _length, _step_length, _scale = 1) {
+    this.movePos(_plot, _length, _step_length, _scale = 1)
+  }
+
+  movePos(_dirPlot, _length, _step, _scale = false) {
+    const scaleFactor = _scale || 1;
     if (!this.isIn()) {
-      this.plotted += _step_length / _scale;
+      this.plotted += _step / scaleFactor;
       return;
     }
-
-    const inverse_scale = 1 / _scale;
-    for (let i = 0; i < _length / _step_length; i++) {
-      const current_angle = this.angle();
-      const plot_angle = _plot.angle(this.plotted);
-      const x_step = _step_length * cos(current_angle - plot_angle);
-      const y_step = _step_length * sin(current_angle - plot_angle);
-      this.plotted += _step_length * inverse_scale;
-      this.update(this.x + x_step, this.y + y_step);
+    for (let i = 0; i < _length / _step; i++) {
+      const angle = this.angle() - (_scale ? _dirPlot.angle(this.plotted) : _dirPlot);
+      // Calculate new position
+      this.update(
+        this.x + _step * cos(angle),
+        this.y + _step * sin(angle)
+      );
+      this.plotted += _step / scaleFactor;
     }
   }
 
@@ -277,9 +239,8 @@ function flow_field() {
  * @param {number} [t=0] - An optional time parameter that can affect field generation.
  */
 export function refreshField(t = 0) {
-  list.get(State.field.current).field = list
-    .get(State.field.current)
-    .gen(t, genField());
+  const currentField = list.get(State.field.current);
+  currentField.field = currentField.gen(t, genField());
 }
 
 /**
@@ -287,10 +248,10 @@ export function refreshField(t = 0) {
  * Reuses existing arrays to reduce memory allocation overhead.
  * @returns {Float32Array[]} Empty vector field grid.
  */
-function genField(d = 1) {
-  return new Array(num_columns / d)
+function genField() {
+  return new Array(num_columns)
     .fill(null)
-    .map(() => new Float32Array(num_rows / d));
+    .map(() => new Float32Array(num_rows));
 }
 
 /**

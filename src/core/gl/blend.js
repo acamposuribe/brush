@@ -5,8 +5,50 @@ import fragSrc from "./shader.frag";
  * This code will be compiled into a separate worker thread
  */
 export const GL = () => {
-    let canvas, gl;
-    const sh = {}; // Stores shader uniform locations and FBOs/textures.
+    let canvas, gl, sh = {};
+
+    /**
+     * Prepares the WebGL context:
+     * - Initializes WebGL2 with antialiasing disabled.
+     * - Compiles the shader program.
+     * - Caches uniform locations.
+     * - Creates necessary textures and framebuffer objects (FBOs).
+     * - Binds textures to texture units.
+     */
+    function init(canvasObj) {
+      canvas = canvasObj;
+      gl = canvas.getContext("webgl2", { antialias: false });
+
+      // Compile shader
+      const mainProg = createProgram(gl, vertSrc, fragSrc);
+      gl.useProgram(mainProg);
+
+      // Cache uniform locations used by the fragment shader.
+      [
+        "u_addColor",
+        "u_isErase",
+        "u_isImage",
+        "u_isBrush",
+        "u_source",
+        "u_mask"
+      ].forEach((name) => {
+        sh[name] = gl.getUniformLocation(mainProg, name);
+      });
+
+      // Create texture and framebuffer objects.
+      sh.mask = createTexture();
+      sh.source = createFBO();
+      sh.target = createFBO();
+
+      // Bind textures to texture units 0 and 1.
+      gl.uniform1i(sh.u_source, 0);
+      gl.uniform1i(sh.u_mask, 1);
+      bindTexture(gl.TEXTURE0, sh.source.texture);
+      bindTexture(gl.TEXTURE1, sh.mask);
+
+      // Initial clear
+      clearFramebuffer([1, 1, 1, 0]);
+    }
 
     const createProgram = (gl, vert, frag) => {
       const p = gl.createProgram();
@@ -36,7 +78,7 @@ export const GL = () => {
       return tex;
     }
 
-            /**
+    /**
      * Creates a framebuffer object (FBO) with an associated texture.
      * @returns {{texture: WebGLTexture, fbo: WebGLFramebuffer}} An object containing the texture and FBO.
      */
@@ -54,45 +96,10 @@ export const GL = () => {
       return { texture, fbo: fb };
     }
 
-    /**
-     * Prepares the WebGL context:
-     * - Initializes WebGL2 with antialiasing disabled.
-     * - Compiles the shader program.
-     * - Caches uniform locations.
-     * - Creates necessary textures and framebuffer objects (FBOs).
-     * - Binds textures to texture units.
-     */
-    function prepareGL() {
-      gl = canvas.getContext("webgl2", { antialias: false });
-
-      // Compile shader
-      const mainProg = createProgram(gl, vertSrc, fragSrc);
-      gl.useProgram(mainProg);
-
-      // Cache uniform locations used by the fragment shader.
-      [
-        "u_addColor",
-        "u_isErase",
-        "u_isImage",
-        "u_isBrush",
-        "u_source",
-        "u_mask"
-      ].forEach((name) => {
-        sh[name] = gl.getUniformLocation(mainProg, name);
-      });
-
-      // Create texture and framebuffer objects.
-      sh.mask = createTexture();
-      sh.source = createFBO();
-      sh.target = createFBO();
-
-      // Bind textures to texture units 0 and 1.
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, sh.source.texture);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, sh.mask);
-      gl.uniform1i(sh.u_source, 0);
-      gl.uniform1i(sh.u_mask, 1);
+    // Bind texture with state tracking
+    function bindTexture(unit, texture) {
+      gl.activeTexture(unit);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
     }
 
     /**
@@ -107,42 +114,28 @@ export const GL = () => {
       );
     }
 
+    function updateMaskTexture(data) {
+      // Handle mask texture update with Safari special case
+      let source = data.mask;
+      if (isSafari()) {
+        const offscreen = new OffscreenCanvas(source.width, source.height);
+        offscreen.getContext("2d").drawImage(source, 0, 0);
+        source = offscreen.getContext("2d").getImageData(0, 0, source.width, source.height);
+      }
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      data.mask.close();
+    }
+
     /**
      * Applies the shader by updating the mask texture and drawing to framebuffer objects.
      * Handles updating of uniforms and copying the rendered image between framebuffers.
      * @param {object} data - Contains blend parameters and the mask ImageBitmap.
      */
     function applyShader(data) {
-      let imageData;
-      // Workaround for Safari memory leak using an OffscreenCanvas.
-      if (isSafari()) {
-        const offscreen = new OffscreenCanvas(
-          data.mask.width,
-          data.mask.height
-        );
-        const offctx = offscreen.getContext("2d");
-        offctx.drawImage(data.mask, 0, 0);
-        imageData = offctx.getImageData(
-          0,
-          0,
-          data.mask.width,
-          data.mask.height
-        );
-      }
-      // Draw mask to texture
-      gl.texSubImage2D(
-        gl.TEXTURE_2D,
-        0,
-        0,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        isSafari() ? imageData : data.mask
-      );
-      // Close imagebitmap
-      data.mask.close();
+      // Update texture with mask data
+      updateMaskTexture(data)
       // Draw to framebuffer
-      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.target.fbo);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, sh.target.fbo);
       // Uniforms
       gl.uniform1i(sh.u_isImage, data.isImage ? 1 : 0);
       gl.uniform1i(sh.u_isBrush, data.isBrush ? 1 : 0);
@@ -154,21 +147,16 @@ export const GL = () => {
       // Composite image to frameBuffer
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       // Copy framebuffer to source
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sh.target.fbo);
-      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
-      blit();
-      // Display framebuffer on canvas
+      copyFramebuffers(sh.target.fbo, sh.source.fbo);
       if (data.isLast && !data.sp) {
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sh.target.fbo); // Read from target
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // Draw to canvas
-        blit();
+        // Copy framebuffer to canvas
+        copyFramebuffers(sh.target.fbo, null)
       }
     }
 
-    /**
-     * Copies the content from the current framebuffer to the destination using gl.blitFramebuffer.
-     */
-    function blit() {
+    function copyFramebuffers(src, dest) {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, src);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dest);
       gl.blitFramebuffer(
         0,
         0,
@@ -190,18 +178,19 @@ export const GL = () => {
      * - If mask data is received, applies the shader.
      */
     onmessage = async (event) => {
-      if (event.data.canvas) {
-        canvas = event.data.canvas;
-        prepareGL();
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
-        gl.clearColor(1, 1, 1, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      } else if (event.data.isBG) {
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
-        gl.clearColor(...event.data.color);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      } else if (event.data.mask) {
-        applyShader(event.data);
+      const data = event.data;
+      if (data.canvas) {
+        init(data.canvas);
+      } else if (data.isBG) {
+        clearFramebuffer(data.color)
+      } else if (data.mask) {
+        applyShader(data);
       }
     };
+
+    function clearFramebuffer(color) {
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sh.source.fbo);
+      gl.clearColor(...color);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
   }

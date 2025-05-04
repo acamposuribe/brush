@@ -18,15 +18,11 @@ export let cID, Cwidth, Cheight, Density; // Global canvas properties
  * @param {string} canvasID - Unique identifier for the canvas.
  * @param {HTMLCanvasElement} canvas - The canvas element to initialize.
  */
-export function load(canvasID, canvas) {
+export const load = (canvasID, canvas) => {
   cID = canvasID;
-  // Initialize the canvas if it hasn't been registered yet
-  if (!Canvases[cID]) {
-    Canvases[cID] = { canvas };
-  }
-  // Set canvas dimensions
-  Cwidth = Canvases[cID].canvas.width;
-  Cheight = Canvases[cID].canvas.height;
+  if (!Canvases[cID]) Canvases[cID] = { canvas };
+  Cwidth = canvas.width;
+  Cheight = canvas.height;
   _isReady = true;
   Mix.load();
 }
@@ -35,13 +31,8 @@ let _isReady = false;
 
 /**
  * Ensures the drawing system is ready before any operation.
- * Automatically loads the system if it hasn't been initialized.
  */
-function isCanvasReady() {
-  if (!_isReady) {
-    throw new Error("Canvas system is not ready. Call `load()` first.");
-  }
-}
+const isCanvasReady = () => { if (!_isReady) throw new Error("Call `load()` first"); };
 
 /**
  * Stores the current state of the drawing system.
@@ -64,10 +55,7 @@ export const State = {};
  * - Store color data in WebGL-compatible formats (normalized RGBA).
  */
 
-const colorCanvas = document.createElement("canvas");
-colorCanvas.width = 1;
-colorCanvas.height = 1;
-const colorCtx = colorCanvas.getContext("2d");
+const colorCtx = document.createElement("canvas").getContext("2d");
 
 /**
  * Class to deal with colours and their conversion
@@ -78,17 +66,12 @@ export class Color {
       // If the input is not a number, assume it's a color string (e.g., hex or named color)
       this.hex = this.standardize(r);
       let rgb = this.hexToRgb(this.hex);
-      this.r = rgb.r;
-      this.g = rgb.g;
-      this.b = rgb.b;
+      this.r = rgb.r; this.g = rgb.g; this.b = rgb.b;
     } else {
       // Constrain RGB values to the range [0, 255]
-      r = constrain(r, 0, 255);
-      g = constrain(g, 0, 255);
-      b = constrain(b, 0, 255);
-      this.r = r;
-      this.g = isNaN(g) ? r : g;
-      this.b = isNaN(b) ? r : b;
+      this.r = constrain(r, 0, 255);
+      this.g = constrain(g || r, 0, 255);
+      this.b = constrain(b || r, 0, 255);
       this.hex = this.rgbToHex(this.r, this.g, this.b);
     }
     // Store the color in WebGL format (normalized RGBA)
@@ -102,9 +85,7 @@ export class Color {
    * @param {number} b - Blue value (0-255).
    * @returns {string} Hexadecimal color string.
    */
-  rgbToHex(r, g, b) {
-    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
-  }
+  rgbToHex = (r, g, b) => "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 
   /**
    * Converts a hexadecimal color string to RGB values.
@@ -112,18 +93,9 @@ export class Color {
    * @returns {object} An object with r, g, and b properties.
    */
   hexToRgb(hex) {
-    let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-      return r + r + g + g + b + b;
-    });
-    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
-      : null;
+    hex = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m, r, g, b) => r + r + g + g + b + b);
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
   }
 
   /**
@@ -131,10 +103,7 @@ export class Color {
    * @param {string} str - Color string (e.g., "red", "#f00").
    * @returns {string} Standardized color string.
    */
-  standardize(str) {
-    colorCtx.fillStyle = str;
-    return colorCtx.fillStyle;
-  }
+  standardize = str => { colorCtx.fillStyle = str; return colorCtx.fillStyle; };
 }
 
 // =============================================================================
@@ -148,12 +117,8 @@ export class Color {
 /**
  * Ensures the Mix object is initialized and ready for blending.
  */
-export function isMixReady() {
-  if (!Mix.loaded) {
-    isCanvasReady();
-    Mix.load();
-  }
-}
+export const isMixReady = () => { if (!Mix.loaded) { isCanvasReady(); Mix.load(); } };
+
 
 /**
  * Manages blending operations with WebGL shaders.
@@ -166,15 +131,13 @@ export function isMixReady() {
 export const Mix = {
   loaded: false,
   isBlending: false,
-  currentColor: new Color("white").gl,
 
   /**
    * Loads necessary resources and prepares the mask buffer and shader for colour blending.
    */
   load() {
-    if (!Canvases[cID].worker) {
-      const ca = Canvases[cID];
-
+    const ca = Canvases[cID];
+    if (!ca.worker) {
       // Create offscreen masks
       ca.mask = new OffscreenCanvas(Cwidth, Cheight);
       ca.glMask = new OffscreenCanvas(Cwidth, Cheight);
@@ -183,18 +146,18 @@ export const Mix = {
       ca.ctx.lineWidth = 0;
       
       // Create an offscreen WebGL canvas and link it to the main canvas
-      ca.offscreen = Canvases[cID].canvas.transferControlToOffscreen();
+      ca.offscreen = ca.canvas.transferControlToOffscreen();
 
       // Initialize the WebGL worker
       ca.worker = gl_worker();
-      ca.worker.postMessage("init");
+      ca.worker.postMessage(0);
 
       // Send the offscreen WebGL canvas to the worker
       ca.worker.postMessage({ canvas: ca.offscreen }, [ca.offscreen]);
     }
 
     // Store references to the mask, context, and worker
-    Object.assign(this, Canvases[cID]);
+    Object.assign(this, ca);
   },
 
   /**
@@ -213,19 +176,12 @@ export const Mix = {
       this.isBlending = true;
     }
 
-    // Determine the new color
-    const newColor = !_color ? this.currentColor : _color.gl;
+    if ((_isLast || _isImg || _color.gl.toString() !== this.currentColor.toString())) {
 
-    // Check if blending is necessary
-    const shouldBlend =
-      _isLast || _isImg || newColor.toString() !== this.currentColor.toString();
-
-    if (shouldBlend) {
       // Use existing image data or transfer mask to ImageBitmap
-      const imageData =
-        _isImg || this.isBrush
-          ? this.glMask.transferToImageBitmap()
-          : this.mask.transferToImageBitmap();
+      const imageData = (_isImg || this.isBrush) 
+        ? this.glMask.transferToImageBitmap()
+        : this.mask.transferToImageBitmap();
 
       // Send blending data to the worker
       this.worker.postMessage(
@@ -242,14 +198,10 @@ export const Mix = {
       );
 
       // Reset flags
-      this.isErase = false;
-      this.isBrush = false;
+      this.isErase = this.isBrush = false;
 
-      // Cache the new color if not the last operation
-      if (!_isLast) this.currentColor = _color.gl;
-
-      // Reset blending state if this is the last operation and is not a fill layer
       if (_isLast && !_isFillLayer) this.isBlending = false;
+      else this.currentColor = _color.gl
     }
   },
 };
@@ -269,18 +221,14 @@ let _bg_Color = new Color("white");
  * @param {number|string} g - Green value (0-255) or a color string.
  * @param {number} b - Blue value (0-255).
  */
-export function background(r, g, b) {
+export const background = (...args) => {
   isMixReady();
-
-  // Create a new Color object with the provided arguments
-  _bg_Color = new Color(...arguments);
-
-  // Send the background color to the worker
+  _bg_Color = new Color(...args);
   Mix.worker.postMessage({
     color: _bg_Color.gl,
     isBG: true,
   });
-}
+};
 
 /**
  * Draws an image onto the canvas.
@@ -290,21 +238,12 @@ export function background(r, g, b) {
  * @param {number} [w=img.width] - Width of the image.
  * @param {number} [h=img.height] - Height of the image.
  */
-export function drawImage(img, x = 0, y = 0, w = img.width, h = img.height) {
+export const drawImage = (img, ...args) => {
   isMixReady();
-
-  // Check if the image is not an ImageBitmap or if coordinates are non-default
-  if (
-    Object.prototype.toString.call(img) !== "[object ImageBitmap]" ||
-    x !== 0
-  ) {
-    // Draw the image onto the mask context
-    Mix.ctx.drawImage(img, x, y, w, h);
-
-    // Convert the mask to an ImageBitmap
-    img = Mix.mask.transferToImageBitmap();
-  }
-
+  // Draw the image onto the mask context
+  Mix.ctx.drawImage(img, ...args);
+  // Convert the mask to an ImageBitmap
+  img = Mix.mask.transferToImageBitmap();
   // Blend the image into the canvas
   Mix.blend(false, false, img);
-}
+};

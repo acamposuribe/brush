@@ -142,7 +142,7 @@ export class Plot {
     let prevIdx = 0;
 
     for (let i = 0; i < numSteps; i++) {
-      pos.plotTo(this, step, step, 1);
+      pos.plotTo(this, step, step);
       const idx = this.calcIndex(pos.plotted);
       pside += step;
       const maxSize = Math.max(this.segments[idx] * _side * rr(0.7, 1.3),10);

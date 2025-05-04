@@ -18,9 +18,9 @@ let rng = prng_alea(Math.random());
  * @param {number|string} s – The seed value.
  * @returns {void}
  */
-export function seed(s) {
+export const seed = (s) => {
   rng = prng_alea(s);
-}
+};
 
 /**
  * Simplex‐noise 2D function.
@@ -33,9 +33,9 @@ export let noise = createNoise2D(prng_alea(Math.random()));
  * @param {number|string} s - The seed value.
  * @returns {void}
  */
-export function noiseSeed(s) {
+export const noiseSeed = (s) => {
   noise = createNoise2D(prng_alea(s));
-}
+};
 
 /**
  * Returns a random float in [min, max).
@@ -50,9 +50,7 @@ export const rr = (e = 0, r = 1) => e + rng() * (r - e);
  * @param {T[]} array - Input array.
  * @returns {T}
  */
-export function rArray(array) {
-  return array[~~(rng() * array.length)]
-}
+export const rArray = (array) => array[~~(rng() * array.length)];
 
 /**
  * Generates a random number or picks a random array element.
@@ -60,11 +58,11 @@ export function rArray(array) {
  * @param {number} [max=1]
  * @returns {number}
  */
-export function random(e = 0, r = 1) {
+export function random (e = 0, r = 1) {
   if (Array.isArray(e)) return rArray(e);
   if (arguments.length === 1) return rng() * e;
-  return rr(...arguments);
-}
+  return rr(e, r);
+};
 
 /**
  * Returns a random integer in [min, max).
@@ -80,19 +78,19 @@ export const randInt = (e, r) => ~~rr(e, r);
  * @param {number} [stdev=1]
  * @returns {number}
  */
-export function gaussian(mean = 0, stdev = 1) {
+export const gaussian = (mean = 0, stdev = 1) => {
   const u = 1 - rng();
   const v = rng();
   const z = Math.sqrt(-2.0 * Math.log(u)) * cos(360 * v);
   return z * stdev + mean;
-}
+};
 
 /**
  * Picks a key from an object according to weighted probabilities.
  * @param {Object<string|number, number>} weights
  * @returns {string|number}
  */
-export function weightedRand(weights) {
+export const weightedRand = (weights) => {
   let totalWeight = 0;
   const entries = [];
 
@@ -106,12 +104,12 @@ export function weightedRand(weights) {
   const rnd = rng() * totalWeight;
 
   // Pick the first entry where rnd is less than the cumulative weight
-  for (const entry of entries) {
-    if (rnd < entry.cumulative) {
-      return isNaN(entry.key) ? entry.key : parseInt(entry.key);
+  for (const { key, cumulative } of entries) {
+    if (rnd < cumulative) {
+      return isNaN(key) ? key : parseInt(key);
     }
   }
-}
+};
 
 // =============================================================================
 // Section: Numeric Mapping & Constraints
@@ -127,15 +125,12 @@ export function weightedRand(weights) {
  * @param {boolean} [withinBounds=false]
  * @returns {number}
  */
-export function map(value, a, b, c, d, withinBounds = false) {
+export const map = (value, a, b, c, d, withinBounds = false) => {
   let r = c + ((value - a) / (b - a)) * (d - c);
   if (!withinBounds) return r;
-  if (c < d) {
-    return constrain(r, c, d);
-  } else {
-    return constrain(r, d, c);
-  }
-}
+  if (c < d) return constrain(r, c, d)
+  else return constrain(r, d, c)
+};
 
 /**
  * Constrains a number within the provided bounds.
@@ -144,9 +139,7 @@ export function map(value, a, b, c, d, withinBounds = false) {
  * @param {number} high - Upper bound.
  * @returns {number} The constrained number.
  */
-export function constrain(n, low, high) {
-  return Math.max(Math.min(n, high), low);
-}
+export const constrain = (n, low, high) => Math.max(Math.min(n, high), low);
 
 // =============================================================================
 // Section: Trigonometry
@@ -157,48 +150,48 @@ export function constrain(n, low, high) {
  * @param {number} angle
  * @returns {number}
  */
-function nAngle(angle) {
+const nAngle = (angle) => {
   angle = angle % 360;
   return angle < 0 ? angle + 360 : angle;
-}
+};
 
 // number of discrete steps (360° × 4 samples per degree)
 const totalDegrees     = 1440;
 const radiansPerIndex = (2 * Math.PI) / totalDegrees;
 
 // lazy‐initialized lookup tables
-const c = new Float32Array(totalDegrees).fill(NaN);
-const s = new Float32Array(totalDegrees).fill(NaN);
+const cLookup = new Float32Array(totalDegrees).fill(NaN);
+const sLookup = new Float32Array(totalDegrees).fill(NaN);
 
 /**
  * Cosine of an angle (degrees), via a lazy lookup table.
  * @param {number} angle
  * @returns {number}
  */
-export function cos(angle) {
+export const cos = (angle) => {
   const idx = ~~(4 * nAngle(angle));
-  let v = c[idx];
+  let v = cLookup[idx];
   if (isNaN(v)) {
     v = Math.cos(idx * radiansPerIndex);
-    c[idx] = v;
+    cLookup[idx] = v;
   }
   return v;
-}
+};
 
 /**
  * Sine of an angle (degrees), via a lazy lookup table.
  * @param {number} angle
  * @returns {number}
  */
-export function sin(angle) {
+export const sin = (angle) => {
   const idx = ~~(4 * nAngle(angle));
-  let v = s[idx];
+  let v = sLookup[idx];
   if (isNaN(v)) {
     v = Math.sin(idx * radiansPerIndex);
-    s[idx] = v;
+    sLookup[idx] = v;
   }
   return v;
-}
+};
 
 /**
  * Converts radians to degrees, normalized to [0,360).
@@ -223,13 +216,13 @@ export const toDegrees = (rad) => {
  * @param {number} angle - Degrees
  * @returns {{x:number,y:number}}
  */
-export function rotate(cx, cy, x, y, angle) {
+export const rotate = (cx, cy, x, y, angle) => {
   let coseno = cos(angle),
     seno = sin(angle),
     nx = coseno * (x - cx) + seno * (y - cy) + cx,
     ny = coseno * (y - cy) - seno * (x - cx) + cy;
   return { x: nx, y: ny };
-}
+};
 
 /**
  * Euclidean distance between two points.
@@ -240,7 +233,7 @@ export function rotate(cx, cy, x, y, angle) {
  * @returns {number}
  */
 export const dist = (x1, y1, x2, y2) =>
-  Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+  Math.hypot(x2 - x1, y2 - y1);
 
 /**
  * Angle in degrees between two points, measured clockwise from +X.
@@ -262,13 +255,13 @@ export const calcAngle = (x1, y1, x2, y2) =>
  * @param {boolean} [includeSegmentExtension=false]
  * @returns {{x:number,y:number}|false}
  */
-export function intersectLines(
+export const intersectLines = (
   s1a,
   s1b,
   s2a,
   s2b,
   includeSegmentExtension = false
-) {
+) => {
   // Extract coordinates from points
   let x1 = s1a.x,
     y1 = s1a.y;
@@ -301,19 +294,4 @@ export function intersectLines(
   let x = x1 + ua * deltaX1;
   let y = y1 + ua * deltaY1;
   return { x: x, y: y };
-}
-
-// =============================================================================
-// Section: Other Utility Functions
-// =============================================================================
-
-/**
- * Shallow‐clones an array of arrays.
- * @param {T[]} array
- * @returns {T[]}
- */
-export function cloneArray(array) {
-  return array.map(function (arr) {
-    return arr.slice();
-  });
 }

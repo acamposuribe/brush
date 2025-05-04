@@ -45,21 +45,9 @@ State.fill = {
   isActive: false,
 };
 
-/**
- * Returns a shallow copy of the current fill state.
- * @returns {Object} The current fill state.
- */
-function FillState() {
-  return { ...State.fill };
-}
-
-/**
- * Updates the global fill state.
- * @param {Object} state - The new fill state.
- */
-function FillSetState(state) {
-  State.fill = { ...state };
-}
+// Cache the current state
+const FillState = () => ({...State.fill});
+const FillSetState = state => { State.fill = {...state}; };
 
 // ---------------------------------------------------------------------------
 // Fill Style Functions
@@ -109,37 +97,14 @@ export function noFill() {
 // Fill Manager Functions
 // ---------------------------------------------------------------------------
 
-let fillPolygon;
+let _polygon;
 
-/**
- * Fills a given polygon with a watercolor effect.
- * @param {Polygon} polygon - The polygon to fill.
- */
-export function createFill(polygon) {
-  // Store polygon
-  fillPolygon = polygon;
-  // Map polygon vertices to Vector objects
-  let v = [...polygon.vertices];
-  const vLength = v.length;
-  // Calculate fluidity once, outside the loop
-  const fluid = vLength * 0.25 * weightedRand({ 1: 5, 2: 10, 3: 60 });
-  // Map vertices to bleed multipliers with more intense effect on 'fluid' vertices
-  const strength = State.fill.bleed_strength;
-  let modifiers = v.map((_, i) => {
-    let multiplier = rr(0.85, 1.2) * strength;
-    return i > fluid ? multiplier : multiplier * 0.2;
-  });
-  // Shift vertices randomly for natural edges.
-  const shift = randInt(0, vLength);
-  v = [...v.slice(shift), ...v.slice(0, shift)];
-  const center = calcCenter(v);
-  // Create and fill the polygon with the calculated bleed effect
-  let pol = new FillPolygon(v, modifiers, center, [], true);
-  pol.fill(
-    State.fill.color,
-    map(State.fill.opacity, 0, 100, 0, 1, true),
-    State.fill.texture_strength
-  );
+// Pre-compute gaussians for reuse
+const _gaussians = [[], []]; // [a, b]
+
+// Helper for direction checking - extracted to reduce duplication
+function _isLeft(a, b, c) {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0.01;
 }
 
 /**
@@ -147,34 +112,62 @@ export function createFill(polygon) {
  * @param {Object[]} pts - Array of points with {x, y}.
  * @returns {Object} The center point {x, y}.
  */
-function calcCenter(pts) {
-  pts = [...pts];
-  const first = pts[0],
-    last = pts[pts.length - 1];
-  if (first.x !== last.x || first.y !== last.y) pts.push(first);
-  let twicearea = 0,
-    x = 0,
-    y = 0,
-    nPts = pts.length;
-  for (let i = 0, j = nPts - 1; i < nPts; j = i++) {
-    const p1 = pts[i],
-      p2 = pts[j];
-    const f =
-      (p1.y - first.y) * (p2.x - first.x) - (p2.y - first.y) * (p1.x - first.x);
-    twicearea += f;
-    x += (p1.x + p2.x - 2 * first.x) * f;
-    y += (p1.y + p2.y - 2 * first.y) * f;
+function _center(pts) {
+  if (pts.length < 8) {
+    // Simple average for small polygons
+    return pts.reduce((c, p) => ({x: c.x + p.x, y: c.y + p.y}), {x:0, y:0})
+             .map(v => v / pts.length);
   }
-  const f = twicearea * 3;
-  return { x: x / f + first.x, y: y / f + first.y };
+  
+  // Close polygon if needed
+  const v = [...pts];
+  if (v[0].x !== v[v.length-1].x || v[0].y !== v[v.length-1].y) v.push(v[0]);
+  
+  // Calculate using shoelace formula (more efficient implementation)
+  let area = 0, cx = 0, cy = 0;
+  for (let i = 0; i < v.length - 1; i++) {
+    const cross = v[i].x * v[i+1].y - v[i+1].x * v[i].y;
+    area += cross;
+    cx += (v[i].x + v[i+1].x) * cross;
+    cy += (v[i].y + v[i+1].y) * cross;
+  }
+  
+  area *= 0.5;
+  return area ? {x: cx/(6*area), y: cy/(6*area)} : {x: v[0].x, y: v[0].y};
+}
+
+/**
+ * Fills a given polygon with a watercolor effect.
+ * @param {Polygon} polygon - The polygon to fill.
+ */
+export function createFill(polygon) {
+  _polygon = polygon;
+  const v = [...polygon.vertices];
+  
+  // Map vertices
+  const fluid = ~~(v.length * 0.25 * weightedRand({1:5, 2:10, 3:60}));
+  const strength = State.fill.bleed_strength;
+  
+  // Create bleed modifiers
+  const modifiers = v.map((_, i) => (i > fluid ? 1 : 0.3) * rr(0.85, 1.2) * strength);
+  
+  // Randomize starting point
+  const shift = randInt(0, v.length);
+  const shifted = [...v.slice(shift), ...v.slice(0, shift)];
+  
+  // Calculate center and create FillPolygon
+  const center = _center(shifted);
+  new FillPoly(shifted, modifiers, center, [], true)
+    .fill(
+      State.fill.color, 
+      map(State.fill.opacity, 0, 100, 0, 1, true),
+      State.fill.texture_strength
+    );
 }
 
 // ---------------------------------------------------------------------------
 // FillPolygon Class
 // ---------------------------------------------------------------------------
-
-const gaussiansA = []
-const gaussiansB = []
 
 /**
  * The FillPolygon class is used to create and manage the properties of the polygons that produces
@@ -183,7 +176,7 @@ const gaussiansB = []
  * The implementation follows Tyler Hobbs' guide to simulating watercolor:
  * https://tylerxhobbs.com/essays/2017/a-generative-approach-to-simulating-watercolor-paints
  */
-class FillPolygon {
+class FillPoly {
   /**
    * Constructs a FillPolygon.
    * @param {Object[]} _v - Vertices of the polygon.
@@ -192,40 +185,62 @@ class FillPolygon {
    * @param {boolean[]} dir - Array indicating bleed direction per vertex.
    * @param {boolean} isFirst - True for initial polygon.
    */
-  constructor(_v, _m, _center, dir, isFirst, sizeX, sizeY) {
-    this.v = _v;
+  constructor(v, m, center, dir = [], isFirst = false, sx, sy) {
+    // Initialize properties
+    this.v = v;
+    this.m = m;
     this.dir = dir;
-    this.m = _m;
-    this.sizeX = sizeX;
-    this.sizeY = sizeY;
-    this.midP = _center; 
-    // Calculate bleed direction for the initial shape.
+    this.midP = center;
+
+    // Initialize size and direction for first polygon
     if (isFirst) {
-      this.sizeX = -Infinity;
-      this.sizeY = -Infinity;
-      for (let v of this.v) {
-        this.sizeX = Math.max(Math.abs(this.midP.x - v.x), this.sizeX);
-        this.sizeY = Math.max(Math.abs(this.midP.y - v.y), this.sizeY);
-      }
-      for (let i = 0; i < this.v.length; i++) {
-        const v1 = this.v[i];
-        const v2 = this.v[(i + 1) % this.v.length];
-        const side = { x: v2.x - v1.x, y: v2.y - v1.y };
+      // Calculate size bounds
+      let maxX = 0, maxY = 0;
+      const rayCalc = [];
+
+      for (let i = 0; i < v.length; i++) {
+        // Store vertex distances to center for size calculation
+        const dx = Math.abs(center.x - v[i].x);
+        const dy = Math.abs(center.y - v[i].y);
+        maxX = Math.max(maxX, dx);
+        maxY = Math.max(maxY, dy);
+        
+        // Store edge info for ray calculations
+        const v1 = v[i], v2 = v[(i+1) % v.length];
+        const side = {x: v2.x-v1.x, y: v2.y-v1.y};
         const rt = rotate(0, 0, side.x, side.y, 90);
-        let linea = {
-          point1: { x: v1.x + side.x / 2, y: v1.y + side.y / 2 },
-          point2: { x: v1.x + side.x / 2 + rt.x, y: v1.y + side.y / 2 + rt.y },
-        };
-        const isLeft = (a, b, c) => {
-          return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0.01;
-        };
-        let d1 = 0;
-        for (let int of fillPolygon.intersect(linea)) {
-          if (isLeft(v1, v2, int)) d1++;
-        }
-        this.dir[i] = d1 % 2 === 0 ? true : false;
+        const mid = {x: v1.x+side.x/2, y: v1.y+side.y/2};
+        
+        rayCalc.push({
+          v1, v2,
+          ray: {
+            point1: mid,
+            point2: {x: mid.x+rt.x, y: mid.y+rt.y}
+          }
+        });
       }
-      this.midP = {x:_center.x + this.sizeX * rr(-0.3,0.3), y:_center.y + this.sizeY * rr(-0.3,0.3)};
+      
+      // Store sizes
+      this.sizeX = maxX;
+      this.sizeY = maxY;
+      
+      // Calculate directions
+      this.dir = Array(v.length);
+      rayCalc.forEach((rc, i) => {
+        let count = 0;
+        for (const isect of _polygon.intersect(rc.ray)) {
+          if (_isLeft(rc.v1, rc.v2, isect)) count++;
+        }
+        this.dir[i] = count % 2 === 0;
+      });
+      
+      // Randomize center (single calculation)
+      const rx = rr(-0.6, 0.6) * maxX;
+      const ry = rr(-0.6, 0.6) * maxY;
+      this.midP = {x: center.x + rx, y: center.y + ry};
+    } else {
+      this.sizeX = sx;
+      this.sizeY = sy;
     }
   }
 
@@ -234,18 +249,23 @@ class FillPolygon {
    * @param {number} [factor=1] - Factor determining amount of trimming.
    * @returns {Object} An object containing trimmed vertices, multipliers, and direction.
    */
-  trim(factor = 1) {
-    let v = [...this.v],
-      m = [...this.m],
-      dir = [...this.dir];
-    if (this.v.length > 8 && factor >= 0 && factor !== 1) {
-      const numTrim = ~~((1 - factor) * this.v.length);
-      const sp = ~~(this.v.length / 2 - numTrim / 2);
-      v.splice(sp, numTrim);
-      m.splice(sp, numTrim);
-      dir.splice(sp, numTrim);
+  trim(f = 1) {
+    // Fast path for common case
+    if (f >= 1 || f < 0 || this.v.length <= 8) {
+      return {v:[...this.v], m:[...this.m], dir:[...this.dir]};
     }
-    return { v, m, dir };
+    
+    // Trim from middle for balance
+    const n = ~~((1-f) * this.v.length);
+    const s = ~~(this.v.length/2 - n/2);
+    
+    // Clone and splice
+    const v = [...this.v], m = [...this.m], dir = [...this.dir];
+    v.splice(s, n);
+    m.splice(s, n);
+    dir.splice(s, n);
+    
+    return {v, m, dir};
   }
 
   /**
@@ -253,45 +273,45 @@ class FillPolygon {
    * @param {number} [growthFactor=1] - Factor controlling growth.
    * @returns {FillPolygon} A new FillPolygon with adjusted vertices.
    */
-  grow(growthFactor = 1) {
-    const { v: tr_v, m: tr_m, dir: tr_dir } = this.trim(growthFactor);
+  grow(f = 1) {
+    // Get trimmed vertices
+    const { v: tr_v, m: tr_m, dir: tr_dir} = this.trim(f);
     const len = tr_v.length;
-    const outLen = len * 2;
-    const newVerts = new Array(outLen);
-    const newMods  = new Array(outLen);
-    const newDirs  = new Array(outLen);
+    
+    // Pre-allocate arrays for better performance
+    const newVerts = [], newMods = [], newDirs = [];
 
+    // Determine bleed direction
     const bleedDirDeg = State.fill.direction === "out" ? -90 : 90;
-    // handle special growth cases inline
 
+    // Process vertices
     let idx = 0;
-
-    let mod = growthFactor === 999 ? rr(0.2, 0.6) : State.fill.bleed_strength / 1.7;
+    let mod = f === 999 ? rr(0.6, 0.8) : State.fill.bleed_strength;
     
     for (let i = 0; i < len; i++) {
+
       // compute two gaussians if necessary
-      if (gaussiansA.length < len * 1.5) {
-        gaussiansA.push(gaussian(0.5, 0.2));
-        gaussiansB.push(gaussian(0, 0.02));
+      if (_gaussians[0].length < len * 1.5) {
+        _gaussians[0].push(gaussian(0.5, 0.2));
+        _gaussians[1].push(gaussian(0, 0.02));
       }
 
       const cv = tr_v[i];
-      // next vertex (wrap at end)
-      const nv = (i + 1 < len ? tr_v[i + 1] : tr_v[0]);
+      const nv = (i + 1 < len) ? tr_v[i + 1] : tr_v[0];
 
-      // compute modifier
-      if (growthFactor < 997) mod = tr_m[i];
+      // Use existing modifier or calculate new one
+      if (f < 997) mod = tr_m[i];
 
-      // rotation in degrees, using utils.rotate
-      const rotDeg =
-        (tr_dir[i] ? bleedDirDeg : -bleedDirDeg) + rr(-1, 1) * 5;
-      const sideX = nv.x - cv.x, sideY = nv.y - cv.y;
+      // Calculate rotation
+      const rotDeg = (tr_dir[i] ? bleedDirDeg : -bleedDirDeg) + rr(-1, 1) * 5;
+      const sideX = nv.x - cv.x;
+      const sideY = nv.y - cv.y;
       const { x: dirX, y: dirY } = rotate(0, 0, sideX, sideY, rotDeg);
       
       // pick a random point along the edge
-      const t = rr(0.35, 0.65);
+      const t = 0.5;
       // compute outward distance
-      const d = rArray(gaussiansA) * rr(0.65, 1.35) * mod;
+      const d = rArray(_gaussians[0]) * rr(0.65, 1.35) * mod;
 
       // first vertex: stay at cv
       newVerts[idx] = cv;
@@ -303,10 +323,10 @@ class FillPolygon {
         x: cv.x + sideX * t + dirX * d,
         y: cv.y + sideY * t + dirY * d,
       };
-      newMods[idx]  = tr_m[i] + rArray(gaussiansB);
+      newMods[idx]  = tr_m[i] + rArray(_gaussians[1]);
       newDirs[idx++] = tr_dir[i];
     }
-    return new FillPolygon(newVerts, newMods, this.midP, newDirs, false, this.sizeX, this.sizeY);
+    return new FillPoly(newVerts, newMods, this.midP, newDirs, false, this.sizeX, this.sizeY);
   }
 
   /**
@@ -317,44 +337,48 @@ class FillPolygon {
    */
   fill(color, intensity, tex) {
     // Precalculate stuff
-    const numLayers = 24;
+    const numLayers = 20;
     const texture = tex * 3;
-    const int = intensity * (1 + tex / 2);
+    const int = 2 * intensity * (1 + tex / 2);
 
     // Perform initial setup only once
     Mix.blend(color);
     Mix.ctx.save();
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + 2 * int + "%)";
-    Mix.ctx.strokeStyle =
-      "rgb(255 0 0 / " + 0.01 * State.fill.border_strength + ")";
-
-    const size = Math.max(this.sizeX, this.sizeY);
-
+    
+    Mix.ctx.strokeStyle = `rgb(255 0 0 / ${0.01 * State.fill.border_strength})`;
     Mix.ctx.lineCap = "round";
 
+    const size = Math.max(this.sizeX, this.sizeY);
     const darker = rr(0.15,0.7);
 
-    // Set the different polygons for texture
-    let pol = this.grow(),
-      pols;
+    // Create initial polygon
+    let pol = this.grow();
+    let pols;
+
     for (let i = 0; i < numLayers; i++) {
-      if (i % 4 === 0) {
-        pol = pol.grow();
+      // Grow polygon every 4 layers
+      if (i % 4 === 0) pol = pol.grow();
+
+      // Create variant polygons
+      if (i % 2 === 0) {
+        pols = [
+          pol.grow(1 - 0.0125 * i),
+          pol.grow(0.7 - 0.0125 * i),
+          pol.grow(0.4 - 0.0125 * i)
+        ];
       }
-      pols = [
-        pol.grow(1 - 0.0125 * i),
-        pol.grow(0.7 - 0.0125 * i),
-        pol.grow(0.4 - 0.0125 * i),
-      ];
 
       // Draw layers
-      for (let p of pols) p.grow(997).grow().layer(i, size);
-      pol.grow(darker).grow(999).layer(i, size);
-      if (i % 6 === 0 || i === numLayers - 1) {
-        if (texture !== 0) pol.erase(texture * 4, intensity);
+      for (const p of pols) p.grow(999).grow(997).layer(i, size, int);
+      if (i % 2 === 0) pol.grow(darker).grow(999).layer(i, size, int * 2);
+
+      // Apply texture and blend periodically
+      if (i % 5 === 0 || i === numLayers - 1) {
+        if (texture !== 0) pol.erase(texture * 3, intensity);
         Mix.blend(color, true, false, true);
       }
     }
+    
     Mix.ctx.restore();
   }
 
@@ -362,9 +386,9 @@ class FillPolygon {
    * Draws a layer of the fill polygon with stroke and fill.
    * @param {number} i - The layer index.
    */
-  layer(i, size) {
+  layer(i, size, int) {
     Mix.ctx.lineWidth = map(i, 0, 24, size / 25, size / 30, true);
-    // Set fill and stroke properties once
+    Mix.ctx.fillStyle = `rgb(255 0 0 / ${int}%)`;
     drawPolygon(this.v);
     Mix.ctx.fill();
     Mix.ctx.stroke();
@@ -377,28 +401,35 @@ class FillPolygon {
    */
   erase(texture, intensity) {
     Mix.ctx.save();
-    // Cache local values to avoid repeated property lookups
-    let numCircles = rr(60, 80) * map(texture, 0, 1, 2, 3.5);
-    const halfSizeX = this.sizeX / 1.7;
-    const halfSizeY = this.sizeY / 1.7;
-    const minSize =
-      Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
+
+    // Optimize by pre-calculating values
+    const numCircles = ~~(rr(80, 110) * map(texture, 0, 1, 2, 3.5));
+    const halfSizeX = this.sizeX / 1.3;
+    const halfSizeY = this.sizeY / 1.3;
+    const minSize = Math.min(this.sizeX, this.sizeY) * (1.4 - State.fill.bleed_strength);
     const minSizeFactor = 0.05 * minSize;
     const maxSizeFactor = 0.4 * minSize;
-    const midX = this.midP.x;
-    const midY = this.midP.y;
+    const { x: midX, y: midY } = this.midP;
+
+    // Set up erase mode
     Mix.ctx.globalCompositeOperation = "destination-out";
-    let i = (5 - map(intensity, 80, 100, 0.3, 1, true)) * texture;
-    Mix.ctx.fillStyle = "rgb(255 0 0 / " + i / 255 + ")";
+
+    // Calculate transparency
+    const alpha = (5 - map(intensity, 80, 100, 0.3, 0.7, true)) * texture / 255;
+    Mix.ctx.fillStyle = `rgb(255 0 0 / ${alpha})`;
     Mix.ctx.lineWidth = 0;
+
+    // Draw erase circles
     for (let i = 0; i < numCircles; i++) {
       const x = midX + gaussian(0, halfSizeX);
       const y = midY + gaussian(0, halfSizeY);
       const size = rr(minSizeFactor, maxSizeFactor);
+      
       Mix.ctx.beginPath();
       circle(x, y, size);
-      if (i % 4 !== 0) Mix.ctx.fill();
+      if (i % 5 !== 0) Mix.ctx.fill();
     }
+
     Mix.ctx.globalCompositeOperation = "source-over";
     Mix.ctx.restore();
   }

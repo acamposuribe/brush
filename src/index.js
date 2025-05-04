@@ -56,8 +56,6 @@ export {
   refreshField,
   listFields,
   translate,
-  rotate,
-  scale,
   Position, 
   wiggle,
 } from "./core/flowfield.js";

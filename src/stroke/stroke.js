@@ -20,7 +20,6 @@ import {
   calcAngle,
   toDegrees,
   gaussian,
-  noise,
   rArray
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
@@ -173,7 +172,7 @@ export function setDensity(d) {
 // ---------------------------------------------------------------------------
 // Drawing Variables and Functions
 // ---------------------------------------------------------------------------
-let _position, _length, _flow, _plot, _dir, _alpha;
+let _position, _length, _plot, _dir, _alpha;
 const current = {};
 
 /**
@@ -184,10 +183,9 @@ const current = {};
  * @param {boolean} flow - Flag for vector-field following.
  * @param {Object|boolean} plot - Plot object or false.
  */
-function initializeDrawingState(x, y, length, flow, plot) {
+function initializeDrawingState(x, y, length, plot = false) {
   _position = new Position(x, y);
   _length = length;
-  _flow = flow;
   _plot = plot;
   if (_plot) _plot.calcIndex(0);
 }
@@ -218,7 +216,7 @@ function draw(angleScale, isPlot) {
           angleScale,
           i < 10 ? true : false
         )
-      : _position.moveTo(stepSize, angleScale, stepSize, _flow);
+      : _position.moveTo(angleScale, stepSize, stepSize);
   }
   restoreState();
 }
@@ -476,8 +474,7 @@ function adjustSizeAndRotation(pressure, alpha) {
   if (current.p.rotate === "random") angle = randInt(0, PI2);
   else if (current.p.rotate === "natural") {
     angle =
-      (_plot ? -_plot.angle(_position.plotted) : -_dir) +
-      (_flow ? _position.angle() : 0);
+      (_plot ? -_plot.angle(_position.plotted) : -_dir) + _position.angle();
     angle = (angle * Math.PI) / 180;
   }
   Mix.ctx.rotate(angle);
@@ -520,7 +517,7 @@ export function line(x1, y1, x2, y2) {
   isFieldReady();
   let d = dist(x1, y1, x2, y2);
   if (d == 0) return;
-  initializeDrawingState(x1, y1, d, true, false);
+  initializeDrawingState(x1, y1, d);
   let angle = calcAngle(x1, y1, x2, y2);
   draw(angle, false);
 }
@@ -534,7 +531,7 @@ export function line(x1, y1, x2, y2) {
  */
 export function stroke(x, y, length, dir) {
   isFieldReady();
-  initializeDrawingState(x, y, length, true, false);
+  initializeDrawingState(x, y, length);
   draw(toDegrees(dir), false);
 }
 
@@ -547,7 +544,7 @@ export function stroke(x, y, length, dir) {
  */
 function plot(p, x, y, scale) {
   isFieldReady();
-  initializeDrawingState(x, y, p.length, true, p);
+  initializeDrawingState(x, y, p.length, p);
   draw(scale, true);
 }
 
