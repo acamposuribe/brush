@@ -97,10 +97,11 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
 | [Configuration](#important-configuration)  | brush.load()        |   | [Drawing Loop](#drawing-loop)              | brush.draw()        |
-|                                            | brush.scaleBrushes()|   |                                            | brush.loop()        |
-|                                            | brush.seed()        |   |                                            | brush.noLoop()      |
-|                                            | brush.noiseSeed()   |   |                                            | brush.frameRate()   |
-| [Utility](#utility-functions)              | brush.save()        |   |                                            | brush.frameCount    |
+|                                            | brush.createCanvas()|   |                                            | brush.loop()        |
+|                                            | brush.scaleBrushes()|   |                                            | brush.noLoop()      |
+|                                            | brush.seed()        |   |                                            | brush.frameRate()   |
+|                                            | brush.noiseSeed()   |   |                                            | brush.frameCount    |
+| [Utility](#utility-functions)              | brush.save()        |   |                                            |                     |
 |                                            | brush.restore()     |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
 |                                            | brush.translate()   |   |                                            | brush.noHatch()     |
 |                                            | brush.background()  |   |                                            | brush.hatchStyle()  |
@@ -137,6 +138,7 @@ This section covers functions for initializing the drawing system, preloading re
 
 - `brush.load(canvasID, canvas_obj)`
   - **Description**: Initializes the drawing system and sets up the environment.
+  - **Important**: If you want to use the createCanvas() function, the library will be automatically loaded. There's no need to use the load function.
   - **Parameters**: 
     - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
     - `canva_obj` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
@@ -166,6 +168,27 @@ This section covers functions for initializing the drawing system, preloading re
       brush.load("first_canvas")
       ```
       **Important note:** You can only load brush.js on canvas that don't have a drawingContext. The canvas context will be created and captured by brush.js and will become unusable to perform other canvas api operations.
+
+---
+
+- `brush.createCanvas(width, height)`
+  - **Description**: Creates a new canvas element, adds it to the document, and automatically initializes the brush.js library for this canvas. This is the simplest way to get started with brush.js, as it handles both canvas creation and library initialization in a single call.
+  - **Parameters**:
+    - `width` (Number): The width of the canvas in pixels.
+    - `height` (Number): The height of the canvas in pixels.
+  - **Note**: When using `createCanvas()`, there is no need to call `brush.load()` separately, as the library is automatically loaded and initialized for the newly created canvas. The `brush.load()` function is only needed when you want to use brush.js with an existing canvas element.
+  - **Usage**:
+    ```javascript
+    // Create a new 800x600 canvas and initialize brush.js
+    brush.createCanvas(800, 600);
+    
+    // Start drawing immediately
+    brush.background("#f5f5f5");
+    brush.set("HB", "black", 1);
+    brush.circle(400, 300, 100);
+    brush.draw();
+    ```
+    The canvas is automatically styled to be responsive, maintaining its aspect ratio while fitting within the browser window.
 
 ---
 
