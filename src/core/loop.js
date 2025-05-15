@@ -5,7 +5,7 @@ import { Mix } from "./color.js";
 // =============================================================================
 
 let _time = 0,
-  _isLoop = true,
+  _isLoop = false,
   _drawingLoop,
   _fps = 30;
 

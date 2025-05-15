@@ -5,9 +5,3 @@ html, body {
   justify-content: center;
   align-items: center;
 }
-
-.canvas {
-  width: 100vmin;
-  height: 100vmin;
-  background: transparent;
-}
