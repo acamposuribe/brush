@@ -131,7 +131,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    */
   moveTo(_dir, _length, _step_length = 1) {
-    this.movePos(_dir, _length, _step_length = 1)
+    this.movePos(_dir, _length, _step_length)
   }
 
   /**
@@ -142,7 +142,7 @@ export class Position {
    * @param {number} _scale - The scaling factor for the plotting path.
    */
   plotTo(_plot, _length, _step_length, _scale = 1) {
-    this.movePos(_plot, _length, _step_length, _scale = 1)
+    this.movePos(_plot, _length, _step_length, _scale)
   }
 
   movePos(_dirPlot, _length, _step, _scale = false) {

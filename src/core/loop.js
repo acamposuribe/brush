@@ -18,7 +18,10 @@ export let frameCount = 0;
 export function loop(drawingLoop = false) {
   if (drawingLoop) _drawingLoop = drawingLoop;
   _isLoop = true;
+  
+  setTimeout(() => {
   requestAnimationFrame(drawLoop);
+}, "200");
 }
 
 /**
