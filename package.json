@@ -8,6 +8,7 @@
   "scripts": {
     "build": "rollup --config -w"
   },
+  "sideEffects": "false",
   "files": [
     "dist/**/*",
     "README.md",

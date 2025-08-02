@@ -16,7 +16,7 @@ const config = {
     },
     {
       file: "dist/brush.esm.js",
-      format: "es",
+      format: "esm",
       sourcemap: true,
     },
   ],
