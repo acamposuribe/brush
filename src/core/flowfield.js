@@ -131,7 +131,7 @@ export class Position {
    * @param {number} _step_length - The length of each step.
    */
   moveTo(_dir, _length, _step_length = 1) {
-    this.movePos(_dir, _length, _step_length)
+    this.movePos(_dir, _length, _step_length) 
   }
 
   /**
