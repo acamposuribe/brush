@@ -97,17 +97,18 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |      Section                               |      Functions      |   | Section                                    |      Functions      |
 |--------------------------------------------|---------------------|---|--------------------------------------------|---------------------|
 | [Configuration](#important-configuration)  | brush.load()        |   | [Drawing Loop](#drawing-loop)              | brush.draw()        |
-|                                            | brush.scaleBrushes()|   |                                            | brush.loop()        |
-|                                            | brush.seed()        |   |                                            | brush.noLoop()      |
-|                                            | brush.noiseSeed()   |   |                                            | brush.frameRate()   |
-| [Utility](#utility-functions)              | brush.save()        |   |                                            | brush.frameCount    |
+|                                            | brush.createCanvas()|   |                                            | brush.loop()        |
+|                                            | brush.scaleBrushes()|   |                                            | brush.noLoop()      |
+|                                            | brush.seed()        |   |                                            | brush.frameRate()   |
+|                                            | brush.noiseSeed()   |   |                                            | brush.frameCount    |
+| [Utility](#utility-functions)              | brush.save()        |   |                                            |                     |
 |                                            | brush.restore()     |   | [Hatch Operations](#hatch-operations)      | brush.hatch()       |
-|                                            | brush.rotate()      |   |                                            | brush.noHatch()     |
-|                                            | brush.scale()       |   |                                            | brush.hatchStyle()  |
-|                                            | brush.translate()   |   | [Geometry](#geometry)                      | brush.line()        |
+|                                            | brush.translate()   |   |                                            | brush.noHatch()     |
+|                                            | brush.background()  |   |                                            | brush.hatchStyle()  |
+|                                            | brush.drawImage()   |   | [Geometry](#geometry)                      | brush.line()        |
 | [Vector-Fields](#vector-fields)            | brush.field()       |   |                                            | brush.stroke()      |
 |                                            | brush.noField()     |   |                                            | brush.beginStroke() |
-|                                            | brush.refreshField()|   |                                            | brush.move()        |
+|                                            | brush.wiggle()      |   |                                            | brush.move()        |
 |                                            | brush.listFields()  |   |                                            | brush.endStroke()   |
 |                                            | brush.addField()    |   |                                            | brush.spline()      |
 | [Brush Management](#brush-management)      | brush.box()         |   |                                            | brush.rect()        |
@@ -116,13 +117,15 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |                                            | brush.noClip()      |   |                                            | brush.moveTo()      |
 | [Stroke Operations](#stroke-operations)    | brush.set()         |   |                                            | brush.lineTo()      |
 |                                            | brush.pick()        |   |                                            | brush.closePath()   |
-|                                            | brush.strokeStyle() |   |                                            | brush.drawPath()    |
+|                                            | brush.strokeStyle() |   |                                            | brush.endPath()     |
 |                                            | brush.noStroke()    |   | [Classes](#exposed-classes)                | brush.Polygon()     |
 |                                            | brush.lineWidth()   |   |                                            | brush.Plot()        |
 | [Fill Operations](#fill-operations)        | brush.fillStyle()   |   |                                            | brush.Position()    |
 |                                            | brush.noFill()      |   | [Utils](#utils)                            | brush.random()      |
 |                                            | brush.fillBleed()   |   |                                            | brush.noise()       |
 |                                            | brush.fillTexture() |   |                                            | brush.wRand()       |
+| [Erase](#erase-operations)                 | brush.erase()       |   |                                            |                     |
+|                                            | brush.noErase()     |   |                                            |                     |
 
 ---
 
@@ -135,6 +138,7 @@ This section covers functions for initializing the drawing system, preloading re
 
 - `brush.load(canvasID, canvas_obj)`
   - **Description**: Initializes the drawing system and sets up the environment.
+  - **Important**: If you want to use the createCanvas() function, the library will be automatically loaded. There's no need to use the load function.
   - **Parameters**: 
     - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
     - `canva_obj` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
@@ -164,6 +168,27 @@ This section covers functions for initializing the drawing system, preloading re
       brush.load("first_canvas")
       ```
       **Important note:** You can only load brush.js on canvas that don't have a drawingContext. The canvas context will be created and captured by brush.js and will become unusable to perform other canvas api operations.
+
+---
+
+- `brush.createCanvas(width, height)`
+  - **Description**: Creates a new canvas element, adds it to the document, and automatically initializes the brush.js library for this canvas. This is the simplest way to get started with brush.js, as it handles both canvas creation and library initialization in a single call.
+  - **Parameters**:
+    - `width` (Number): The width of the canvas in pixels.
+    - `height` (Number): The height of the canvas in pixels.
+  - **Note**: When using `createCanvas()`, there is no need to call `brush.load()` separately, as the library is automatically loaded and initialized for the newly created canvas. The `brush.load()` function is only needed when you want to use brush.js with an existing canvas element.
+  - **Usage**:
+    ```javascript
+    // Create a new 800x600 canvas and initialize brush.js
+    brush.createCanvas(800, 600);
+    
+    // Start drawing immediately
+    brush.background("#f5f5f5");
+    brush.set("HB", "black", 1);
+    brush.circle(400, 300, 100);
+    brush.draw();
+    ```
+    The canvas is automatically styled to be responsive, maintaining its aspect ratio while fitting within the browser window.
 
 ---
 
@@ -256,21 +281,60 @@ TBW.
 ---
  
 - `brush.save()`
-  - **Description**: The push() function saves the current brush, hatch, and fill settings and transformations, while pop() restores these settings. Note that these functions are always used together.
+  - **Description**: Saves the current drawing state, including brush, hatch, and fill settings and transformations. Used in conjunction with `brush.restore()` to temporarily modify settings that can later be reverted.
 
 - `brush.restore()`
-  - **Description**: The push() function saves the current brush, hatch, and fill settings and transformations, while pop() restores these settings. Note that these functions are always used together.
+  - **Description**: Restores the previously saved drawing state. This function returns all brush, hatch, fill settings and transformations to the state that was active when the last `brush.save()` was called.
 
 ---
 
-- `brush.rotate(angle)`
-  - **Description**: Rotates following shapes by the amount specified by the angle parameter. Angles must be entered in RADIANS. Objects are always rotated around their relative position to the origin and positive numbers rotate objects in an anti-clockwise direction. Transformations apply to everything that happens after and subsequent calls to the function accumulate the effect. This function can be further controlled by brush.save() and brush.restore().
-
-- `brush.scale(scale)`
-  - **Description**: Increases or decreases the size of shapes and strokes by expanding or contracting vertices. Objects always scale from their relative origin to the coordinate system. Scale values are specified as decimal percentages. For example, the function call scale(2.0) increases the dimension of a shape by 200%. Transformations apply to everything that happens after and subsequent calls to the function multiply the effect. For example, calling scale(2.0) and then scale(1.5) is the same as scale(3.0).
-
 - `brush.translate(x, y)`
-  - **Description**: TBD
+  - **Description**: Moves the origin point of the drawing canvas to the specified coordinates. All subsequent drawing operations will be relative to this new origin.
+  - **Parameters**:
+    - `x` (Number): The x-coordinate to translate to.
+    - `y` (Number): The y-coordinate to translate to.
+  - **Usage**:
+    ```javascript
+    // Move the origin to coordinates (100, 50)
+    brush.translate(100, 50);
+    // A circle drawn at (0,0) will now appear at (100,50)
+    brush.circle(0, 0, 25);
+    ```
+
+---
+
+- `brush.background(color)`
+  - **Description**: Sets the background color of the canvas. This function clears the canvas with the specified color, providing a fresh canvas for drawing. The color can be specified as a CSS color string or as RGB values.
+  - **Parameters**:
+    - `color` (String|Number): The color to fill the background. Can be a CSS color string (like "#002185" or "red") or the red component if using RGB.
+    - `g` (Number): Optional. The green component if using RGB.
+    - `b` (Number): Optional. The blue component if using RGB.
+  - **Usage**:
+    ```javascript
+    // Set background using a CSS color string
+    brush.background("#f5f5f5");
+    // Or using RGB values
+    brush.background(245, 245, 245);
+    ```
+
+- `brush.drawImage(img, x, y, w, h)`
+  - **Description**: Draws an image onto the canvas. This function allows you to place images on your canvas, which will be blended with existing content according to the library's blending mode.
+  - **Parameters**:
+    - `img` (ImageBitmap|HTMLImageElement): The image to draw.
+    - `x` (Number): Optional. The x-coordinate for the image placement (defaults to 0).
+    - `y` (Number): Optional. The y-coordinate for the image placement (defaults to 0).
+    - `w` (Number): Optional. The width to scale the image to (defaults to the image's width).
+    - `h` (Number): Optional. The height to scale the image to (defaults to the image's height).
+  - **Usage**:
+    ```javascript
+    // Load an image element
+    const img = new Image();
+    img.src = 'path/to/image.jpg';
+    img.onload = function() {
+      // Draw the image at position (100, 100) with size 200x150
+      brush.drawImage(img, 100, 100, 200, 150);
+    };
+    ```
 
 ---
 
@@ -313,19 +377,17 @@ Vector Fields allow for dynamic control over brush stroke behavior, enabling the
 
 ---
 
-- `brush.refreshField(time)`
-  - **Description**: Updates the current vector field values using its time-dependent generator function. Ideal for animations that require the vector field to change over time, influencing the movement of strokes and shapes in a natural way.
+- `brush.wiggle(amount)`
+  - **Description**: Sets the amount of randomness/wiggle for drawing operations. Higher values produce more varied, hand-drawn effects.
   - **Parameters**:
-    - `time` (Number): The time input for the vector field generator function, typically related to the frame count.
+    - `amount` (Number): The wiggle intensity, usually between 0 and 10.
   - **Usage**:
     ```javascript
-    // In the draw loop, refresh the vector field based on the frame count
-    function draw() {
-      brush.refreshField(frameCount / 10);
-      // Additional drawing code
-    }
+    // Set a medium wiggle effect
+    brush.wiggle(5);
+    // Draw shapes with the wiggle effect applied
+    brush.circle(200, 200, 100);
     ```
-    This function will invoke the generator function of the active vector field with the provided time argument, allowing the field to evolve and create fluid, dynamic animations in the rendering.
 
 ---
 
@@ -730,6 +792,43 @@ In essence, the hatching system activates hatches for subsequent shapes, similar
     ```
     `brush.hatchArray()` provides an efficient way to apply complex hatching patterns to a set of defined shapes.
 
+
+---
+
+<sub>[back to table](#table-of-functions)</sub>
+
+### Erase Operations
+
+The Erase section provides functions for removing content from the canvas with precise control.
+
+---
+
+- `brush.erase(color, alpha)`
+  - **Description**: Activates erase mode for subsequent drawing operations. When active, shapes drawn will erase existing content rather than adding to it. The erase effect can be customized with a specific color and transparency level.
+  - **Parameters**:
+    - `color` (String|Color): Optional. The color to use for erasing. Defaults to the background color.
+    - `alpha` (Number): Optional. The transparency level for the erase effect, ranging from 0 to 255. A higher value creates a more opaque erasure. Defaults to 255 (full erasure).
+  - **Usage**:
+    ```javascript 
+    // Activate erase mode with a specific color and partial transparency
+    brush.erase("white", 150);
+    // Draw a circle that partially erases content
+    brush.circle(300, 200, 75);
+    ```
+    Using `brush.erase()` allows for creative effects like partial erasure or colored erasure, useful for creating highlights or special effects.
+
+---
+
+- `brush.noErase()`
+  - **Description**: Deactivates erase mode, returning to normal drawing operations. Any shapes drawn after calling this function will add content to the canvas rather than erasing.
+  - **Usage**:
+    ```javascript
+    // Deactivate erase mode
+    brush.noErase();
+    // Resume normal drawing
+    brush.line(50, 50, 250, 250);
+    ```
+    Use `brush.noErase()` when you've finished erasing and want to return to standard drawing operations.
 
 ---
 

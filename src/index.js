@@ -56,7 +56,7 @@ export {
   refreshField,
   listFields,
   translate,
-  Position, 
+  Position,
   wiggle,
 } from "./core/flowfield.js";
 
@@ -122,3 +122,6 @@ export {
 
 // Fill
 export { fillStyle, noFill, fillTexture, fillBleed } from "./fill/fill.js";
+
+// Canvas Module
+export { createCanvas } from "./canvas/canvas.js";
