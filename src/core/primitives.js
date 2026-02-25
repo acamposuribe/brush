@@ -68,7 +68,7 @@ export function circle(x, y, radius, r = false) {
       angle * randomFactor(),
       (arcLength / 2) * randomFactor(),
       1,
-      true
+      true,
     );
   }
 
@@ -79,7 +79,7 @@ export function circle(x, y, radius, r = false) {
       angleOffset,
       Math.abs(randomAngle) * (Math.PI / 180) * radius,
       1,
-      true
+      true,
     );
     p.endPlot(randomAngle + angleOffset, 1, true);
   } else {
@@ -234,7 +234,7 @@ export function endStroke(angle, pressure) {
  */
 export function spline(_array_points, _curvature = 0.5) {
   let p = _createSpline(_array_points, _curvature); // Create a new Plot-spline instance
-  p.draw(); // Draw the Plot
+  p.show(); // Show the Plot
 }
 
 /**
