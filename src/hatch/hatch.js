@@ -273,7 +273,7 @@ Polygon.prototype.hatch = function (_dist = false, _angle, _options) {
 Plot.prototype.hatch = function (x, y, scale) {
   if (HatchState().isActive) {
     if (this.origin) (x = this.origin[0]), (y = this.origin[1]), (scale = 1);
-    this.pol = this.genPol(x, y, scale, 0.25);
+    this.pol = this.genPol(x, y, scale, 0.15);
     this.pol.hatch();
   }
 };
