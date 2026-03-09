@@ -25,7 +25,7 @@ export class Polygon {
       v,
       arr[(i + 1) % arr.length],
     ]);
-    this._intersectionCache = {}; // Cache for intersection results
+    this._intersectionCache = new Map();
   }
 
   /**
@@ -34,17 +34,15 @@ export class Polygon {
    * @returns {Array} An array of intersection points (each with 'x' and 'y' properties) or an empty array if no intersections.
    */
   intersect(line) {
-    // Check if the result has been cached
     const cacheKey = `${line.point1.x},${line.point1.y}-${line.point2.x},${line.point2.y}`;
-    if (this._intersectionCache[cacheKey]) {
-      return this._intersectionCache[cacheKey];
-    }
+    const cached = this._intersectionCache.get(cacheKey);
+    if (cached) return cached;
     const points = [];
     for (const [start, end] of this.sides) {
       const intersection = intersectLines(line.point1, line.point2, start, end);
       if (intersection) points.push(intersection);
     }
-    this._intersectionCache[cacheKey] = points; // Cache the result
+    this._intersectionCache.set(cacheKey, points);
     return points;
   }
 

@@ -29,7 +29,7 @@ Alternatively, you can link to a `brush.js` file hosted online. All versions are
 
 ```html
 <!-- Online version of brush -->
-<script src="LINK_TO_BE_UPDATED"></script>
+<script src="https://cdn.jsdelivr.net/npm/@acamposuribe/brush"></script>
 ```
 
 ### Install with NPM and other modular-based apps
@@ -47,11 +47,6 @@ After that, import brush functions to your sketch:
 import * as brush from '@acamposuribe/brush'
 // or pick & choose named exports:
 // import { load, circle, fillStyle } from "@acamposuribe/brush";
-```
-
-```
-// CommonJS (Node.js / older bundlers)
-const brush = require("@acamposuribe/brush");
 ```
 
 ### Load the brush.js library
@@ -85,8 +80,6 @@ brush.load("canvas_name", canvas);
 - **Watercolor Fill System**: Achieve the subtle nuances of watercolor with a digital fill system designed to blend and diffuse colors in a naturally fluid way.
 
 With brush.js, your digital canvas becomes a playground for innovation and expression, where each tool is fine-tuned to complement your unique creative process.
-
-.
 
 ## Reference
 
@@ -139,9 +132,9 @@ This section covers functions for initializing the drawing system, preloading re
 - `brush.load(canvasID, canvas_obj)`
   - **Description**: Initializes the drawing system and sets up the environment.
   - **Important**: If you want to use the createCanvas() function, the library will be automatically loaded. There's no need to use the load function.
-  - **Parameters**: 
-    - `canvasID` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
-    - `canva_obj` (string): Optional ID of the buffer/canvas element. If false, uses the window's rendering context.
+  - **Parameters**:
+    - `canvasID` (String): A unique identifier for the canvas within brush.js.
+    - `canvas` (HTMLCanvasElement): The canvas element to initialize.
   - **Example**: 
     ```javascript
       // Create canvas. There are many ways of doing this
@@ -232,7 +225,7 @@ This section covers functions for initializing the drawing system, preloading re
 
 ### Drawing Loop
 
-TBW. 
+The drawing loop manages frame-based rendering. Use `brush.draw()` for single-frame sketches, or `brush.loop()` for continuous animation.
 
 ---
 
@@ -353,11 +346,11 @@ Vector Fields allow for dynamic control over brush stroke behavior, enabling the
   - **Description**: Activates a named vector field. When a vector field is active, it influences the flow and direction of the brush strokes for shapes drawn thereafter. It is important to note that certain shapes may be exempt from this influence; such exceptions will be clearly documented in the API for each specific geometry.
   - **Parameters**:
     - `name` (String): The identifier for the vector field to be activated. This can be a name of one of the predefined fields or a custom field created with `brush.addField()`.
-  - **Default Fields**: The library comes with a set of built-in vector fields: `curved`, `truncated`, `zigzag`, `seabed`, and `waves`. These, as well as any custom fields added, can be activated using this function.
+  - **Default Fields**: The library comes with a built-in vector field: `hand`, which provides an organic, hand-drawn perturbation effect. This, as well as any custom fields added with `brush.addField()`, can be activated using this function.
   - **Usage**:
     ```javascript
-    // To activate the "waves" vector field
-    brush.field("waves");
+    // To activate the built-in "hand" vector field
+    brush.field("hand");
 
     // To activate a custom vector field named "myCustomField"
     brush.field("myCustomField");
@@ -393,7 +386,7 @@ Vector Fields allow for dynamic control over brush stroke behavior, enabling the
 
 - `brush.listFields()`
   - **Description**: Retrieves an iterator containing the names of all the available vector fields within the system. This includes both the default fields provided by the library and any custom fields that have been added using `brush.addField()`.
-  - **Returns**: `Iterator<string>` - An iterator that yields the names of the vector fields.
+  - **Returns**: `Array<string>` - An array containing the names of the vector fields.
   - **Usage**:
     ```javascript
     // Get an iterator of all vector field names
@@ -435,12 +428,10 @@ Vector Fields allow for dynamic control over brush stroke behavior, enabling the
     - **Note**: It's important that your loops create a grid of `field.length` x `field[0].length`. It's necessary to fill all the `field` cells with a numeric value. Return this array when you've filled the values. **The angles MUST BE in Degrees**.
     ```javascript
     brush.addField("name_field", function(t, field) {
-        let field = FF.genField()
-        // Related functions for angle calculation
+        // Loop through the field grid and assign angles (in degrees)
         for (let i = 0; i < field.length; i++) {
-            for (let j = 0; j < field[0].length; j++) {               
-                // Related functions for angle calculation here
-                field[i][j] = CalculatedAngle;
+            for (let j = 0; j < field[0].length; j++) {
+                field[i][j] = calculatedAngle;
             }
         }
         return field;
@@ -461,7 +452,7 @@ Functions for managing brush behaviors and properties.
 - `brush.box()`
   - **Description**: Retrieves an array containing the unique names of all available brushes. This function is useful for accessing the variety of brushes included in the library, which range from different pencil types to markers and specialized brushes like the hatch brush. Of course, the function will also return the custom brushes you've created.
   - **Returns**: `Array<string>` - An array listing the names of all brushes.
-  - **Default Brushes**: The library includes a default set of 11 brushes: `2B`, `HB`, `2H`, `cpencil`, `pen`, `rotring`, `spray`, `marker`, `marker2`, `charcoal`, and `hatch_brush` (for clean hatching).
+  - **Default Brushes**: The library includes a default set of 9 brushes: `pen`, `rotring`, `2B`, `HB`, `2H`, `cpencil`, `charcoal`, `spray`, and `marker`.
   - **Usage**:
     ```javascript
     // Retrieve a list of all available brush names
@@ -486,7 +477,6 @@ Functions for managing brush behaviors and properties.
       - `quality`: Higher values lead to a more continuous line. Unnecessary for custom, marker, and image type brushes.
       - `opacity`: (Number from 0-255) Base opacity of the brush (affected by pressure).
       - `spacing`: Spacing between points in the brush stroke, in canvas units.
-      - `blend`: (Boolean) Enables or disables realistic color mixing (default true for marker, custom, and image brushes).
       - `pressure`: An object or function defining the pressure sensitivity.
          - `type` : 'standard" or 'custom". Use standard for simple gauss bell curves. Use 'custom' for custom pressure curves.
          - `min_max`: (Array [min, max]) Define min and max pressure (reverse for inverted presure).
@@ -526,9 +516,8 @@ Functions for managing brush behaviors and properties.
         vibration: 0.08,
         opacity: 23,
         spacing: 0.6,
-        blend: true,
         pressure: {
-            type: "custom",
+            type: "standard",
             min_max: [1.35,1],
             curve: [0.35,0.25] // Values for the bell curve
         },
@@ -536,7 +525,7 @@ Functions for managing brush behaviors and properties.
            // in this example, the tip is composed of two squares, rotated 45 degrees
            // Always execute drawing functions within the _m buffer!
            _m.rotate(45), _m.rect(-1.5,-1.5,3,3), _m.rect(1,1,1,1);
-        }
+        },
         rotate: "natural",
     })
     ```
@@ -658,17 +647,15 @@ Stroke Operations encompass methods for manipulating and applying brushes to str
 
 The Fill Management section focuses on managing fill properties for shapes, enabling complex fill operations with effects like bleeding to simulate watercolor-like textures. These methods set fill colors with opacity, control bleed intensity, and manage fill operations. The watercolor fill effect is inspired by Tyler Hobbs' generative art techniques.
 
-** IMPORTANT: ** At the moment, fill operations expect an array of vertices in the clockwise direction. Otherwise, the fill will "bleed" to the inside, destroying the effect. I'll try to fix this on a forthcoming update.
-
 ---
 
-- `brush.fillStyle(a, b, c, d)` or `brush.fill(color, opacity)`
+- `brush.fillStyle(a, b, c, d)`
   - **Description**: Sets the fill color and opacity for subsequent shapes, activating fill mode. This function can accept either RGB color components with opacity or a CSS color string with an optional opacity.
   - **Parameters**:
     - `a` (Number|String): The red component of the color or grayscale value, a CSS color string.
     - `b` (Number): Optional. The green component of the color or grayscale opacity if two arguments are used.
     - `c` (Number): Optional. The blue component of the color.
-    - `d` (Number): Optional. The opacity of the color.
+    - `d` (Number): Optional. The opacity of the color (0-100).
   - **Usage**:
     ```javascript
     // Set the fill color using RGB values and opacity
@@ -693,9 +680,8 @@ The Fill Management section focuses on managing fill properties for shapes, enab
 - `brush.fillBleed(strength, direction)`
   - **Description**: Adjusts the bleed and texture levels for the fill operation, mimicking the behavior of watercolor paints. This function adds a natural and organic feel to digital artwork.
   - **Parameters**:
-    - `strength` (Number): The intensity of the bleed effect, capped at 0.5.
-    - `direction` (String): Optional. "out" or "in". Defines the direction of the bleed effect
-    - `_borderIntensity` (Number): The intensity of the border watercolor effect, ranging from 0 to 1.
+    - `strength` (Number): The intensity of the bleed effect, capped at 1.
+    - `direction` (String): Optional. "out" or "in". Defines the direction of the bleed effect.
   - **Usage**:
     ```javascript
     // Set the bleed intensity and direction for a watercolor effect
@@ -738,7 +724,7 @@ The Hatching section focuses on creating and drawing hatching patterns, which in
   - **Usage**:
     ```javascript
     // Set hatching with specific distance, angle, and options
-    brush.hatch(5, 30, {rand: 0.1, continuous: true, gradient: 0.3});
+    brush.hatch(5, Math.PI/6, {rand: 0.1, continuous: true, gradient: 0.3});
     ```
 
 ---
@@ -866,11 +852,11 @@ The following functions are only affected by stroke() operations, completely ign
     - `x` (Number): The x-coordinate of the starting point.
     - `y` (Number): The y-coordinate of the starting point.
     - `length` (Number): The length of the line.
-    - `dir` (Number): The direction in which to draw the line, measured anticlockwise from the x-axis.
+    - `dir` (Number): The direction in which to draw the line (in radians), measured anticlockwise from the x-axis.
   - **Usage**:
     ```javascript
     // Set a vector field and draw a flow line
-    brush.field("seabed");
+    brush.field("hand");
     brush.stroke(15, 10, 185, 0);
     ```
 
@@ -923,7 +909,7 @@ These functions allow for the creation of strokes with varied pressures and dire
   - **Parameters**:
     - `array_points` (Array<Array<number>>): An array of points, where each point is an array of two numbers `[x, y]`.
     - `curvature` (Number): Optional. The curvature of the spline curve, ranging from 0 to 1. A curvature of 0 results in a series of straight segments.
-  - **Note**: This is a simplified alternative to beginShape() - endShape() operations, useful for certain stroke() applications.
+  - **Note**: This is a simplified alternative to beginPath() - endPath() operations, useful for certain stroke() applications.
   - **Usage**:
     ```javascript
     // Define points for the spline curve
@@ -947,13 +933,13 @@ The following functions are affected by stroke(), fill() and hatch() operations.
     - `y` (Number): The y-coordinate of the rectangle.
     - `w` (Number): The width of the rectangle.
     - `h` (Number): The height of the rectangle.
-    - `mode` (Boolean): Optional. If `CENTER`, the rectangle is drawn centered at `(x, y)`.
+    - `mode` (String): Optional. If `"center"`, the rectangle is drawn centered at `(x, y)`.
   - **Usage**:
     ```javascript
     brush.noStroke();
     brush.noHatch();
     brush.fill("#002185", 75);
-    brush.rect(150, 100, 50, 35, CENTER);
+    brush.rect(150, 100, 50, 35, "center");
     ```
 
 ---
@@ -1006,8 +992,8 @@ These next five functions allow you to draw custom shapes, with fine control ove
   - **Usage**:
     ```javascript
     // Add vertices to the custom shape
-    brush.vertex(100, 150, 0.5);
-    brush.vertex(150, 100);
+    brush.lineTo(100, 150, 0.5);
+    brush.lineTo(150, 100);
     ```
 
 - `brush.closePath()`
@@ -1029,10 +1015,10 @@ These next five functions allow you to draw custom shapes, with fine control ove
 ---
 
 - `brush.polygon(pointsArray)`
-  - **Description**: Creates and draws a polygon based on a provided array of points. This function is useful for drawing shapes that are not affected by vector fields, offering an alternative to the `beginShape()` and `endShape()` approach.
+  - **Description**: Creates and draws a polygon based on a provided array of points. This function is useful for drawing shapes that are not affected by vector fields, offering an alternative to the `beginPath()` and `endPath()` approach.
   - **Parameters**:
     - `pointsArray` (Array): An array of points, where each point is an array of two numbers `[x, y]`.
-  - **Note**: This is a simplified alternative to beginShape() - endShape() operations, useful for certain fill() and hatch() applications.
+  - **Note**: This is a simplified alternative to beginPath() - endPath() operations, useful for certain fill() and hatch() applications.
   - **Usage**:
     ```javascript
     // Define a polygon using an array of points
@@ -1102,32 +1088,36 @@ Exposed Classes provide foundational elements for creating and manipulating shap
     - Rotates the entire plot by a specified angle.
     - Parameters:
       - `_a` (Number): The angle for rotation.
-  - `.genPol(_x, _y)`
+  - `.genPol(_x, _y, _scale)`
     - Generates a polygon based on the plot.
     - Parameters:
       - `_x` (Number): The x-coordinate for the starting point.
       - `_y` (Number): The y-coordinate for the starting point.
+      - `_scale` (Number): Optional. Scale factor (default 1).
     - Returns: `Polygon` - The generated polygon.
-  - `.draw(x, y)`
+  - `.draw(x, y, scale)`
     - Draws the plot on the canvas with current stroke() state.
     - Parameters:
       - `x` (Number): The x-coordinate to draw at.
       - `y` (Number): The y-coordinate to draw at.
-  - `.fill(x, y)`
+      - `scale` (Number): Optional. Scale factor.
+  - `.fill(x, y, scale)`
     - Fills the plot on the canvas with current fill() state.
     - Parameters:
       - `x` (Number): The x-coordinate to fill at.
       - `y` (Number): The y-coordinate to fill at.
-  - `.hatch(x, y)`
+      - `scale` (Number): Optional. Scale factor.
+  - `.hatch(x, y, scale)`
     - Hatches the plot on the canvas with current hatch() state.
     - Parameters:
       - `x` (Number): The x-coordinate to hatch at.
       - `y` (Number): The y-coordinate to hatch at.
+      - `scale` (Number): Optional. Scale factor.
 
 - **Attributes**:
   - `.segments`: An array containing the lengths of all segments.
   - `.angles`: An array of angles at the different control points.
-  - `.press`: An array with custom brush pressures at the various control points.
+  - `.pres`: An array with custom brush pressures at the various control points.
   - `.type`: The type of the plot, either "curve" or "segments".
   - `.pol`: Stores the generated polygon object after executing the `.genPol()` method.
 
@@ -1143,13 +1133,12 @@ Exposed Classes provide foundational elements for creating and manipulating shap
     - `y` (Number): The initial y-coordinate.
 
 - **Methods**:
-  - `.moveTo(_length, _dir, _step_length, isFlow)`
+  - `.moveTo(_dir, _length, _step_length)`
     - Moves the position along the flow field by a specified length.
     - Parameters:
-      - `_length` (Number): The length to move along the field.
       - `_dir` (Number): The direction of movement, with angles measured anticlockwise from the x-axis.
+      - `_length` (Number): The length to move along the field.
       - `_step_length` (Number): The length of each step.
-      - `isFlow` (Boolean): Whether to use the flow field for movement.
   - `.plotTo(_plot, _length, _step_length, _scale)`
     - Plots a point to another position within the flow field, following a given `Plot` object.
     - Parameters:

@@ -13,6 +13,15 @@ import { prng_alea } from "esm-seedrandom";
 /** @type {RNG} */
 let rng = prng_alea(Math.random());
 
+const _seedCallbacks = [];
+
+/**
+ * Register a callback to be called whenever seed() is invoked.
+ * Used internally by modules that maintain gaussian pools.
+ * @param {Function} cb
+ */
+export const _onSeed = (cb) => _seedCallbacks.push(cb);
+
 /**
  * Seed the random number generator.
  * @param {number|string} s – The seed value.
@@ -20,6 +29,7 @@ let rng = prng_alea(Math.random());
  */
 export const seed = (s) => {
   rng = prng_alea(s);
+  for (const cb of _seedCallbacks) cb();
 };
 
 /**

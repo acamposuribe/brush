@@ -23,6 +23,7 @@ import {
   gaussian,
   rArray,
   rotate,
+  _onSeed,
 } from "../core/utils.js";
 import { isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -100,7 +101,15 @@ export function noFill() {
 let _polygon;
 
 // Pre-compute gaussians for reuse
+const GAUSSIAN_POOL_SIZE = 512;
 const _gaussians = [[], []]; // [a, b]
+function _fillGaussianPools() {
+  for (let i = 0; i < GAUSSIAN_POOL_SIZE; i++) {
+    _gaussians[0][i] = gaussian(0.5, 0.2);
+    _gaussians[1][i] = gaussian(0, 0.02);
+  }
+}
+_onSeed(_fillGaussianPools);
 
 // Helper for direction checking - extracted to reduce duplication
 function _isLeft(a, b, c) {
@@ -285,17 +294,11 @@ class FillPoly {
     const bleedDirDeg = State.fill.direction === "out" ? -90 : 90;
 
     // Process vertices
+    if (_gaussians[0].length === 0) _fillGaussianPools();
     let idx = 0;
     let mod = f === 999 ? rr(0.6, 0.8) : State.fill.bleed_strength;
-    
+
     for (let i = 0; i < len; i++) {
-
-      // compute two gaussians if necessary
-      if (_gaussians[0].length < len * 1.5) {
-        _gaussians[0].push(gaussian(0.5, 0.2));
-        _gaussians[1].push(gaussian(0, 0.02));
-      }
-
       const cv = tr_v[i];
       const nv = (i + 1 < len) ? tr_v[i + 1] : tr_v[0];
 

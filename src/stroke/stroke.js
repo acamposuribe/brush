@@ -20,7 +20,8 @@ import {
   calcAngle,
   toDegrees,
   gaussian,
-  rArray
+  rArray,
+  _onSeed,
 } from "../core/utils.js";
 import { Position, Matrix, isFieldReady } from "../core/flowfield.js";
 import { Polygon } from "../core/polygon.js";
@@ -190,7 +191,12 @@ function initializeDrawingState(x, y, length, plot = false) {
   if (_plot) _plot.calcIndex(0);
 }
 
+const GAUSSIAN_POOL_SIZE = 512;
 const gaussians = [];
+function _fillGaussianPool() {
+  for (let i = 0; i < GAUSSIAN_POOL_SIZE; i++) gaussians[i] = gaussian();
+}
+_onSeed(_fillGaussianPool);
 
 /**
  * Executes the drawing operation.
@@ -201,12 +207,12 @@ function draw(angleScale, isPlot) {
   if (!isPlot) _dir = angleScale;
   saveState();
 
+  if (gaussians.length === 0) _fillGaussianPool();
   const stepSize = spacing();
   const totalSteps = Math.round(
     (_length * (isPlot ? angleScale : 1)) / stepSize
   );
   for (let i = 0; i < totalSteps; i++) {
-    if (gaussians.length < totalSteps * 2) { gaussians.push(gaussian()); }
     tip();
     isPlot
       ? _position.plotTo(

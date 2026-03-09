@@ -18,8 +18,13 @@ import { createProgram } from "../core/gl/utils.js";
 // =============================================================================
 
 // Module state
-let isLoaded = false, gl, projMatrix;
-const Attr = {}, Frag = {}, circles = [];
+let isLoaded = false, gl, projMatrix, vao, buf;
+const Attr = {}, Frag = {};
+
+// Pre-allocated circle queue (4 floats per circle: x, y, radius, alpha)
+const INITIAL_CAPACITY = 4096;
+let circleData = new Float32Array(INITIAL_CAPACITY * 4);
+let circleCount = 0;
 
 /**
  * Vertex shader: Expects a_position (vec2), a_radius (float), and a_alpha (float).
@@ -49,17 +54,34 @@ export function isReady() {
       0, 0, 1, 0,
       -1, 1, 0, 1
     ]);
-    
+
     // Create shader program and initialize
     const program = createProgram(gl, vsSource, fsSource);
     gl.useProgram(program);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE_MINUS_DST_ALPHA, gl.ONE);
-    
+
     // Cache attribute and uniform locations
     ["a_position", "a_radius", "a_alpha"].forEach(n => Attr[n] = gl.getAttribLocation(program, n));
     ["u_matrix"].forEach(n => Frag[n] = gl.getUniformLocation(program, n));
-    
+
+    // Create reusable VAO and buffer
+    vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+
+    // Set up attribute pointers once (layout is fixed: x, y, radius, alpha)
+    const stride = 16; // 4 floats * 4 bytes
+    gl.enableVertexAttribArray(Attr.a_position);
+    gl.vertexAttribPointer(Attr.a_position, 2, gl.FLOAT, false, stride, 0);
+    gl.enableVertexAttribArray(Attr.a_radius);
+    gl.vertexAttribPointer(Attr.a_radius, 1, gl.FLOAT, false, stride, 8);
+    gl.enableVertexAttribArray(Attr.a_alpha);
+    gl.vertexAttribPointer(Attr.a_alpha, 1, gl.FLOAT, false, stride, 12);
+
+    gl.bindVertexArray(null);
+
     isLoaded = true;
   }
 }
@@ -73,52 +95,35 @@ export function isReady() {
  */
 export function circle(x, y, diameter, alpha) {
   isReady();
-  circles.push({
-    x: x + Matrix.x,
-    y: y + Matrix.y,
-    radius: diameter / 2,
-    alpha: alpha / 100
-  });
+  // Grow buffer if needed
+  const idx = circleCount * 4;
+  if (idx + 4 > circleData.length) {
+    const expanded = new Float32Array(circleData.length * 2);
+    expanded.set(circleData);
+    circleData = expanded;
+  }
+  circleData[idx]     = x + Matrix.x;
+  circleData[idx + 1] = y + Matrix.y;
+  circleData[idx + 2] = diameter / 2;
+  circleData[idx + 3] = alpha / 100;
+  circleCount++;
 }
 
 /**
  * Draw all queued circles using WebGL
  */
 export function glDraw() {
-  if (circles.length === 0) return;
-  
-  // Build vertex data: x, y, radius, alpha for each circle
-  const circleData = new Float32Array(circles.length * 4);
-  circles.forEach((c, i) => {
-    const offset = i * 4;
-    circleData.set([c.x, c.y, c.radius, c.alpha], offset);
-  });
-  circles.length = 0; // Clear queue
-  
-  // Create and bind vertex array
-  const vao = gl.createVertexArray();
+  if (circleCount === 0) return;
+
+  // Bind reusable VAO and upload only the filled portion
   gl.bindVertexArray(vao);
-  
-  // Create and fill buffer
-  const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, circleData, gl.STATIC_DRAW);
-  
-  // Set up attributes
-  const stride = 16; // 4 floats × 4 bytes
-  gl.enableVertexAttribArray(Attr.a_position);
-  gl.vertexAttribPointer(Attr.a_position, 2, gl.FLOAT, false, stride, 0);
-  gl.enableVertexAttribArray(Attr.a_radius);
-  gl.vertexAttribPointer(Attr.a_radius, 1, gl.FLOAT, false, stride, 8);
-  gl.enableVertexAttribArray(Attr.a_alpha);
-  gl.vertexAttribPointer(Attr.a_alpha, 1, gl.FLOAT, false, stride, 12);
-  
+  gl.bufferData(gl.ARRAY_BUFFER, circleData.subarray(0, circleCount * 4), gl.DYNAMIC_DRAW);
+
   // Draw the circles
   gl.uniformMatrix4fv(Frag.u_matrix, false, projMatrix);
-  gl.drawArrays(gl.POINTS, 0, circleData.length / 4);
-  
-  // Clean up
+  gl.drawArrays(gl.POINTS, 0, circleCount);
+
+  circleCount = 0; // Reset queue
   gl.bindVertexArray(null);
-  gl.deleteBuffer(buf);
-  gl.deleteVertexArray(vao);
 }
