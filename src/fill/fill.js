@@ -457,7 +457,7 @@ class FillPoly {
 
       // Draw layers
       for (const p of pols) p.grow(999).grow(997).layer(i, size, int);
-      sparse.grow(999).flipDirs().grow(997).layer(i, size, int * 1.5);
+      sparse.grow(999).flipDirs().grow(997).layer(i, size, int * 1.5 * texture);
       if (i % 2 === 0) pol.grow(darker).grow(999).layer(i, size, int * 2);
 
       // Apply texture and blend periodically
