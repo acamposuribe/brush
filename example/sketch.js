@@ -14,6 +14,7 @@ const width = 1800,
   height = 2500;
 
 brush.createCanvas(width, height); // Create main canvas and load library in a single line
+
 brush.scaleBrushes(6.5); // Scale brushes to canvas
 brush.background("#f6f6ec"); // Set background color
 brush.wiggle(brush.random(1, 4)); // Set wiggle intensity for hand-drawn effect

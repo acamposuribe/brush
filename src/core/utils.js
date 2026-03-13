@@ -305,3 +305,27 @@ export const intersectLines = (
   let y = y1 + ua * deltaY1;
   return { x: x, y: y };
 }
+
+// =============================================================================
+// Section: Performance Profiler
+// =============================================================================
+
+export const Perf = {
+  enabled: false,
+  stroke: 0,
+  fill: 0,
+  hatch: 0,
+  blend: 0,
+  reset() {
+    this.stroke = this.fill = this.hatch = this.blend = 0;
+  },
+  report() {
+    if (!this.enabled) return;
+    const t = this.stroke + this.fill + this.hatch + this.blend;
+    if (t === 0) return;
+    console.log(
+      `stroke: ${this.stroke.toFixed(1)}ms | fill: ${this.fill.toFixed(1)}ms | hatch: ${this.hatch.toFixed(1)}ms | blend: ${this.blend.toFixed(1)}ms | total: ${t.toFixed(1)}ms`
+    );
+    this.reset();
+  },
+};

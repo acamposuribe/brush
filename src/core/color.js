@@ -1,5 +1,5 @@
 import { gl_worker } from "./workers.js";
-import { constrain } from "./utils.js";
+import { constrain, Perf } from "./utils.js";
 
 // =============================================================================
 // Section: Configure and Initiate
@@ -168,6 +168,7 @@ export const Mix = {
    * @param {boolean} _isFillLayer - If this is a special case.
    */
   blend(_color = false, _isLast = false, _isImg = false, _isFillLayer = false) {
+    const _bs = performance.now();
     isMixReady();
 
     // Initialize blending if not already active
@@ -203,6 +204,7 @@ export const Mix = {
       if (_isLast && !_isFillLayer) this.isBlending = false;
       else this.currentColor = _color.gl
     }
+    Perf.blend += performance.now() - _bs;
   },
 };
 

@@ -1,7 +1,7 @@
 import { State } from "./color.js";
-import { toDegrees, map, rr } from "./utils.js";
+import { toDegrees, map, rr, Perf } from "./utils.js";
 import { Position, isFieldReady } from "./flowfield.js";
-import { E, drawErase } from "./erase.js";
+import { W, drawWash } from "./wash.js";
 import { Polygon } from "./polygon.js";
 
 // =============================================================================
@@ -165,10 +165,10 @@ export class Plot {
    * @param {number} y - The y-coordinate.
    * @param {number} scale - The scale factor.
    */
-  erase(x, y, scale) {
+  wash(x, y, scale) {
       if (this.origin) [x, y, scale] = [...this.origin, 1];
       this.pol = this.genPol(x, y, scale, 0.15);
-      drawErase(this.pol.vertices);
+      drawWash(this.pol.vertices);
   }
 
   /**
@@ -178,12 +178,13 @@ export class Plot {
    * @param {number} scale - The scale factor.
    */
   show(x, y, scale = 1) {
-    if (E.isActive) {
-      this.erase();
+    if (W.isActive) {
+      this.wash();
       return;
     }
-    if (State.stroke) this.draw(x, y, scale);
-    if (State.hatch) this.hatch(x, y, scale);
-    if (State.fill) this.fill(x, y, scale);
+    let _s;
+    if (State.stroke) { _s = performance.now(); this.draw(x, y, scale); Perf.stroke += performance.now() - _s; }
+    if (State.hatch) { _s = performance.now(); this.hatch(x, y, scale); Perf.hatch += performance.now() - _s; }
+    if (State.fill) { _s = performance.now(); this.fill(x, y, scale); Perf.fill += performance.now() - _s; }
   }
 }

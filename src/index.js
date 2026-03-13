@@ -45,6 +45,9 @@ export {
   noiseSeed,
 } from "./core/utils.js";
 
+import { Perf } from "./core/utils.js";
+export const profiling = (on = true) => { Perf.enabled = on; };
+
 // Color Blending
 export { load, background, drawImage, Color } from "./core/color.js";
 
@@ -63,8 +66,8 @@ export {
 // Save / Restore
 export { save, restore } from "./core/save.js";
 
-// Erase
-export { erase, noErase } from "./core/erase.js";
+// Wash
+export { wash, noWash } from "./core/wash.js";
 
 // Polygon and Plot classes
 export { Polygon } from "./core/polygon.js";

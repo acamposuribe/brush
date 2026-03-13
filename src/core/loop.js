@@ -1,4 +1,5 @@
 import { Mix } from "./color.js";
+import { Perf } from "./utils.js";
 
 // =============================================================================
 // Section: Drawing Loop
@@ -62,4 +63,5 @@ function drawLoop(timeStamp) {
  */
 export function endFrame() {
   Mix.blend(false, true);
+  Perf.report();
 }

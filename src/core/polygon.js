@@ -1,6 +1,6 @@
 import { State } from "./color.js";
-import { intersectLines } from "./utils.js";
-import { E, drawErase } from "./erase.js";
+import { intersectLines, Perf } from "./utils.js";
+import { W, drawWash } from "./wash.js";
 
 // =============================================================================
 // Section: Polygon Class
@@ -49,20 +49,21 @@ export class Polygon {
   /**
    * Erases the polygon using the erase tool.
    */
-  erase() {
-    drawErase(this.vertices);
+  wash() {
+    drawWash(this.vertices);
   }
 
   /**
    * Displays the polygon with optional stroke, hatch, and fill effects.
    */
   show() {
-    if (E.isActive) {
-      this.erase();
+    if (W.isActive) {
+      this.wash();
       return;
     }
-    if (State.draw) this.draw();
-    if (State.hatch) this.hatch();
-    if (State.fill) this.fill();
+    let _s;
+    if (State.draw) { _s = performance.now(); this.draw(); Perf.stroke += performance.now() - _s; }
+    if (State.hatch) { _s = performance.now(); this.hatch(); Perf.hatch += performance.now() - _s; }
+    if (State.fill) { _s = performance.now(); this.fill(); Perf.fill += performance.now() - _s; }
   }
 }

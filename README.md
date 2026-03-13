@@ -117,8 +117,8 @@ brush.js provides a comprehensive API for creating complex drawings and effects.
 |                                            | brush.noFill()      |   | [Utils](#utils)                            | brush.random()      |
 |                                            | brush.fillBleed()   |   |                                            | brush.noise()       |
 |                                            | brush.fillTexture() |   |                                            | brush.wRand()       |
-| [Erase](#erase-operations)                 | brush.erase()       |   |                                            |                     |
-|                                            | brush.noErase()     |   |                                            |                     |
+| [Wash](#wash-operations)                   | brush.wash()        |   |                                            |                     |
+|                                            | brush.noWash()      |   |                                            |                     |
 
 ---
 
@@ -783,38 +783,33 @@ In essence, the hatching system activates hatches for subsequent shapes, similar
 
 <sub>[back to table](#table-of-functions)</sub>
 
-### Erase Operations
+### Wash Operations
 
-The Erase section provides functions for removing content from the canvas with precise control.
+The Wash section provides functions for painting flat solid color fills over shapes, with optional transparency.
 
 ---
 
-- `brush.erase(color, alpha)`
-  - **Description**: Activates erase mode for subsequent drawing operations. When active, shapes drawn will erase existing content rather than adding to it. The erase effect can be customized with a specific color and transparency level.
+- `brush.wash(color, alpha)`
+  - **Description**: Activates wash mode for subsequent drawing operations. When active, shapes drawn will be filled with a flat solid color at the specified opacity — useful for tinted overlays, highlights, or background washes.
   - **Parameters**:
-    - `color` (String|Color): Optional. The color to use for erasing. Defaults to the background color.
-    - `alpha` (Number): Optional. The transparency level for the erase effect, ranging from 0 to 255. A higher value creates a more opaque erasure. Defaults to 255 (full erasure).
-  - **Usage**:
-    ```javascript 
-    // Activate erase mode with a specific color and partial transparency
-    brush.erase("white", 150);
-    // Draw a circle that partially erases content
-    brush.circle(300, 200, 75);
-    ```
-    Using `brush.erase()` allows for creative effects like partial erasure or colored erasure, useful for creating highlights or special effects.
-
----
-
-- `brush.noErase()`
-  - **Description**: Deactivates erase mode, returning to normal drawing operations. Any shapes drawn after calling this function will add content to the canvas rather than erasing.
+    - `color` (String|Color): Optional. The wash color. Defaults to the background color.
+    - `alpha` (Number): Optional. The opacity of the wash, ranging from 0 to 255. Defaults to 255 (fully opaque).
   - **Usage**:
     ```javascript
-    // Deactivate erase mode
-    brush.noErase();
-    // Resume normal drawing
+    // Paint a semi-transparent white wash over a circle
+    brush.wash("white", 150);
+    brush.circle(300, 200, 75);
+    ```
+
+---
+
+- `brush.noWash()`
+  - **Description**: Deactivates wash mode, returning to normal drawing operations.
+  - **Usage**:
+    ```javascript
+    brush.noWash();
     brush.line(50, 50, 250, 250);
     ```
-    Use `brush.noErase()` when you've finished erasing and want to return to standard drawing operations.
 
 ---
 

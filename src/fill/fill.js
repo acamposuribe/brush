@@ -21,8 +21,9 @@ import {
   map,
   randInt,
   gaussian,
-  rArray,
   rotate,
+  cos,
+  sin,
   _onSeed,
 } from "../core/utils.js";
 import { isFieldReady } from "../core/flowfield.js";
@@ -33,9 +34,8 @@ import { Plot } from "../core/plot.js";
 // Fill State and helpers
 // =============================================================================
 
-/**
- * Global fill state settings.
- */
+// Vertex cap for grow() — set to 0 or false to disable
+const GROW_MAX_VERTS = 512;
 State.fill = {
   color: new Color("#002185"),
   opacity: 60,
@@ -124,8 +124,8 @@ function _isLeft(a, b, c) {
 function _center(pts) {
   if (pts.length < 8) {
     // Simple average for small polygons
-    return pts.reduce((c, p) => ({x: c.x + p.x, y: c.y + p.y}), {x:0, y:0})
-             .map(v => v / pts.length);
+    const sum = pts.reduce((c, p) => ({x: c.x + p.x, y: c.y + p.y}), {x:0, y:0});
+    return {x: sum.x / pts.length, y: sum.y / pts.length};
   }
   
   // Close polygon if needed
@@ -259,22 +259,74 @@ class FillPoly {
    * @returns {Object} An object containing trimmed vertices, multipliers, and direction.
    */
   trim(f = 1) {
+    const L = this.v.length;
     // Fast path for common case
-    if (f >= 1 || f < 0 || this.v.length <= 8) {
-      return {v:[...this.v], m:[...this.m], dir:[...this.dir]};
+    if (f >= 1 || f < 0 || L <= 8) {
+      return { v: this.v, m: this.m, dir: this.dir, start: 0, len: L, trimmed: false };
     }
-    
-    // Trim from middle for balance
-    const n = ~~((1-f) * this.v.length);
-    const s = ~~(this.v.length/2 - n/2);
-    
-    // Clone and splice
-    const v = [...this.v], m = [...this.m], dir = [...this.dir];
-    v.splice(s, n);
-    m.splice(s, n);
-    dir.splice(s, n);
-    
-    return {v, m, dir};
+    // Trim from middle: return two contiguous ranges via concat
+    const n = ~~((1 - f) * L);
+    const s = ~~(L / 2 - n / 2);
+    const v = this.v.slice(0, s).concat(this.v.slice(s + n));
+    const m = this.m.slice(0, s).concat(this.m.slice(s + n));
+    const dir = this.dir.slice(0, s).concat(this.dir.slice(s + n));
+    return { v, m, dir, start: 0, len: v.length, trimmed: true };
+  }
+
+  /**
+   * Randomly samples a fraction of vertices, keeping their order.
+   * Any sampled vertex outside the original polygon is pulled inward.
+   * @param {number} [ratio=0.3] - Fraction of vertices to keep.
+   * @returns {FillPoly} A new FillPoly with fewer vertices, guaranteed inside the original.
+   */
+  scatter(ratio = 0.3) {
+    const L = this.v.length;
+    const keep = Math.max(3, ~~(L * ratio));
+
+    // Build sorted random indices
+    const indices = [];
+    const step = L / keep;
+    for (let i = 0; i < keep; i++) {
+      indices.push(~~(i * step + rr(0, step * 0.8)));
+    }
+
+    const sv = [], sm = [], sd = [];
+    const mid = this.midP;
+    const sides = _polygon.sides;
+
+    for (const idx of indices) {
+      const j = idx % L;
+      let p = this.v[j];
+
+      // Ray-cast: count intersections from p to far right
+      let crossings = 0;
+      for (const [a, b] of sides) {
+        const ay = a.y, by = b.y;
+        if ((ay > p.y) === (by > p.y)) continue;
+        const t = (p.y - ay) / (by - ay);
+        if (p.x < a.x + t * (b.x - a.x)) crossings++;
+      }
+      // If outside (even crossings), pull toward center
+      if (crossings % 2 === 0) {
+        p = {
+          x: mid.x + (p.x - mid.x) * rr(0.3, 0.6),
+          y: mid.y + (p.y - mid.y) * rr(0.3, 0.6),
+        };
+      }
+
+      sv.push(p);
+      sm.push(this.m[j]);
+      sd.push(!this.dir[j]);  // flip direction → grow inward
+    }
+
+    return new FillPoly(sv, sm, this.midP, sd, false, this.sizeX, this.sizeY);
+  }
+
+  /**
+   * Returns a copy with all bleed directions flipped.
+   */
+  flipDirs() {
+    return new FillPoly(this.v, this.m, this.midP, this.dir.map(d => !d), false, this.sizeX, this.sizeY);
   }
 
   /**
@@ -284,52 +336,81 @@ class FillPoly {
    */
   grow(f = 1) {
     // Get trimmed vertices
-    const { v: tr_v, m: tr_m, dir: tr_dir} = this.trim(f);
+    const { v: tr_v, m: tr_m, dir: tr_dir } = this.trim(f);
     const len = tr_v.length;
-    
-    // Pre-allocate arrays for better performance
-    const newVerts = [], newMods = [], newDirs = [];
+
+    // Pre-allocate output arrays
+    const outLen = len * 2;
+    const newVerts = new Array(outLen);
+    const newMods  = new Array(outLen);
+    const newDirs  = new Array(outLen);
 
     // Determine bleed direction
     const bleedDirDeg = State.fill.direction === "out" ? -90 : 90;
 
-    // Process vertices
+    // Ensure gaussian pool is filled
     if (_gaussians[0].length === 0) _fillGaussianPools();
+    const gPool  = _gaussians[0], gPoolLen  = gPool.length;
+    const g2Pool = _gaussians[1], g2PoolLen = g2Pool.length;
+
     let idx = 0;
     let mod = f === 999 ? rr(0.6, 0.8) : State.fill.bleed_strength;
 
     for (let i = 0; i < len; i++) {
       const cv = tr_v[i];
-      const nv = (i + 1 < len) ? tr_v[i + 1] : tr_v[0];
+      const nv = tr_v[i + 1 < len ? i + 1 : 0];
+      const mi = tr_m[i];
+      const di = tr_dir[i];
 
-      // Use existing modifier or calculate new one
-      if (f < 997) mod = tr_m[i];
+      if (f < 997) mod = mi;
 
-      // Calculate rotation
-      const rotDeg = (tr_dir[i] ? bleedDirDeg : -bleedDirDeg) + rr(-1, 1) * 5;
+      // Inline rotate: rotDeg = ±bleedDirDeg + small jitter
+      const rotDeg = (di ? bleedDirDeg : -bleedDirDeg) + rr(-1, 1) * 5;
+      const c = cos(rotDeg);
+      const s = sin(rotDeg);
+
       const sideX = nv.x - cv.x;
       const sideY = nv.y - cv.y;
-      const { x: dirX, y: dirY } = rotate(0, 0, sideX, sideY, rotDeg);
-      
-      // pick a random point along the edge
-      const t = 0.5;
-      // compute outward distance
-      const d = rArray(_gaussians[0]) * rr(0.65, 1.35) * mod;
+      const dirX = c * sideX + s * sideY;
+      const dirY = c * sideY - s * sideX;
 
-      // first vertex: stay at cv
+      // Outward distance: inline rArray + rr
+      const d = gPool[~~(rr(0, 1) * gPoolLen)] * rr(0.65, 1.35) * mod;
+
+      // First vertex: original
       newVerts[idx] = cv;
-      newMods[idx]  = tr_m[i];
-      newDirs[idx++] = tr_dir[i];
+      newMods[idx]  = mi;
+      newDirs[idx]  = di;
+      idx++;
 
-      // second vertex: offset by lerp + outward push
+      // Second vertex: midpoint + outward push
       newVerts[idx] = {
-        x: cv.x + sideX * t + dirX * d,
-        y: cv.y + sideY * t + dirY * d,
+        x: cv.x + sideX * 0.5 + dirX * d,
+        y: cv.y + sideY * 0.5 + dirY * d,
       };
-      newMods[idx]  = tr_m[i] + rArray(_gaussians[1]);
-      newDirs[idx++] = tr_dir[i];
+      newMods[idx] = mi + g2Pool[~~(rr(0, 1) * g2PoolLen)];
+      newDirs[idx] = di;
+      idx++;
     }
-    return new FillPoly(newVerts, newMods, this.midP, newDirs, false, this.sizeX, this.sizeY);
+
+    // Cap vertex count to prevent exponential blowup.
+    let fv = newVerts, fm = newMods, fd = newDirs;
+    if (GROW_MAX_VERTS && idx > GROW_MAX_VERTS) {
+      const step = Math.ceil(idx / GROW_MAX_VERTS);
+      fv = []; fm = []; fd = [];
+      for (let j = 0; j < idx; j += step) {
+        fv.push(newVerts[j]);
+        fm.push(newMods[j]);
+        fd.push(newDirs[j]);
+      }
+    } else {
+      // Trim pre-allocated arrays to actual size
+      fv.length = idx;
+      fm.length = idx;
+      fd.length = idx;
+    }
+
+    return new FillPoly(fv, fm, this.midP, fd, false, this.sizeX, this.sizeY);
   }
 
   /**
@@ -356,6 +437,9 @@ class FillPoly {
 
     // Create initial polygon
     let pol = this.grow();
+    // Create sparse inner polygon from original (pre-grow) vertices
+    const sparse = this.scatter(0.1).grow().scatter(0.75).flipDirs();
+
     let pols;
 
     for (let i = 0; i < numLayers; i++) {
@@ -367,12 +451,13 @@ class FillPoly {
         pols = [
           pol.grow(1 - 0.0125 * i),
           pol.grow(0.7 - 0.0125 * i),
-          pol.grow(0.4 - 0.0125 * i)
+          pol.grow(0.4 - 0.0125 * i),
         ];
       }
 
       // Draw layers
       for (const p of pols) p.grow(999).grow(997).layer(i, size, int);
+      sparse.grow(999).flipDirs().grow(997).layer(i, size, int * 1.5);
       if (i % 2 === 0) pol.grow(darker).grow(999).layer(i, size, int * 2);
 
       // Apply texture and blend periodically
@@ -385,10 +470,6 @@ class FillPoly {
     Mix.ctx.restore();
   }
 
-  /**
-   * Draws a layer of the fill polygon with stroke and fill.
-   * @param {number} i - The layer index.
-   */
   layer(i, size, int) {
     Mix.ctx.lineWidth = map(i, 0, 24, size / 25, size / 30, true);
     Mix.ctx.fillStyle = `rgb(255 0 0 / ${int}%)`;
@@ -427,7 +508,7 @@ class FillPoly {
       const x = midX + gaussian(0, halfSizeX);
       const y = midY + gaussian(0, halfSizeY);
       const size = rr(minSizeFactor, maxSizeFactor);
-      
+
       Mix.ctx.beginPath();
       circle(x, y, size);
       if (i % 5 !== 0) Mix.ctx.fill();
