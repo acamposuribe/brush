@@ -395,8 +395,9 @@ class FillPoly {
 
     // Cap vertex count to prevent exponential blowup.
     let fv = newVerts, fm = newMods, fd = newDirs;
-    if (GROW_MAX_VERTS && idx > GROW_MAX_VERTS) {
-      const step = Math.ceil(idx / GROW_MAX_VERTS);
+    let growe = GROW_MAX_VERTS / (State.fill.texture_strength);
+    if (growe && idx > growe) {
+      const step = Math.ceil(idx / growe);
       fv = []; fm = []; fd = [];
       for (let j = 0; j < idx; j += step) {
         fv.push(newVerts[j]);

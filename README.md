@@ -793,11 +793,11 @@ The Wash section provides functions for painting flat solid color fills over sha
   - **Description**: Activates wash mode for subsequent drawing operations. When active, shapes drawn will be filled with a flat solid color at the specified opacity — useful for tinted overlays, highlights, or background washes.
   - **Parameters**:
     - `color` (String|Color): Optional. The wash color. Defaults to the background color.
-    - `alpha` (Number): Optional. The opacity of the wash, ranging from 0 to 255. Defaults to 255 (fully opaque).
+    - `alpha` (Number): Optional. The opacity of the wash, ranging from 0 to 100. Defaults to 100 (fully opaque).
   - **Usage**:
     ```javascript
     // Paint a semi-transparent white wash over a circle
-    brush.wash("white", 150);
+    brush.wash("white", 60);
     brush.circle(300, 200, 75);
     ```
 

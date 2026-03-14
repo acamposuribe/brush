@@ -1,14 +1,14 @@
 {
   "name": "@acamposuribe/brush",
-  "version": "0.1.2-alpha",
+  "version": "0.1.3-alpha",
   "description": "Unlock custom brushes, natural fill effects and intuitive hatching in vanilla js",
-  "main": "src/index.js",
-  "module": "dist/brush.esm.js",
-  "browser": "dist/brush.js",
+  "main": "./dist/brush.js",
+  "module": "./dist/brush.esm.js",
+  "browser": "./dist/brush.js",
   "scripts": {
     "build": "rollup --config -w"
   },
-  "sideEffects": "false",
+  "sideEffects": false,
   "files": [
     "dist/**/*",
     "README.md",

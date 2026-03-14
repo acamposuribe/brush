@@ -62,7 +62,7 @@ export class Polygon {
       return;
     }
     let _s;
-    if (State.draw) { _s = performance.now(); this.draw(); Perf.stroke += performance.now() - _s; }
+    if (State.stroke) { _s = performance.now(); this.draw(); Perf.stroke += performance.now() - _s; }
     if (State.hatch) { _s = performance.now(); this.hatch(); Perf.hatch += performance.now() - _s; }
     if (State.fill) { _s = performance.now(); this.fill(); Perf.fill += performance.now() - _s; }
   }

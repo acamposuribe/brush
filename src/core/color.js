@@ -15,14 +15,24 @@ export let cID, Cwidth, Cheight, Density; // Global canvas properties
 
 /**
  * Loads and initializes a canvas for the drawing system.
+ * If the canvas was already registered, it can be reloaded by ID only.
  * @param {string} canvasID - Unique identifier for the canvas.
- * @param {HTMLCanvasElement} canvas - The canvas element to initialize.
+ * @param {HTMLCanvasElement} [canvas] - The canvas element to initialize.
  */
 export const load = (canvasID, canvas) => {
   cID = canvasID;
-  if (!Canvases[cID]) Canvases[cID] = { canvas };
-  Cwidth = canvas.width;
-  Cheight = canvas.height;
+  if (canvas) {
+    if (!Canvases[cID]) Canvases[cID] = { canvas };
+    else Canvases[cID].canvas = canvas;
+  }
+
+  const currentCanvas = Canvases[cID]?.canvas;
+  if (!currentCanvas) {
+    throw new Error("Unknown canvas ID. Pass a canvas the first time you call `load()`.");
+  }
+
+  Cwidth = currentCanvas.width;
+  Cheight = currentCanvas.height;
   _isReady = true;
   Mix.load();
 }
@@ -216,6 +226,8 @@ export const Mix = {
  * Stores the background color. Defaults to white.
  */
 let _bg_Color = new Color("white");
+
+export const getBackgroundColor = () => _bg_Color.hex;
 
 /**
  * Sets the background color of the canvas.

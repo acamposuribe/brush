@@ -21,8 +21,8 @@ export function loop(drawingLoop = false) {
   _isLoop = true;
   
   setTimeout(() => {
-  requestAnimationFrame(drawLoop);
-}, "200");
+    requestAnimationFrame(drawLoop);
+  }, 200);
 }
 
 /**
